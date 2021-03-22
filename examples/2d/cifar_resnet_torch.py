@@ -196,7 +196,7 @@ if __name__ == '__main__':
 
     # Optimizer
     lr = 0.1
-    for epoch in tqdm(range(0, 10)):
+    for epoch in tqdm(range(0, 90)):
         if epoch%20==0:
             optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9,
                                         weight_decay=0.0005)
