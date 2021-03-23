@@ -261,7 +261,7 @@ if __name__ == '__main__':
         if epoch%20==0:
             optimizer = torch.optim.SGD(filters + list(model.parameters()), lr=lr, momentum=0.9,
                                         weight_decay=0.0005)
-            lr*=0.2
+            lr*=0.1
 
         train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
         test(model, device, test_loader, scattering, psi)
