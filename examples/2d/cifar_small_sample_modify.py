@@ -286,7 +286,7 @@ def main():
 
     # Optimizer
     lr = 0.1
-    lr_scattering = 0.0001
+    lr_scattering = 0.001
     M = args.learning_schedule_multi
     drops = [60*M,120*M,160*M]
     phi, psi  = scattering.load_filters()
