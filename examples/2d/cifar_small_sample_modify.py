@@ -13,10 +13,67 @@ from kymatio import Scattering2D
 import torch
 import argparse
 import kymatio.datasets as scattering_datasets
+from kymatio.scattering2d.core.scattering2d import scattering2d
 import torch.nn as nn
 from numpy.random import RandomState
 import numpy as np
 
+
+def construct_scattering(input, scattering, psi):
+    if not torch.is_tensor(input):
+        raise TypeError('The input should be a PyTorch Tensor.')
+
+    if len(input.shape) < 2:
+        raise RuntimeError('Input tensor must have at least two dimensions.')
+
+    if not input.is_contiguous():
+        raise RuntimeError('Tensor must be contiguous.')
+
+    if (input.shape[-1] != scattering.N or input.shape[-2] != scattering.M) and not scattering.pre_pad:
+        raise RuntimeError('Tensor must be of spatial size (%i,%i).' % (scattering.M, scattering.N))
+
+    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering_padded) and scattering.pre_pad:
+        raise RuntimeError('Padded tensor must be of spatial size (%i,%i).' % (scattering.M_padded, scattering.N_padded))
+
+    if not scattering.out_type in ('array', 'list'):
+        raise RuntimeError("The out_type must be one of 'array' or 'list'.")
+
+    # phi, psi  = scattering.load_filters()
+    # make_filters_diff(psi)
+    # scattering.psi = psi
+
+    batch_shape = input.shape[:-2]
+    signal_shape = input.shape[-2:]
+
+    input = input.reshape((-1,) + signal_shape)
+
+    S = scattering2d(input, scattering.pad, scattering.unpad, scattering.backend, scattering.J,
+                        scattering.L, scattering.phi, psi, scattering.max_order, scattering.out_type)
+
+    if scattering.out_type == 'array':
+        scattering_shape = S.shape[-3:]
+        S = S.reshape(batch_shape + scattering_shape)
+    # else:
+    #     scattering_shape = S[0]['coef'].shape[-2:]
+    #     new_shape = batch_shape + scattering_shape
+
+    #     for x in S:
+    #         x['coef'] = x['coef'].reshape(new_shape)
+
+    return S
+
+def make_filters_diff(psi):
+    """ This function make the filters differentiable """
+    # 
+    filters = []
+    for j in range(len(psi)):
+        for k, v in psi[j].items():
+            if not isinstance(k, int):
+                continue
+            v.requires_grad = True
+            filters.append(v)
+    return filters
+        
 
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -126,12 +183,13 @@ class Scattering2dResNet(nn.Module):
 
 
 
-def train(model, device, train_loader, optimizer, epoch, scattering):
+def train(model, device, train_loader, optimizer, epoch, scattering, psi):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
-        output = model(scattering(data))
+        data = construct_scattering(data, scattering, psi)
+        output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
@@ -140,14 +198,15 @@ def train(model, device, train_loader, optimizer, epoch, scattering):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
 
-def test(model, device, test_loader, scattering):
+def test(model, device, test_loader, scattering, psi):
     model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)
-            output = model(scattering(data))
+            data = construct_scattering(data, scattering, psi)
+            output = model(data)
             test_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -229,15 +288,17 @@ def main():
     lr = 0.1
     M = args.learning_schedule_multi
     drops = [60*M,120*M,160*M]
+    phi, psi  = scattering.load_filters()
+    filters = make_filters_diff(psi)
     for epoch in range(0, 200*M):
         if epoch in drops or epoch==0:
-            optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9,
+            optimizer = torch.optim.SGD(filters + list(model.parameters()), lr=lr, momentum=0.9,
                                         weight_decay=0.0005)
             lr*=0.2
 
-        train(model, device, train_loader, optimizer, epoch+1, scattering)
+        train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
         if epoch%10==0:
-            test(model, device, test_loader, scattering)
+            test(model, device, test_loader, scattering, psi)
 
 
 
