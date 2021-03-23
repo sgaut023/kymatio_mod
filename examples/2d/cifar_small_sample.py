@@ -129,7 +129,7 @@ class Scattering2dResNet(nn.Module):
 def train(model, device, train_loader, optimizer, epoch, scattering):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
+        data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
         output = model(scattering(data))
         loss = F.cross_entropy(output, target)
@@ -146,7 +146,7 @@ def test(model, device, test_loader, scattering):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(device), target.to(device, dtype=torch.long)
             output = model(scattering(data))
             test_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
