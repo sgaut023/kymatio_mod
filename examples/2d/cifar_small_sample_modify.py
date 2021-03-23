@@ -286,15 +286,18 @@ def main():
 
     # Optimizer
     lr = 0.1
+    lr_scattering = 0.0001
     M = args.learning_schedule_multi
     drops = [60*M,120*M,160*M]
     phi, psi  = scattering.load_filters()
     filters = make_filters_diff(psi)
     for epoch in range(0, 200*M):
         if epoch in drops or epoch==0:
-            optimizer = torch.optim.SGD(filters + list(model.parameters()), lr=lr, momentum=0.9,
+            optimizer = torch.optim.SGD([{'params': filters, 'lr': lr_scattering}, 
+                                        {'params': model.parameters()}], lr=lr, momentum=0.9,
                                         weight_decay=0.0005)
             lr*=0.2
+            lr_scattering*=0.2
 
         train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
         if epoch%10==0:
