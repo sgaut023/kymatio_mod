@@ -164,9 +164,9 @@ def main():
     parser = argparse.ArgumentParser(description='CIFAR scattering  + hybrid examples')
     parser.add_argument('--mode', type=str, default='scattering',choices=['scattering', 'standard'],
                         help='network_type')
-    parser.add_argument('--num_samples', type=int, default=10,
+    parser.add_argument('--num_samples', type=int, default=100,
                         help='samples per class')
-    parser.add_argument('--learning_schedule_multi', type=int, default=100,
+    parser.add_argument('--learning_schedule_multi', type=int, default=10,
                         help='samples per class')
     parser.add_argument('--seed', type=int, default=0,
                         help='seed for dataset subselection')
