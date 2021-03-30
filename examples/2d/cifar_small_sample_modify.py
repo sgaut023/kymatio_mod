@@ -223,9 +223,9 @@ def main():
     parser = argparse.ArgumentParser(description='CIFAR scattering  + hybrid examples')
     parser.add_argument('--mode', type=str, default='scattering',choices=['scattering', 'standard'],
                         help='network_type')
-    parser.add_argument('--num_samples', type=int, default=100,
+    parser.add_argument('--num_samples', type=int, default=50,
                         help='samples per class')
-    parser.add_argument('--learning_schedule_multi', type=int, default=10,
+    parser.add_argument('--learning_schedule_multi', type=int, default=20,
                         help='samples per class')
     parser.add_argument('--seed', type=int, default=0,
                         help='seed for dataset subselection')
@@ -286,7 +286,7 @@ def main():
 
     # Optimizer
     lr = 0.1
-    lr_scattering = 0.000001
+    lr_scattering = 0.001
     M = args.learning_schedule_multi
     drops = [60*M,120*M,160*M]
     phi, psi  = scattering.load_filters()
