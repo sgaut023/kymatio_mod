@@ -294,7 +294,7 @@ def main():
     phi, psi  = scattering.load_filters()
     filters = make_filters_diff(psi)
     test_acc = []
-    for epoch in range(0, 2):
+    for epoch in range(0, 200*M):
         if epoch in drops or epoch==0:
             optimizer = torch.optim.SGD([{'params': filters, 'lr': lr_scattering}, 
                                         {'params': model.parameters()}], lr=lr, momentum=0.9,
@@ -303,8 +303,8 @@ def main():
             lr_scattering*=0.2
 
         train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
-        #if epoch%1==0:
-        test_acc.append(test(model, device, test_loader, scattering, psi))
+        if epoch%1==0:
+            test_acc.append(test(model, device, test_loader, scattering, psi))
     #save accuracy
     test_acc = np.array(test_acc)
     np.savetxt('cifar01.csv', test_acc, delimiter=",")
