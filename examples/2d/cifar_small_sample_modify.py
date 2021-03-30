@@ -17,6 +17,7 @@ from kymatio.scattering2d.core.scattering2d import scattering2d
 import torch.nn as nn
 from numpy.random import RandomState
 import numpy as np
+import pickle
 
 
 def construct_scattering(input, scattering, psi):
@@ -215,6 +216,7 @@ def test(model, device, test_loader, scattering, psi):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+    return 100. * correct / len(test_loader.dataset)
 
 def main():
     """Train a simple Hybrid Resnet Scattering + CNN model on CIFAR.
@@ -291,7 +293,8 @@ def main():
     drops = [60*M,120*M,160*M]
     phi, psi  = scattering.load_filters()
     filters = make_filters_diff(psi)
-    for epoch in range(0, 200*M):
+    test_acc = []
+    for epoch in range(0, 2):
         if epoch in drops or epoch==0:
             optimizer = torch.optim.SGD([{'params': filters, 'lr': lr_scattering}, 
                                         {'params': model.parameters()}], lr=lr, momentum=0.9,
@@ -300,10 +303,15 @@ def main():
             lr_scattering*=0.2
 
         train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
-        if epoch%10==0:
-            test(model, device, test_loader, scattering, psi)
+        #if epoch%1==0:
+        test_acc.append(test(model, device, test_loader, scattering, psi))
+    #save accuracy
+    test_acc = np.array(test_acc)
+    np.savetxt('cifar01.csv', test_acc, delimiter=",")
 
-
+    #save filters 
+    with open('filters_4000_epochs_0_01.pickle', 'wb') as handle:
+        pickle.dump(filters, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
     main()
