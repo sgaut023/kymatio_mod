@@ -259,7 +259,8 @@ if __name__ == '__main__':
     filters = make_filters_diff(psi)
     for epoch in tqdm(range(0, 90)):
         if epoch%20==0:
-            optimizer = torch.optim.SGD(filters + list(model.parameters()), lr=lr, momentum=0.9,
+            optimizer = torch.optim.SGD(
+                 + list(model.parameters()), lr=lr, momentum=0.9,
                                         weight_decay=0.0005)
             lr*=0.1
 
