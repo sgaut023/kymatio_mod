@@ -1,0 +1,15 @@
+artifact_uri: /NOBACKUP/gauthiers/kymatio_mod/mlruns/0/efb6dcd856bb4897acf16112e8bb026b/artifacts
+end_time: 1617847917019
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+name: ''
+run_id: efb6dcd856bb4897acf16112e8bb026b
+run_uuid: efb6dcd856bb4897acf16112e8bb026b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1617847915550
+status: 4
+tags: []
+user_id: gauthiers

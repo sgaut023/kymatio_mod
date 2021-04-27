@@ -1,0 +1,30 @@
+#data preprocessing:
+preprocess:
+  dimension:
+    M:  32   # ultrasound image dimension
+    N:  32   # ultrasound image dimension
+
+#model
+model:
+  name: 'cnn'
+  lr: 0.1
+  lr_scattering: 0.01
+  batch_size: 32
+  weight_decay: 0.0005
+  momentum: 0.9
+  seed: 0    # seed for dataset subselection
+  width: 2   # width factor for resnet
+  learning_schedule_multi: 10 #samples per class
+  num_samples: 10 #samples per class
+  mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
+  epoch: 200
+  
+# kymatio 
+scattering:
+  J: 2
+  max_order: 2
+
+mlflow:
+  tracking_uri: '/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  experiment_name: 'linear_layer_baseline_new'
+

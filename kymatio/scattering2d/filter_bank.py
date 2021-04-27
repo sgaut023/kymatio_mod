@@ -42,6 +42,7 @@ def filter_bank(M, N, J, L=8):
                 (int(L-L/2-1)-theta) * np.pi / L,
                 3.0 / 4.0 * np.pi /2**j, 4.0/L)
             psi_signal_fourier = fft2(psi_signal)
+            
             # drop the imaginary part, it is zero anyway
             psi_signal_fourier = np.real(psi_signal_fourier)
             for res in range(min(j + 1, max(J - 1, 1))):

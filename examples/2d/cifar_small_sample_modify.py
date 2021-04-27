@@ -5,7 +5,9 @@ Classification on CIFAR10 (ResNet)
 Based on pytorch example for CIFAR10
 """
 
-
+import sys
+from pathlib import Path 
+sys.path.append(str(Path.cwd()))
 import torch.optim
 from torchvision import datasets, transforms
 import torch.nn.functional as F
@@ -18,6 +20,12 @@ import torch.nn as nn
 from numpy.random import RandomState
 import numpy as np
 import pickle
+import time
+import mlflow
+import os
+from examples.utils.context import get_context
+from examples.utils.wavelet_visualization import get_filters_visualization
+
 
 
 def construct_scattering(input, scattering, psi):
@@ -218,33 +226,52 @@ def test(model, device, test_loader, scattering, psi):
         100. * correct / len(test_loader.dataset)))
     return 100. * correct / len(test_loader.dataset)
 
+def log_mlflow(params, model, test_acc, start_time,filters_plots_before, filters_plots_after ):
+    duration = (time.time() - start_time)
+    mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
+    mlflow.set_experiment(params['mlflow']['experiment_name'])
+    with mlflow.start_run():
+        mlflow.log_params(params['model'])   
+        mlflow.log_params(params['scattering'])
+        mlflow.log_params(params['preprocess']['dimension'])
+        #mlflow.log_param('Duration', duration)
+        mlflow.log_metric('Final Accuracy', test_acc[-1])
+        mlflow.pytorch.log_model(model, artifact_path = 'model')
+
+        #save filters 
+        for key in filters_plots_before:
+            mlflow.log_figure(filters_plots_before[key], f'filters_before/{key}.png')
+            mlflow.log_figure(filters_plots_after[key], f'filters_after/{key}.png')
+        
+        # saving all accuracies
+        np.savetxt('accuracy.csv', test_acc, delimiter=",")
+        mlflow.log_artifact('accuracy.csv', 'accuracy_values')
+        os.remove('accuracy.csv')
+
 def main():
     """Train a simple Hybrid Resnet Scattering + CNN model on CIFAR.
 
     """
-    parser = argparse.ArgumentParser(description='CIFAR scattering  + hybrid examples')
-    parser.add_argument('--mode', type=str, default='scattering',choices=['scattering', 'standard'],
-                        help='network_type')
-    parser.add_argument('--num_samples', type=int, default=50,
-                        help='samples per class')
-    parser.add_argument('--learning_schedule_multi', type=int, default=20,
-                        help='samples per class')
-    parser.add_argument('--seed', type=int, default=0,
-                        help='seed for dataset subselection')
-    parser.add_argument('--width', type=int, default=2,help='width factor for resnet')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--param_file', type=str, default='parameters.yml',
+                        help="YML Parameter File Name")
     args = parser.parse_args()
+    catalog, params = get_context(args.param_file)
+    
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    if args.mode == 'scattering':
-        scattering = Scattering2D(J=2, shape=(32, 32))
+    if params['model']['mode'] == 'scattering':
+        J = params['scattering']['J']
+        M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
+        scattering = Scattering2D(J=J, shape=(M, N))
         K = 81*3
-        model = Scattering2dResNet(K, args.width).to(device)
+        model = Scattering2dResNet(K, params['model']['width']).to(device)
         if use_cuda:
             scattering = scattering.cuda()
     else:
-        model = Scattering2dResNet(8, args.width,standard=True).to(device)
+        model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
         scattering = Identity()
 
 
@@ -268,13 +295,13 @@ def main():
             normalize,
         ]), download=True)
     # Extract a subset of X samples per class
-    prng = RandomState(args.seed)
-    random_permute = prng.permutation(np.arange(0, 5000))[0:args.num_samples]
+    prng = RandomState(params['model']['seed'])
+    random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
     indx = np.concatenate([np.where(np.array(cifar_data.targets) == classe)[0][random_permute] for classe in range(0, 10)])
 
     cifar_data.data, cifar_data.targets = cifar_data.data[indx], list(np.array(cifar_data.targets)[indx])
     train_loader = torch.utils.data.DataLoader(cifar_data,
-                                               batch_size=32, shuffle=True, num_workers=num_workers,
+                                               batch_size=64, shuffle=True, num_workers=num_workers,
                                                pin_memory=pin_memory)
 
     test_loader = torch.utils.data.DataLoader(
@@ -282,19 +309,24 @@ def main():
             transforms.ToTensor(),
             normalize,
         ])),
-        batch_size=128, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
-
+        batch_size=32, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
 
 
     # Optimizer
     lr = 0.1
     lr_scattering = 0.001
-    M = args.learning_schedule_multi
+    M = params['model']['learning_schedule_multi']
     drops = [60*M,120*M,160*M]
     phi, psi  = scattering.load_filters()
     filters = make_filters_diff(psi)
+    # visualize wavlet filters before training
+    filters_plots_before = {}
+    for mode in ['fourier','real', 'imag' ]:
+        f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode)
+        filters_plots_before [mode]  = f  
     test_acc = []
-    for epoch in range(0, 200*M):
+    start_time = time.time()
+    for epoch in range(0, 1):
         if epoch in drops or epoch==0:
             optimizer = torch.optim.SGD([{'params': filters, 'lr': lr_scattering}, 
                                         {'params': model.parameters()}], lr=lr, momentum=0.9,
@@ -303,15 +335,17 @@ def main():
             lr_scattering*=0.2
 
         train(model, device, train_loader, optimizer, epoch+1, scattering, psi)
-        if epoch%1==0:
+        if epoch%10==0:
             test_acc.append(test(model, device, test_loader, scattering, psi))
-    #save accuracy
-    test_acc = np.array(test_acc)
-    np.savetxt('cifar01.csv', test_acc, delimiter=",")
 
-    #save filters 
-    with open('filters_4000_epochs_0_01.pickle', 'wb') as handle:
-        pickle.dump(filters, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #visualize filters
+    filters_plots_after= {}
+    for mode in ['fourier','real', 'imag' ]:
+        f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode)
+        filters_plots_after[mode]  = f  
+    #log metrics mlflow
+    log_mlflow(params, model, np.array(test_acc), start_time, filters_plots_before , filters_plots_after)
+
 
 if __name__ == '__main__':
     main()
