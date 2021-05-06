@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path 
 import numpy as np
+from kymatio.scattering2d.core.scattering2d import scattering2d
 import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import torch
@@ -62,6 +63,7 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim):
     slants = torch.FloatTensor(slants)
     orientations = torch.FloatTensor(orientations) 
     params = [orientations, xis, sigmas, slants]
+
     if is_scattering_dif:
         for param in params:
             param.requires_grad = True
