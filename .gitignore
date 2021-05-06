@@ -1,3 +1,8 @@
+#Custom Ben
+*.pth
+
+
+#custom Shanel
 *.swp
 *.swo
 *__pycache__*

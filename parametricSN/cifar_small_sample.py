@@ -285,9 +285,10 @@ def main():
             test_acc.append(accuracy)
 
     # plot train and test loss
+
     f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], y_label='loss')
     f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], y_label='accuracy')
-    
+
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
