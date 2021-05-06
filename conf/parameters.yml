@@ -13,13 +13,13 @@ model:
   batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
-  seed: 0    # seed for dataset subselection
+  seed: 42    # seed for dataset subselection
   width: 2   # width factor fo resnet
   num_samples: 10  #samples per class
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 100
+  epoch: 2000
   optimizer: 'sgd'
-  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR'
+  scheduler: 'StepLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR', or 'StepLR'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
