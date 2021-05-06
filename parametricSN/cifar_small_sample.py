@@ -28,7 +28,7 @@ from parametricSN.utils.create_filters import create_filters_params_random,  mor
 from parametricSN.utils.create_filters import create_filters_params, construct_scattering
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
-
+from parametricSN.utils.auto_augment import AutoAugment, Cutout
 
      
 class Identity(nn.Module):
@@ -82,23 +82,38 @@ def get_dataset(params, use_cuda):
     else:
         num_workers = 0
         pin_memory = False
+        
+    #CIFAR-10 normalization    
+    normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                                  std=[0.247, 0.243, 0.261])
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    #default normalization
+    # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+    #                                  std=[0.229, 0.224, 0.225])
 
 
-    #####cifar data
-    cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=transforms.Compose([
-            transforms.RandomHorizontalFlip(),
+    # Tranform before
+#     trainTransform = transforms.Compose([
+#             transforms.RandomHorizontalFlip(),
+#             transforms.RandomCrop(32, 4),
+#             transforms.ToTensor(),
+#             normalize,
+#         ])
+
+    # Ben's data augmentation
+    trainTransform = transforms.Compose([
             transforms.RandomCrop(32, 4),
+            transforms.RandomHorizontalFlip(),
+            AutoAugment(),
+            Cutout(),
             transforms.ToTensor(),
             normalize,
-        ]), download=True)
+        ])
 
-    # cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=torchvision.transforms.AutoAugmentPolicy(
-    # AutoAugmentPolicy = torchvision.transforms.autoaugment.AutoAugmentPolicy.CIFAR10 ), download=True)
+    #####cifar data
+    cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=trainTransform, download=True)
 
-        
+
     # Extract a subset of X samples per class
     prng = RandomState(params['model']['seed'])
     random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
@@ -129,6 +144,7 @@ def create_scattering(params, device, use_cuda):
     phi, psi  = scattering.load_filters()
     params_filters = []
     wavelets = None
+       
     # if we want to optimize the parameters used to create the filters
     if params['model']['mode'] == 'scattering_dif' :      
         # We can initialize the parameters randomly or as the kymatio package does
