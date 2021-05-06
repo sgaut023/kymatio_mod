@@ -143,13 +143,14 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device, dtype=torch.long)
-            if is_scattering_dif:
+        if is_scattering_dif:
                 wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                     params_filters[1], params_filters[2], params_filters[3], device=device )
                 for i,d in enumerate(psi):
-                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device)   
+                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device, dtype=torch.long)  
+            if is_scattering_dif:
                 data = construct_scattering(data, scattering, psi)
             else:
                 data = scattering(data)

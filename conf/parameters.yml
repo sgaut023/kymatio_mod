@@ -15,7 +15,6 @@ model:
   momentum: 0.9
   seed: 0    # seed for dataset subselection
   width: 2   # width factor fo resnet
-  learning_schedule_multi:   #samples per class
   num_samples: 10  #samples per class
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 11
@@ -24,7 +23,7 @@ model:
   init_params: 'Random' # 'Random' or 'Kymatio'
   three_phase: False 
   T_max: 
-  comment: 'max_lr=0.05'
+  comment: 
 
   
 # kymatio 
