@@ -279,14 +279,14 @@ def main():
         train_accuracies.append(train_accuracy)
 
        # at every 10 epochs, the test accuracy will be displayed
-        if epoch%10==0:
+        if epoch%params['model']['test_interval']==0 or epoch == epochs -1:
             accuracy, test_loss = test(model, device, test_loader, is_scattering_dif, scattering, psi_skeleton, params_filters )
             test_losses.append(test_loss )
             test_acc.append(accuracy)
 
     # plot train and test loss
-    f_loss = visualize_loss(train_losses ,test_losses, step_test = 10, y_label='loss')
-    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = 10, y_label='accuracy')
+    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['test_interval'], y_label='loss')
+    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['test_interval'], y_label='accuracy')
     
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
