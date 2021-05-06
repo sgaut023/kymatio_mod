@@ -13,13 +13,13 @@ import numpy as np
 import time
 import copy
 import os
+import torchvision
 from torchvision import datasets, transforms
 import torch.nn.functional as F
 import torch
 import argparse
 import kymatio.datasets as scattering_datasets
 from kymatio import Scattering2D
-from kymatio.scattering2d.core.scattering2d import scattering2d
 import torch.nn as nn
 from numpy.random import RandomState
 from parametricSN.utils.context import get_context
@@ -68,6 +68,8 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
         scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
                                             step_size_up=params['model']['T_max']*2,
                                              mode="triangular2")
+    elif params['model']['scheduler'] =='StepLR':
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=120, gamma=0.2)
     else:
         raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
     return scheduler
@@ -92,6 +94,11 @@ def get_dataset(params, use_cuda):
             transforms.ToTensor(),
             normalize,
         ]), download=True)
+
+    # cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=torchvision.transforms.AutoAugmentPolicy(
+    # AutoAugmentPolicy = torchvision.transforms.autoaugment.AutoAugmentPolicy.CIFAR10 ), download=True)
+
+        
     # Extract a subset of X samples per class
     prng = RandomState(params['model']['seed'])
     random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
@@ -265,6 +272,8 @@ def main():
                                                 weight_decay=params['model']['weight_decay'])
     epochs  = params['model']['epoch']
     scheduler = get_lr_scheduler(optimizer, params, len(train_loader))
+    if params['model']['mode'] == 'scattering_dif':
+        is_scattering_dif = True
 
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
@@ -272,6 +281,7 @@ def main():
         if params['model']['mode'] == 'scattering_dif':
             lrs_orientation.append(optimizer.param_groups[1]['lr'])
             lrs_scattering.append(optimizer.param_groups[2]['lr'])
+            
         
         # training 
         train_loss, train_accuracy = train(model, device, train_loader, is_scattering_dif, scheduler, optimizer,  epoch+1, scattering, psi_skeleton, params_filters )
