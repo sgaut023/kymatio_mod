@@ -6,18 +6,26 @@ preprocess:
 
 #model
 model:
-  name: 'cnn'
+  name: 'linear layer'
   lr: 0.1
-  lr_scattering: 0.01
-  batch_size: 32
+  lr_scattering: 0.1
+  lr_orientation: 0.1
+  batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
   seed: 0    # seed for dataset subselection
-  width: 2   # width factor for resnet
-  learning_schedule_multi: 10 #samples per class
-  num_samples: 10 #samples per class
+  width: 2   # width factor fo resnet
+  learning_schedule_multi:   #samples per class
+  num_samples: 10  #samples per class
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 200
+  epoch: 11
+  optimizer: 'sgd'
+  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR'
+  init_params: 'Random' # 'Random' or 'Kymatio'
+  three_phase: False 
+  T_max: 
+  comment: 'max_lr=0.05'
+
   
 # kymatio 
 scattering:
@@ -26,5 +34,5 @@ scattering:
 
 mlflow:
   tracking_uri: '/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'linear_layer_baseline_new'
+  experiment_name: 'linear_layer_baseline_v2'
 

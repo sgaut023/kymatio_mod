@@ -1,0 +1,4 @@
+artifact_location: /NOBACKUP/gauthiers/kymatio_mod/mlruns/3
+experiment_id: '3'
+lifecycle_stage: active
+name: linear_layer_baseline_test

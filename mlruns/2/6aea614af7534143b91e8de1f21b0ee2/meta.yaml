@@ -2,7 +2,7 @@ artifact_uri: /NOBACKUP/gauthiers/kymatio_mod/mlruns/2/6aea614af7534143b91e8de1f
 end_time: 1619143804790
 entry_point_name: ''
 experiment_id: '2'
-lifecycle_stage: active
+lifecycle_stage: deleted
 name: ''
 run_id: 6aea614af7534143b91e8de1f21b0ee2
 run_uuid: 6aea614af7534143b91e8de1f21b0ee2
