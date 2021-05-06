@@ -279,7 +279,7 @@ def main():
         train_accuracies.append(train_accuracy)
 
        # at every 10 epochs, the test accuracy will be displayed
-        if epoch%params['model']['test_interval']==0 or epoch == epochs -1:
+        if epoch%params['model']['step_test']==0 or epoch == epochs -1:
             accuracy, test_loss = test(model, device, test_loader, is_scattering_dif, scattering, psi_skeleton, params_filters )
             test_losses.append(test_loss )
             test_acc.append(accuracy)
