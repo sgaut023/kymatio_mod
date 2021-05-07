@@ -29,7 +29,7 @@ from parametricSN.utils.create_filters import create_filters_params, construct_s
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
-
+from parametricSN.utils.cifar_loader import SmallSampleController
      
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -82,6 +82,16 @@ def get_dataset(params, use_cuda):
     else:
         num_workers = 0
         pin_memory = False
+
+    NUM_CLASSES = 10
+    TRAIN_SAMPLE_NUM = params['model']['num_samples']
+    VAL_SAMPLE_NUM = 10000
+    BATCH_SIZE = params['model']['batch_size']
+    VALIDATION_SET_NUM = 1
+    AUGMENT = True
+    CIFAR_TRAIN = True
+    SEED = params['model']['seed'] #None means a random seed 
+    DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
         
     #CIFAR-10 normalization    
     normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
@@ -92,44 +102,63 @@ def get_dataset(params, use_cuda):
     #                                  std=[0.229, 0.224, 0.225])
 
 
-    # Tranform before
-#     trainTransform = transforms.Compose([
-#             transforms.RandomHorizontalFlip(),
-#             transforms.RandomCrop(32, 4),
-#             transforms.ToTensor(),
-#             normalize,
-#         ])
-
     # Ben's data augmentation
-    trainTransform = transforms.Compose([
-            transforms.RandomCrop(32, 4),
-            transforms.RandomHorizontalFlip(),
-            AutoAugment(),
-            Cutout(),
-            transforms.ToTensor(),
-            normalize,
-        ])
+    if AUGMENT:
+        trainTransform = [
+                transforms.RandomCrop(32, 4),
+                transforms.RandomHorizontalFlip(),
+                AutoAugment(),
+                Cutout()
+            ]
+    else: 
+        trainTransform = []
+
+    
+
+    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+
+    cifar_train = datasets.CIFAR10(root=DATA_DIR,train=CIFAR_TRAIN, 
+                transform=transform_train, download=True)
+
+    cifar_val = datasets.CIFAR10(root=DATA_DIR,train=CIFAR_TRAIN, 
+                transform=transform_val, download=True)
+
+    ss = SmallSampleController(numClasses=NUM_CLASSES,trainSampleNum=TRAIN_SAMPLE_NUM, # abstract the data-loading procedure
+                            valSampleNum=VAL_SAMPLE_NUM, batchSize=BATCH_SIZE, 
+                            multiplier=VALIDATION_SET_NUM, trainDataset=cifar_train, 
+                            valDataset=cifar_val)
+        
+        
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
+        device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
+
+
+    params['model']['seed'] = seed
+    train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0]
 
     #####cifar data
-    cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=trainTransform, download=True)
+    # cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=trainTransform, download=True)
 
 
-    # Extract a subset of X samples per class
-    prng = RandomState(params['model']['seed'])
-    random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
-    indx = np.concatenate([np.where(np.array(cifar_data.targets) == classe)[0][random_permute] for classe in range(0, 10)])
+    # # Extract a subset of X samples per class
+    # prng = RandomState(params['model']['seed'])
+    # random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
+    # indx = np.concatenate([np.where(np.array(cifar_data.targets) == classe)[0][random_permute] for classe in range(0, 10)])
 
-    cifar_data.data, cifar_data.targets = cifar_data.data[indx], list(np.array(cifar_data.targets)[indx])
-    train_loader = torch.utils.data.DataLoader(cifar_data,
-                                               batch_size=params['model']['batch_size'], shuffle=True, num_workers=num_workers,
-                                               pin_memory=pin_memory)
+    # cifar_data.data, cifar_data.targets = cifar_data.data[indx], list(np.array(cifar_data.targets)[indx])
+    # train_loader = torch.utils.data.DataLoader(cifar_data,
+    #                                            batch_size=params['model']['batch_size'], shuffle=True, num_workers=num_workers,
+    #                                            pin_memory=pin_memory)
 
-    test_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=32, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
+    # test_loader = torch.utils.data.DataLoader(
+    #     datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=False, transform=transforms.Compose([
+    #         transforms.ToTensor(),
+    #         normalize,
+    #     ])),
+    #     batch_size=32, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
     
     return train_loader,  test_loader 
 
