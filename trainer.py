@@ -1,3 +1,12 @@
+"""Script to make multiple train runs in sequence 
+
+
+example command:
+
+python parametricSN/cifar_small_sample.py run-train -o sgd -lr 0.1 -lrs 0.1 -lro 0.1 -s 1620406577 -m scattering -e 3000
+"""
+
+
 import os
 import time
 
