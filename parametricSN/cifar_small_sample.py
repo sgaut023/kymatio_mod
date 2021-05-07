@@ -57,6 +57,7 @@ class LinearLayer(nn.Module):
         return self.fc2(x)
 
 def get_lr_scheduler(optimizer, params, steps_per_epoch ):
+
     if params['model']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
                                                         steps_per_epoch=steps_per_epoch, 
@@ -73,28 +74,29 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
                                              mode="triangular2")
     elif params['model']['scheduler'] =='StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2400, gamma=0.2)
-    else:
+    elif params['model']['scheduler'] == 'NoScheduler':
         scheduler = None
+    else:
+        raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
     return scheduler
 
 def get_dataset(params, use_cuda):
-        # DataLoaders
+    NUM_CLASSES = 10
+    TRAIN_SAMPLE_NUM = params['model']['num_samples']
+    VAL_SAMPLE_NUM = 10000
+    BATCH_SIZE = params['model']['batch_size']
+    VALIDATION_SET_NUM = 1
+    AUGMENT = params['model']['augment']
+    CIFAR_TRAIN = True
+    SEED = params['model']['seed'] #None means a random seed 
+    DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+
     if use_cuda:
         num_workers = 4
         pin_memory = True
     else:
         num_workers = 0
         pin_memory = False
-
-    NUM_CLASSES = 10
-    TRAIN_SAMPLE_NUM = params['model']['num_samples']
-    VAL_SAMPLE_NUM = 10000
-    BATCH_SIZE = params['model']['batch_size']
-    VALIDATION_SET_NUM = 1
-    AUGMENT = True
-    CIFAR_TRAIN = True
-    SEED = params['model']['seed'] #None means a random seed 
-    DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
         
     #CIFAR-10 normalization    
     normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
@@ -104,18 +106,28 @@ def get_dataset(params, use_cuda):
     # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
     #                                  std=[0.229, 0.224, 0.225])
 
-
-    # Ben's data augmentation
-    if AUGMENT:
-        print("Augmenting data with AutoAugment")
+    if AUGMENT == 'autoaugment':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         trainTransform = [
-                transforms.RandomCrop(32, 4),
-                transforms.RandomHorizontalFlip(),
-                AutoAugment(),
-                Cutout()
-            ]
-    else: 
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            AutoAugment(),
+            Cutout()
+        ]
+    elif AUGMENT == 'original-cifar':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+        trainTransform = [
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4)
+        ]
+    elif AUGMENT == 'noaugment':
+        print("\n[get_dataset(params, use_cuda)] No data augmentation")
         trainTransform = []
+
+    elif AUGMENT == 'glico':
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+    else: 
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
 
     
 
@@ -135,10 +147,9 @@ def get_dataset(params, use_cuda):
         
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    
     train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
         device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
-
 
     params['model']['seed'] = seed
     train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0]
@@ -226,7 +237,8 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
-        if scheduler is not None:
+
+        if scheduler != None:
             scheduler.step()
 
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
@@ -417,10 +429,11 @@ def main():
     subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
     subparser.add_argument("--epoch", "-e", type=int)
     subparser.add_argument("--optimizer", "-o", type=str)
-    subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR'])
+    subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
     subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])
     subparser.add_argument("--step-test", "-st", type=int)
     subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
+    subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
 
