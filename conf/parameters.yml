@@ -10,7 +10,7 @@ model:
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
-  batch_size: 128
+  batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
   seed: None    # seed for dataset subselection (if None generate random)
@@ -19,7 +19,7 @@ model:
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 5000
   optimizer: 'sgd'
-  scheduler: 'NoScheduler' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
+  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 

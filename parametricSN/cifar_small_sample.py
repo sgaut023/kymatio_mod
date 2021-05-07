@@ -147,7 +147,7 @@ def get_dataset(params, use_cuda):
         
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
         device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
 
@@ -301,6 +301,7 @@ def run_train(args):
             momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
         else:
             print("Invalid optimizer parameter passed")
+            NotImplemented(f"Optimizer parameter {params['model']['optimizer']} not implemented")
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
@@ -315,6 +316,10 @@ def run_train(args):
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
         for i,d in enumerate(psi_skeleton):
             d[0]=None
+
+        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
+        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+        
     elif params['model']['mode'] == 'standard': #use the linear model only
         model = LinearLayer(8, params['model']['width'], standard=True).to(device)
         scattering = Identity()
@@ -326,6 +331,8 @@ def run_train(args):
 
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+    else:
+        NotImplemented(f"Mode parameter {params['model']['mode']} not implemented")
 
 
     #M = params['model']['learning_schedule_multi']
