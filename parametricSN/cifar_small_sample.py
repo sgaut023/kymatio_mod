@@ -30,6 +30,7 @@ from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rat
 from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import SmallSampleController
+from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
      
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -72,12 +73,11 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
                                             step_size_up=params['model']['T_max']*2,
                                              mode="triangular2")
     elif params['model']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=120, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=24000, gamma=0.2)
     elif params['model']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
         raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
-
     return scheduler
 
 def get_dataset(params, use_cuda):
@@ -147,7 +147,7 @@ def get_dataset(params, use_cuda):
         
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    
     train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
         device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
 
@@ -161,7 +161,13 @@ def create_scattering(params, device, use_cuda):
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
     K = 81*3
-    model = LinearLayer(K, params['model']['width']).to(device)
+    if params == 'linear_layer':
+        model = LinearLayer(K, params['model']['width']).to(device)
+    elif params['model']['architecture'] == 'cnn': 
+        model = Scattering2dResNet(K, params['model']['width']).to(device)
+    else:
+        raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
+
     if use_cuda:
         scattering = scattering.cuda()
     phi, psi  = scattering.load_filters()
@@ -301,7 +307,6 @@ def run_train(args):
             momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
         else:
             print("Invalid optimizer parameter passed")
-            NotImplemented(f"Optimizer parameter {params['model']['optimizer']} not implemented")
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
@@ -319,20 +324,23 @@ def run_train(args):
 
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-        
+
     elif params['model']['mode'] == 'standard': #use the linear model only
-        model = LinearLayer(8, params['model']['width'], standard=True).to(device)
+        if params['model']['architecture'] == 'linear_layer':
+            model = LinearLayer(8, params['model']['width'], standard=True).to(device)
+        elif params['model']['architecture'] == 'cnn':
+            model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
+        else:
+            raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
+
+        
         scattering = Identity()
         psi = None
         filters_plots_before = {}
         psi_skeleton = None
         params_filters =[] 
-
-
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-    else:
-        NotImplemented(f"Mode parameter {params['model']['mode']} not implemented")
 
 
     #M = params['model']['learning_schedule_multi']
@@ -405,7 +413,6 @@ def run_train(args):
 
 
 
-
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -414,6 +421,7 @@ def main():
     subparser.set_defaults(callback=run_train)
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
+    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)

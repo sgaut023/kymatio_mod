@@ -146,5 +146,4 @@ def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morle
     norm_factors = (2 * 3.1415 * sigmas * sigmas / slants).unsqueeze(1)
     norm_factors = norm_factors.expand([n_filters,grid_or_shape[0]]).unsqueeze(2).repeat(1,1,grid_or_shape[1])
     wavelets = wavelets / norm_factors
-
     return wavelets

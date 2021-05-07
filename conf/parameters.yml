@@ -7,13 +7,14 @@ preprocess:
 #model
 model:
   name: 'linear layer'
+  architecture: 'cnn' # 'cnn' or 'linear_layer'
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
   batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
-  seed: None    # seed for dataset subselection (if None generate random)
+  seed:    # seed for dataset subselection (if None generate random)
   width: 2   # width factor for resnet
   num_samples: 100  #total train samples
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
