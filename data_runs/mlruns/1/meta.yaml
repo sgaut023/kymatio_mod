@@ -1,0 +1,4 @@
+artifact_location: /home/benjamin/Documents/github/kymatio_mod/data_runs/mlruns/1
+experiment_id: '1'
+lifecycle_stage: active
+name: linear_layer_baseline_v2

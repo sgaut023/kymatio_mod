@@ -254,47 +254,22 @@ def run_train(args):
     train_loader,  test_loader = get_dataset(params, use_cuda)
     
     # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
-    if params['model']['mode'] == 'scattering_dif' or params['model']['mode'] == 'scattering':
-        
+    if params['model']['mode'] == 'scattering_dif':
+        is_scattering_dif = True
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
         lr_scattering = params['model']['lr_scattering']  
         lr_orientation = params['model']['lr_orientation']  
-        # to be able to use the kymatio code, we need 
-        # to use the same data structure which is a list of dictionnary
         
-        # visualize wavlet filters before training
         filters_plots_before = {}
-       # num_row = int(n_filters  /8 )
-        for mode in ['fourier','real', 'imag' ]:
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode)
+        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
+            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
             filters_plots_before [mode]  = f  
         
-        #build psi skeleton
-        #psi_skeleton = copy.deepcopy(psi)
-        psi_skeleton = psi
+        psi_skeleton = psi #build psi skeleton (kymatio data structure)
         for i,d in enumerate(psi_skeleton):
             d[0]=None
-   
-    # here we raw images are directly fed to the linear layers
-    elif params['model']['mode'] == 'standard':
-        model = LinearLayer(8, params['model']['width'], standard=True).to(device)
-        scattering = Identity()
-        psi = None
-        filters_plots_before = {}
-        psi_skeleton = None
-        params_filters =[] 
 
-
-    # Optimizer
-    lr = params['model']['lr']
-    #M = params['model']['learning_schedule_multi']
-    #drops = [60*M,120*M,160*M]
-    test_acc = []
-    start_time = time.time()
-    train_losses, test_losses , train_accuracies = [], [], []
-    lrs, lrs_scattering, lrs_orientation = [], [], []
-    
-    if params['model']['mode'] == 'scattering_dif':
+        #set optimizer
         parameters = [
             {'params': model.parameters()},
             {'params': params_filters[0], 'lr': lr_orientation},
@@ -303,25 +278,55 @@ def run_train(args):
         ]
 
         if params['model']['optimizer'] == 'adam':
-            optimizer = torch.optim.Adam(parameters,lr=lr, 
+            optimizer = torch.optim.Adam(parameters,lr=params['model']['lr'], 
                 betas=(0.9, 0.999), eps=1e-08, 
                 weight_decay=params['model']['weight_decay'], amsgrad=False)
 
         elif params['model']['optimizer'] == 'sgd': 
-            optimizer = torch.optim.SGD(parameters,lr=lr, momentum=params['model']['momentum'],
-                                        weight_decay=params['model']['weight_decay'])
+            optimizer = torch.optim.SGD(parameters,lr=params['model']['lr'], 
+            momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
         else:
             print("Invalid optimizer parameter passed")
-                            
-    else: 
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=params['model']['momentum'],
-                                                weight_decay=params['model']['weight_decay'])
+
+    elif params['model']['mode'] == 'scattering':
+        model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
+        lr_scattering = params['model']['lr_scattering']  
+        lr_orientation = params['model']['lr_orientation']  
+        
+        filters_plots_before = {}
+        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
+            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
+            filters_plots_before [mode]  = f  
+        
+        psi_skeleton = psi #build psi skeleton (kymatio data structure)
+        for i,d in enumerate(psi_skeleton):
+            d[0]=None
+    elif params['model']['mode'] == 'standard': #use the linear model only
+        model = LinearLayer(8, params['model']['width'], standard=True).to(device)
+        scattering = Identity()
+        psi = None
+        filters_plots_before = {}
+        psi_skeleton = None
+        params_filters =[] 
+
+
+        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
+        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+
+
+    #M = params['model']['learning_schedule_multi']
+    #drops = [60*M,120*M,160*M] #eugene's scheduler
+
+    test_acc = []
+    start_time = time.time()
+    train_losses, test_losses , train_accuracies = [], [], []
+    lrs, lrs_scattering, lrs_orientation = [], [], []
+
+        
 
 
     epochs  = params['model']['epoch']
     scheduler = get_lr_scheduler(optimizer, params, len(train_loader))
-    if params['model']['mode'] == 'scattering_dif':
-        is_scattering_dif = True
 
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
