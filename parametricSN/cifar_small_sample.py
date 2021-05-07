@@ -343,11 +343,11 @@ def main():
 
     # plot train and test loss
     f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], 
-                            y_label='loss', num_samples =int(params['model']['num_samples'])*10)
+                            y_label='loss', num_samples =int(params['model']['num_samples']))
     f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['num_samples'])*10)
+                            y_label='accuracy', num_samples =int(params['model']['num_samples']))
     f_accuracy_benchmark = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['num_samples'])*10,
+                            y_label='accuracy', num_samples =int(params['model']['num_samples']),
                             benchmark =True)
 
     #visualize learning rates
