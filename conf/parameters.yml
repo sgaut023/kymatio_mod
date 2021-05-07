@@ -17,12 +17,13 @@ model:
   width: 2   # width factor fo resnet
   num_samples: 10  #samples per class
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 2000
+  epoch: 25
   optimizer: 'sgd'
   scheduler: 'StepLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR', or 'StepLR'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
+  max_lr: 0.1
   T_max: 
   comment: 
 
