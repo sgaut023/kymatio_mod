@@ -13,9 +13,9 @@ model:
   batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
-  seed: 42    # seed for dataset subselection
+  seed: 42    # seed for dataset subselection (if None generate random)
   width: 2   # width factor fo resnet
-  num_samples: 10  #samples per class
+  num_samples: 100  #total train samples
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 25
   optimizer: 'sgd'
