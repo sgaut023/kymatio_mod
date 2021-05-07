@@ -1,0 +1,4 @@
+artifact_location: data_runs/mlruns/1
+experiment_id: '1'
+lifecycle_stage: active
+name: linear_layer_baseline_v2

@@ -1,0 +1,15 @@
+artifact_uri: data_runs/mlruns/1/223407e571f84428884263f6122a39aa/artifacts
+end_time: 1620379567434
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 223407e571f84428884263f6122a39aa
+run_uuid: 223407e571f84428884263f6122a39aa
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1620379566679
+status: 3
+tags: []
+user_id: benjamin

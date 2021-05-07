@@ -106,6 +106,7 @@ def get_dataset(params, use_cuda):
 
     # Ben's data augmentation
     if AUGMENT:
+        print("Augmenting data with AutoAugment")
         trainTransform = [
                 transforms.RandomCrop(32, 4),
                 transforms.RandomHorizontalFlip(),
@@ -140,27 +141,6 @@ def get_dataset(params, use_cuda):
 
     params['model']['seed'] = seed
     train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0]
-
-    #####cifar data
-    # cifar_data = datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=True, transform=trainTransform, download=True)
-
-
-    # # Extract a subset of X samples per class
-    # prng = RandomState(params['model']['seed'])
-    # random_permute = prng.permutation(np.arange(0, 5000))[0:params['model']['num_samples']]
-    # indx = np.concatenate([np.where(np.array(cifar_data.targets) == classe)[0][random_permute] for classe in range(0, 10)])
-
-    # cifar_data.data, cifar_data.targets = cifar_data.data[indx], list(np.array(cifar_data.targets)[indx])
-    # train_loader = torch.utils.data.DataLoader(cifar_data,
-    #                                            batch_size=params['model']['batch_size'], shuffle=True, num_workers=num_workers,
-    #                                            pin_memory=pin_memory)
-
-    # test_loader = torch.utils.data.DataLoader(
-    #     datasets.CIFAR10(root=scattering_datasets.get_dataset_dir('CIFAR'), train=False, transform=transforms.Compose([
-    #         transforms.ToTensor(),
-    #         normalize,
-    #     ])),
-    #     batch_size=32, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
     
     return train_loader,  test_loader 
 
@@ -246,20 +226,27 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         train_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
+
     #if batch_idx % 50 == 0:
     print('Train Epoch: {}\t Average Loss: {:.6f}, Accuracy: {}/{} ({:.2f}%): '.format(
                 epoch, train_loss, correct , len(train_loader.dataset),
                 train_accuracy))
+
     return train_loss, train_accuracy
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--param_file', type=str, default='parameters.yml',
-                        help="YML Parameter File Name")
-    args = parser.parse_args()
+def override_params(args,params):
+    for k,v in args.__dict__.items():
+        if v != None and k != "param_file":
+            print(k,v)
+            params["model"][k] = v
+    return params
+
+
+
+def run_train(args):
     catalog, params = get_context(args.param_file)
-    
+    params = override_params(args,params)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -308,15 +295,29 @@ def main():
     lrs, lrs_scattering, lrs_orientation = [], [], []
     
     if params['model']['mode'] == 'scattering_dif':
-        optimizer = torch.optim.SGD([{'params': model.parameters()}, 
-                                    {'params': params_filters[0], 'lr': lr_orientation },
-                                    {'params': [params_filters[1], params_filters[2], params_filters[3]], 
-                                    'lr': lr_scattering}],
-                                    lr=lr, momentum=params['model']['momentum'],
-                                    weight_decay=params['model']['weight_decay'])
+        parameters = [
+            {'params': model.parameters()},
+            {'params': params_filters[0], 'lr': lr_orientation},
+            {'params': [params_filters[1], params_filters[2],
+             params_filters[3]],'lr': lr_scattering}
+        ]
+
+        if params['model']['optimizer'] == 'adam':
+            optimizer = torch.optim.Adam(parameters,lr=lr, 
+                betas=(0.9, 0.999), eps=1e-08, 
+                weight_decay=params['model']['weight_decay'], amsgrad=False)
+
+        elif params['model']['optimizer'] == 'sgd': 
+            optimizer = torch.optim.SGD(parameters,lr=lr, momentum=params['model']['momentum'],
+                                        weight_decay=params['model']['weight_decay'])
+        else:
+            print("Invalid optimizer parameter passed")
+                            
     else: 
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=params['model']['momentum'],
                                                 weight_decay=params['model']['weight_decay'])
+
+
     epochs  = params['model']['epoch']
     scheduler = get_lr_scheduler(optimizer, params, len(train_loader))
     if params['model']['mode'] == 'scattering_dif':
@@ -341,11 +342,14 @@ def main():
             test_losses.append(test_loss )
             test_acc.append(accuracy)
 
+
     # plot train and test loss
     f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], 
                             y_label='loss', num_samples =int(params['model']['num_samples']))
+                             
     f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
                             y_label='accuracy', num_samples =int(params['model']['num_samples']))
+                             
     f_accuracy_benchmark = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
                             y_label='accuracy', num_samples =int(params['model']['num_samples']),
                             benchmark =True)
@@ -372,6 +376,40 @@ def main():
                 np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
                filters_plots_before , filters_plots_after, 
                [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr )
+
+
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    subparser = subparsers.add_parser("run-train")
+    subparser.set_defaults(callback=run_train)
+    subparser.add_argument("--name", "-n")
+    subparser.add_argument("--tester", "-tst", type=float)
+    subparser.add_argument("--lr", "-lr", type=float)
+    subparser.add_argument("--lr-scattering", "-lrs", type=float)
+    subparser.add_argument("--lr-orientation", "-lro", type=float)
+    subparser.add_argument("--batch-size", "-bs", type=int)
+    subparser.add_argument("--weight-decay", "-wd", type=float)
+    subparser.add_argument("--num-samples", "-ns", type=int)
+    subparser.add_argument("--width", "-width", type=int)
+    subparser.add_argument("--momentum", "-mom", type=float)
+    subparser.add_argument("--seed", "-s", type=int)
+    subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
+    subparser.add_argument("--epoch", "-e", type=int)
+    subparser.add_argument("--optimizer", "-o", type=str)
+    subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR'])
+    subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])
+    subparser.add_argument("--step-test", "-st", type=int)
+    subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
+    subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
+                        help="YML Parameter File Name")
+
+    args = parser.parse_args()
+    args.callback(args)
+
 
 if __name__ == '__main__':
     main()
