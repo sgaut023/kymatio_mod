@@ -30,6 +30,7 @@ from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rat
 from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import SmallSampleController
+from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
      
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -71,9 +72,9 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
                                             step_size_up=params['model']['T_max']*2,
                                              mode="triangular2")
     elif params['model']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=120, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2400, gamma=0.2)
     else:
-        raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
+        scheduler = None
     return scheduler
 
 def get_dataset(params, use_cuda):
@@ -149,7 +150,13 @@ def create_scattering(params, device, use_cuda):
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
     K = 81*3
-    model = LinearLayer(K, params['model']['width']).to(device)
+    if ['model']['archiecture'] == 'linear_layer':
+        model = LinearLayer(K, params['model']['width']).to(device)
+    elif['model']['archiecture'] == 'cnn': 
+        model = Scattering2dResNet(K, params['model']['width']).to(device)
+    else:
+        raise NotImplemented(f"Model {params['model']['archiecture']} not implemented")
+
     if use_cuda:
         scattering = scattering.cuda()
     phi, psi  = scattering.load_filters()
@@ -219,7 +226,8 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
-        scheduler.step()
+        if scheduler is not None:
+            scheduler.step()
 
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
@@ -302,14 +310,19 @@ def run_train(args):
         for i,d in enumerate(psi_skeleton):
             d[0]=None
     elif params['model']['mode'] == 'standard': #use the linear model only
-        model = LinearLayer(8, params['model']['width'], standard=True).to(device)
+        if ['model']['archiecture'] == 'linear_layer':
+            model = LinearLayer(8, params['model']['width'], standard=True).to(device)
+        elif ['model']['archiecture'] == 'cnn':
+            model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
+        else:
+            raise NotImplemented(f"Model {params['model']['archiecture']} not implemented")
+
+        
         scattering = Identity()
         psi = None
         filters_plots_before = {}
         psi_skeleton = None
         params_filters =[] 
-
-
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
 
@@ -381,7 +394,6 @@ def run_train(args):
                 np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
                filters_plots_before , filters_plots_after, 
                [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr )
-
 
 
 
