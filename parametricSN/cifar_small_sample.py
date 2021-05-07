@@ -175,18 +175,18 @@ def create_scattering(params, device, use_cuda):
     wavelets = None
        
     # if we want to optimize the parameters used to create the filters
-    if params['model']['mode'] == 'scattering_dif' :      
-        # We can initialize the parameters randomly or as the kymatio package does
-        if params['model']['init_params'] =='Random':
-            params_filters = create_filters_params_random( J* scattering.L , True,  2)
-        else:
-            n_filters = J*scattering.L
-            params_filters = create_filters_params(J, scattering.L, True,  2)
+    #if params['model']['mode'] == 'scattering_dif' :      
+    # We can initialize the parameters randomly or as the kymatio package does
+    if params['model']['init_params'] =='Random':
+        params_filters = create_filters_params_random( J* scattering.L , True,  2)
+    else:
+        n_filters = J*scattering.L
+        params_filters = create_filters_params(J, scattering.L, True,  2)
 
-        wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
-                        params_filters[2], params_filters[3], device=device )
-        for i,d in enumerate(psi):
-            d[0]=wavelets[i] 
+    wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
+                    params_filters[2], params_filters[3], device=device )
+    for i,d in enumerate(psi):
+        d[0]=wavelets[i] 
            
     return  model, scattering, psi, wavelets, params_filters
 
@@ -286,6 +286,7 @@ def run_train(args):
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
+
         for i,d in enumerate(psi_skeleton):
             d[0]=None
 
@@ -310,6 +311,7 @@ def run_train(args):
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
+        scattering.psi = psi
         lr_scattering = params['model']['lr_scattering']  
         lr_orientation = params['model']['lr_orientation']  
         
@@ -318,10 +320,7 @@ def run_train(args):
             f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
             filters_plots_before [mode]  = f  
         
-        psi_skeleton = psi #build psi skeleton (kymatio data structure)
-        for i,d in enumerate(psi_skeleton):
-            d[0]=None
-
+        psi_skeleton = None #build psi skeleton (kymatio data structure)
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
 
