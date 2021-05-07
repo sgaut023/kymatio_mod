@@ -57,8 +57,10 @@ class LinearLayer(nn.Module):
 
 def get_lr_scheduler(optimizer, params, steps_per_epoch ):
     if params['model']['scheduler'] =='OneCycleLR':
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.05, steps_per_epoch=steps_per_epoch, 
-                                                    epochs= params['model']['epoch'] , three_phase=params['model']['three_phase'])
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
+                                                        steps_per_epoch=steps_per_epoch, 
+                                                        epochs= params['model']['epoch'] , 
+                                                        three_phase=params['model']['three_phase'])
     elif params['model']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
     elif params['model']['scheduler'] =='LambdaLR':
@@ -311,9 +313,8 @@ def main():
             test_acc.append(accuracy)
 
     # plot train and test loss
-
-    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], y_label='loss')
-    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], y_label='accuracy')
+    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], y_label='loss', num_samples =int(params['model']['num_samples'])*10)
+    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], y_label='accuracy', num_samples =int(params['model']['num_samples'])*10)
 
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
@@ -333,7 +334,8 @@ def main():
             filters_plots_after[mode]  = f  
     
     # save metrics and params in mlflow
-    log_mlflow(params, model, np.array(test_acc), start_time, 
+    log_mlflow(params, model, np.array(test_acc).round(2), np.array(test_losses).round(2), 
+                np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
                filters_plots_before , filters_plots_after, 
                [f_loss,f_accuracy], f_lr )
 
