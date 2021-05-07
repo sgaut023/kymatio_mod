@@ -27,7 +27,7 @@ model:
   T_max: 
   comment: 
 
-  
+   
 # kymatio 
 scattering:
   J: 2
