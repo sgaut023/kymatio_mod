@@ -18,10 +18,22 @@ LRS = 0.1
 LRO = 0.1
 SEED = int(time.time())
 MODE = "scattering_dif"
-EPOCHS = 3000
+EPOCHS = 6000
 
 TOTALRUNS = 4 * (4)
 
+
+
+for x in range(TOTALRUNS):
+    SEED = int(time.time())
+    OPTIM = "sgd"
+    LR = 0.1
+    LRS = 0.1
+    LRO = 0.1
+    command = "{} {} run-train -o {} -lr {} -lrs {} -lro {} -s {} -m {} -e {}".format(
+    PYTHON,RUN_FILE,OPTIM,LR,LRS,LRO,SEED,MODE,EPOCHS)
+    print("[Running] {}".format(command))
+    os.system(command)
 
 for x in range(TOTALRUNS):
     if x % 4 == 0 and x != 0:
