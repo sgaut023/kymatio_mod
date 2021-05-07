@@ -313,8 +313,13 @@ def main():
             test_acc.append(accuracy)
 
     # plot train and test loss
-    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], y_label='loss', num_samples =int(params['model']['num_samples'])*10)
-    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], y_label='accuracy', num_samples =int(params['model']['num_samples'])*10)
+    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], 
+                            y_label='loss', num_samples =int(params['model']['num_samples'])*10)
+    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
+                            y_label='accuracy', num_samples =int(params['model']['num_samples'])*10)
+    f_accuracy_benchmark = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
+                            y_label='accuracy', num_samples =int(params['model']['num_samples'])*10,
+                            benchmark =True)
 
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
@@ -337,7 +342,7 @@ def main():
     log_mlflow(params, model, np.array(test_acc).round(2), np.array(test_losses).round(2), 
                 np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
                filters_plots_before , filters_plots_after, 
-               [f_loss,f_accuracy], f_lr )
+               [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr )
 
 if __name__ == '__main__':
     main()
