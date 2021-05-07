@@ -10,20 +10,20 @@ model:
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
-  batch_size: 64
+  batch_size: 128
   weight_decay: 0.0005
   momentum: 0.9
-  seed: 42    # seed for dataset subselection (if None generate random)
-  width: 2   # width factor fo resnet
+  seed: None    # seed for dataset subselection (if None generate random)
+  width: 2   # width factor for resnet
   num_samples: 100  #total train samples
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 25
+  epoch: 5000
   optimizer: 'sgd'
   scheduler: 'StepLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR', or 'StepLR'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
-  max_lr: 0.1
+  max_lr: 0.1 #highest lr we can
   T_max: 
   comment: 
 
@@ -34,6 +34,6 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri: '/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'data_runs/mlruns'
   experiment_name: 'linear_layer_baseline_v2'
 
