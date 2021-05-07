@@ -5,7 +5,10 @@ Classification on CIFAR10 (ResNet)
 Based on pytorch example for CIFAR10
 """
 
-
+import sys
+from pathlib import Path 
+import matplotlib.pyplot as plt
+sys.path.append(str(Path.cwd()))
 import torch.optim
 from torchvision import datasets, transforms
 import torch.nn.functional as F
@@ -164,13 +167,13 @@ def main():
     parser = argparse.ArgumentParser(description='CIFAR scattering  + hybrid examples')
     parser.add_argument('--mode', type=str, default='scattering',choices=['scattering', 'standard'],
                         help='network_type')
-    parser.add_argument('--num_samples', type=int, default=100,
+    parser.add_argument('--num_samples', type=int, default=10,
                         help='samples per class')
-    parser.add_argument('--learning_schedule_multi', type=int, default=10,
+    parser.add_argument('--learning_schedule_multi', type=int, default=100,
                         help='samples per class')
-    parser.add_argument('--seed', type=int, default=0,
+    parser.add_argument('--seed', type=int, default=42,
                         help='seed for dataset subselection')
-    parser.add_argument('--width', type=int, default=2,help='width factor for resnet')
+    parser.add_argument('--width', type=int, default=8, help='width factor for resnet')
     args = parser.parse_args()
 
     use_cuda = torch.cuda.is_available()
