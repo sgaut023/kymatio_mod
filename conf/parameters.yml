@@ -16,11 +16,11 @@ model:
   weight_decay: 0.0005
   momentum: 0.9
   seed:    # seed for dataset subselection (if None generate random)
-  width: 2   # width factor for resnet
+  width: 8   # width factor for resnet
   train_sample_num: 100  #total train samples
   test_sample_num: 10000
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 6000
+  epoch: 5000
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'
@@ -33,13 +33,11 @@ model:
   
 
 
-   
 # kymatio 
 scattering:
   J: 2
   max_order: 2
 
 mlflow:
-  tracking_uri: 'data_runs/mlruns'
+  tracking_uri: 'data_runs/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'linear_layer_baseline_v2'
-
