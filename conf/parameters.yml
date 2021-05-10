@@ -11,16 +11,16 @@ model:
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
-  batch_size: 32
+  batch_size: 64
   weight_decay: 0.0005
   momentum: 0.9
-  seed: 42   # seed for dataset subselection (if None generate random)
+  seed:    # seed for dataset subselection (if None generate random)
   width: 8   # width factor for resnet
   num_samples: 100  #total train samples
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 6000
+  epoch: 5000
   optimizer: 'sgd'
-  scheduler: 'StepLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
+  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
@@ -35,6 +35,5 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri: '/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'cnn_eugene'
-
+  tracking_uri: 'data_runs/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  experiment_name: 'linear_layer_baseline_v2'
