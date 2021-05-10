@@ -1,4 +1,6 @@
 #Custom Ben
+#find . -name *.pth 
+#find . -name *.pth -delete
 *.pth
 
 

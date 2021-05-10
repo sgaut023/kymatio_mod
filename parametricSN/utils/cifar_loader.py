@@ -22,6 +22,10 @@ class IncompatibleBatchSizeException(Exception):
     """Error thrown when an impossible class balancedsample number is requested"""
     pass
 
+class IncompatibleClassNumberException(Exception):
+    """Error thrown when train and validation datasets dont have a compatible number of classes"""
+    pass
+
 class IndicesNotSetupException(Exception):
     """Error thrown when an impossible class balancedsample number is requested"""
     pass
@@ -58,7 +62,7 @@ class SmallSampleController:
             self.indexes = None
 
 
-        def sample(self,dataset,offset,workers,RP):
+        def sample(self,dataset,offset,workers,RP,shuffle=True):
             """Creates a list of dataloaders based on input"""
             
             if self.dataLoaders != None:
@@ -81,7 +85,7 @@ class SmallSampleController:
                 subset = Subset(dataset, indx)
                 self.indexes.append(indx)
                 tempLoader = torch.utils.data.DataLoader(subset,
-                                           batch_size=self.batchSize, shuffle=False,
+                                           batch_size=self.batchSize, shuffle=shuffle,
                                            num_workers = workers, pin_memory = True)
                    
                 self.dataLoaders.append(tempLoader)
@@ -98,6 +102,26 @@ class SmallSampleController:
                         t.to(device)
 
 
+    class DatasetContainer:
+        """Designed to hold the information relevant to sampling from a pytorch dataset
+
+        Parameters: 
+        dataset -- the torch dataset object to be sampled from
+        numClasses -- the number of classes in this dataset
+        maxIndex -- the number of samples of the class with 
+            the smallest number of samples in the dataset
+        """
+
+        def __init__(self,dataset):
+            self.dataset = dataset
+            self.numClasses = len(self.dataset.classes)
+            self.maxIndex = min([len(np.where(np.array(self.dataset.targets) == classe)[0]) \
+                for classe in range(0, self.numClasses)]) #finds the number of samples for the class with the least number of samples
+
+        def __eq__(self,other):
+            return self.dataset.data.shape == other.dataset.data.shape
+
+
 
             
 
@@ -106,28 +130,27 @@ class SmallSampleController:
         return "[SmallSampleController] num classes:{}, batch size:{}".format(self.numClasses,batchSize)
 
 
-    def __init__(self, numClasses, trainSampleNum, valSampleNum, batchSize, multiplier, trainDataset, valDataset, train=True):
+    def __init__(self, trainSampleNum, valSampleNum, trainBatchSize, valBatchSize, multiplier, trainDataset, valDataset):
+
+        self.numClasses = len(trainDataset.classes)
+
+        if self.numClasses != len(valDataset.classes):
+            print("[SmallSampleController] Incompatble number of classes for validation and train datasets")
+            raise IncompatibleClassNumberException
+
         
         self.trainSampler = SmallSampleController.Sampler(
-            numClasses=numClasses,sampleNum=trainSampleNum,
-            batchSize=batchSize,multiplier=1
+            numClasses=self.numClasses,sampleNum=trainSampleNum,
+            batchSize=trainBatchSize,multiplier=1
             )
 
         self.valSampler = SmallSampleController.Sampler(
-            numClasses=numClasses,sampleNum=valSampleNum,
-            batchSize=batchSize,multiplier=multiplier
+            numClasses=self.numClasses,sampleNum=valSampleNum,
+            batchSize=valBatchSize,multiplier=multiplier
             )
 
-        self.trainDataset = trainDataset
-        self.valDataset = valDataset
-        self.numClasses = numClasses
-        self.batchSize = batchSize
-        self.train = train
-
-        temp = [len(np.where(np.array(self.trainDataset.targets) == classe)[0]) for classe in range(0, self.numClasses)]
-        self.maxIndex = min(temp)
-
-
+        self.trainDataset = SmallSampleController.DatasetContainer(trainDataset)
+        self.valDataset = SmallSampleController.DatasetContainer(valDataset)
 
 
 
@@ -142,23 +165,36 @@ class SmallSampleController:
         seed -- the seed to sample with
         """
 
-        if seed == None:
-            seed = int(time.time())
-
-        prng = RandomState(seed)
-        RP = prng.permutation(np.arange(0, self.maxIndex))
-
-        self.trainSampler.sample(
-            dataset=self.trainDataset,offset=0,
-            RP=RP,workers=workers
-            )
-        
         if valMultiplier != None:
             self.valSampler.multiplier = valMultiplier
 
-        self.valSampler.sample(
-            dataset=self.valDataset,offset=self.trainSampler.samplesPerClass,
-            RP=RP,workers=workers
+        if seed == None:
+            seed = int(time.time()) #generate random seed
+
+        prng = RandomState(seed)
+        RP = prng.permutation(np.arange(0, self.trainDataset.maxIndex))
+
+        self.trainSampler.sample(
+            dataset=self.trainDataset.dataset,offset=0,
+            RP=RP,workers=workers,shuffle=True
+            )
+        
+
+        if self.valDataset == self.trainDataset: #offset to prevent train-test overlap
+
+            self.valSampler.sample(
+                dataset=self.valDataset.dataset,
+                offset=self.trainSampler.samplesPerClass,
+                RP=RP,workers=workers,shuffle=False
+            )
+        else:
+
+            prng = RandomState(seed)
+            RP = prng.permutation(np.arange(0, self.valDataset.maxIndex))
+
+            self.valSampler.sample(
+                dataset=self.valDataset.dataset,offset=0,
+                RP=RP,workers=workers,shuffle=False
             )
 
         return seed
@@ -193,12 +229,8 @@ class SmallSampleController:
         seed = self.sample(workers=workers,valMultiplier=valMultiplier,seed=seed)
         self.load(device)
         trainDL,valDL = self.getDatasets()
-        if self.train == True:
-            print("Generated new permutation of the CIFAR train dataset with seed:{}, train sample num: {}, test sample num: {}".format(
-                    seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
-        else:
-            print("Generated new permutation of the CIFAR test dataset with seed:{}, train sample num: {}, test sample num: {}".format(
-                    seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
+        print("Generated new permutation of the dataset with seed:{}, train sample num: {}, test sample num: {}".format(
+                seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
 
         return trainDL,valDL,seed
 
