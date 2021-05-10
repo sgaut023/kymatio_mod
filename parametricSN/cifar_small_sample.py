@@ -162,7 +162,7 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
     K = 81*3
-    if params == 'linear_layer':
+    if params['model']['architecture'] == 'linear_layer':
         model = LinearLayer(K, params['model']['width']).to(device)
     elif params['model']['architecture'] == 'cnn': 
         model = Scattering2dResNet(K, params['model']['width']).to(device)
