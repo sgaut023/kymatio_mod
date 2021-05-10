@@ -11,12 +11,14 @@ model:
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
-  batch_size: 64
+  train_batch_size: 64
+  test_batch_size: 256
   weight_decay: 0.0005
   momentum: 0.9
   seed:    # seed for dataset subselection (if None generate random)
   width: 2   # width factor for resnet
-  num_samples: 100  #total train samples
+  train_sample_num: 100  #total train samples
+  test_sample_num: 10000
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 6000
   optimizer: 'sgd'
@@ -27,7 +29,9 @@ model:
   max_lr: 0.05 #highest lr we can
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
-  comment: 
+  comment:
+  
+
 
    
 # kymatio 
