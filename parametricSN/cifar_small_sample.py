@@ -84,7 +84,8 @@ def get_dataset(params, use_cuda):
     NUM_CLASSES = 10
     TRAIN_SAMPLE_NUM = params['model']['num_samples']
     VAL_SAMPLE_NUM = 10000
-    BATCH_SIZE = params['model']['batch_size']
+    TRAIN_BATCH_SIZE = params['model']['batch_size']
+    VAL_BATCH_SIZE = 32
     VALIDATION_SET_NUM = 1
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
@@ -109,16 +110,16 @@ def get_dataset(params, use_cuda):
     if AUGMENT == 'autoaugment':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         trainTransform = [
-            transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, 4),
+            transforms.RandomHorizontalFlip(),
             AutoAugment(),
             Cutout()
         ]
     elif AUGMENT == 'original-cifar':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         trainTransform = [
+            transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(32, 4)
         ]
     elif AUGMENT == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
@@ -134,16 +135,16 @@ def get_dataset(params, use_cuda):
     transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
     transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
 
-    cifar_train = datasets.CIFAR10(root=DATA_DIR,train=CIFAR_TRAIN, 
+    cifar_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
                 transform=transform_train, download=True)
 
-    cifar_val = datasets.CIFAR10(root=DATA_DIR,train=CIFAR_TRAIN, 
+    cifar_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
                 transform=transform_val, download=True)
 
-    ss = SmallSampleController(numClasses=NUM_CLASSES,trainSampleNum=TRAIN_SAMPLE_NUM, # abstract the data-loading procedure
-                            valSampleNum=VAL_SAMPLE_NUM, batchSize=BATCH_SIZE, 
-                            multiplier=VALIDATION_SET_NUM, trainDataset=cifar_train, 
-                            valDataset=cifar_val)
+    ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
+        trainDataset=cifar_train, valDataset=cifar_val
+    )
         
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

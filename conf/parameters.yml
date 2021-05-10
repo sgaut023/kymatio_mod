@@ -18,13 +18,13 @@ model:
   width: 2   # width factor for resnet
   num_samples: 100  #total train samples
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 5000
+  epoch: 6000
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
-  max_lr: 0.1 #highest lr we can
+  max_lr: 0.05 #highest lr we can
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
   comment: 
