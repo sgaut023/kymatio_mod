@@ -1,7 +1,9 @@
 #Custom Ben
+#purge model caches command:
 #find . -name *.pth 
 #find . -name *.pth -delete
 *.pth
+runs_ben/*
 
 
 #custom Shanel
