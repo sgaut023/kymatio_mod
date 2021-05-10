@@ -157,7 +157,7 @@ def get_dataset(params, use_cuda):
     
     return train_loader,  test_loader 
 
-def create_scattering(params, device, use_cuda):
+def create_scattering(params, device, use_cuda, seed =0 ):
     J = params['scattering']['J']
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
@@ -176,18 +176,21 @@ def create_scattering(params, device, use_cuda):
     wavelets = None
        
     # if we want to optimize the parameters used to create the filters
-    if params['model']['mode'] == 'scattering_dif' :      
-        # We can initialize the parameters randomly or as the kymatio package does
-        if params['model']['init_params'] =='Random':
-            params_filters = create_filters_params_random( J* scattering.L , True,  2)
-        else:
-            n_filters = J*scattering.L
-            params_filters = create_filters_params(J, scattering.L, True,  2)
+    #if params['model']['mode'] == 'scattering_dif' :      
+    # We can initialize the parameters randomly or as the kymatio package does
+    requires_grad = True
+    if params['model']['mode']== 'scattering':
+        requires_grad = False
+    if params['model']['init_params'] =='Random':
+        params_filters = create_filters_params_random( J* scattering.L ,  requires_grad,  2, seed)
+    else:
+        n_filters = J*scattering.L
+        params_filters = create_filters_params(J, scattering.L,  requires_grad,  2)
 
-        wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
-                        params_filters[2], params_filters[3], device=device )
-        for i,d in enumerate(psi):
-            d[0]=wavelets[i] 
+    wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
+                    params_filters[2], params_filters[3], device=device )
+    for i,d in enumerate(psi):
+        d[0]=wavelets[i] 
            
     return  model, scattering, psi, wavelets, params_filters
 
@@ -204,6 +207,8 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
             if is_scattering_dif:
+                data = construct_scattering(data, scattering, psi)
+            elif psi != None:
                 data = construct_scattering(data, scattering, psi)
             else:
                 data = scattering(data)
@@ -222,6 +227,11 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
     model.train()
     correct = 0
     train_loss = 0
+    wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
+                                params_filters[1], params_filters[2], params_filters[3], device=device )
+    for i,d in enumerate(psi):
+        d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
@@ -230,6 +240,8 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
             for i,d in enumerate(psi):
                 d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device)   
+            data = construct_scattering(data, scattering, psi)
+        elif psi != None:
             data = construct_scattering(data, scattering, psi)
         else:
             data = scattering(data)
@@ -277,7 +289,7 @@ def run_train(args):
     # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
     if params['model']['mode'] == 'scattering_dif':
         is_scattering_dif = True
-        model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
+        model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda, seed = params['model']['seed'])
         lr_scattering = params['model']['lr_scattering']  
         lr_orientation = params['model']['lr_orientation']  
         
@@ -287,6 +299,7 @@ def run_train(args):
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
+
         for i,d in enumerate(psi_skeleton):
             d[0]=None
 
@@ -311,18 +324,16 @@ def run_train(args):
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
-        lr_scattering = params['model']['lr_scattering']  
-        lr_orientation = params['model']['lr_orientation']  
+        #scattering.psi = psi
+        lr_scattering = None 
+        lr_orientation = None
+        psi_skeleton = psi
         
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
             filters_plots_before [mode]  = f  
-        
-        psi_skeleton = psi #build psi skeleton (kymatio data structure)
-        for i,d in enumerate(psi_skeleton):
-            d[0]=None
-
+    
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
 

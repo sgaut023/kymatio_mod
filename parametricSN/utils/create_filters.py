@@ -46,8 +46,9 @@ def construct_scattering(input, scattering, psi):
 
     return S
     
-def create_filters_params_random(n_filters , is_scattering_dif, ndim):
+def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     #n_filters = J*L
+    np.random.seed(seed)
     sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
