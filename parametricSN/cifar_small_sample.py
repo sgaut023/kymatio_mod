@@ -82,10 +82,10 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
 
 def get_dataset(params, use_cuda):
     NUM_CLASSES = 10
-    TRAIN_SAMPLE_NUM = params['model']['num_samples']
-    VAL_SAMPLE_NUM = 10000
-    TRAIN_BATCH_SIZE = params['model']['batch_size']
-    VAL_BATCH_SIZE = 32
+    TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
+    VAL_SAMPLE_NUM = params['model']['test_sample_num']
+    TRAIN_BATCH_SIZE = params['model']['train_batch_size']
+    VAL_BATCH_SIZE = params['model']['test_batch_size']
     VALIDATION_SET_NUM = 1
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
@@ -391,13 +391,13 @@ def run_train(args):
 
     # plot train and test loss
     f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], 
-                            y_label='loss', num_samples =int(params['model']['num_samples']))
+                            y_label='loss', num_samples =int(params['model']['train_sample_num']))
                              
     f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['num_samples']))
+                            y_label='accuracy', num_samples =int(params['model']['train_sample_num']))
                              
     f_accuracy_benchmark = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['num_samples']),
+                            y_label='accuracy', num_samples =int(params['model']['train_sample_num']),
                             benchmark =True)
 
     #visualize learning rates
@@ -437,9 +437,11 @@ def main():
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)
-    subparser.add_argument("--batch-size", "-bs", type=int)
+    subparser.add_argument("--train-batch-size", "-tbs", type=int)
+    subparser.add_argument("--test-batch-size", "-tstbs", type=int)
     subparser.add_argument("--weight-decay", "-wd", type=float)
-    subparser.add_argument("--num-samples", "-ns", type=int)
+    subparser.add_argument("--train-sample-num", "-tsn", type=int)
+    subparser.add_argument("--test-sample-num", "-tstsn", type=int)
     subparser.add_argument("--width", "-width", type=int)
     subparser.add_argument("--momentum", "-mom", type=float)
     subparser.add_argument("--seed", "-s", type=int)
