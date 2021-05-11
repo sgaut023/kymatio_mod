@@ -46,6 +46,17 @@ def construct_scattering(input, scattering, psi):
 
     return S
 
+def update_psi(J, psi, wavelets,  device):
+    if J ==2:
+        for i,d in enumerate(psi):
+                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    else:
+        for i,d in enumerate(psi):
+            for res in range(0, J-2):
+                if res in d.keys():
+                    d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device)
+    return psi
+
 def periodize_filter_fft(x, res, device):
     """
         Parameters

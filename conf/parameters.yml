@@ -21,6 +21,7 @@ model:
   test_sample_num: 10000
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 5000
+  epoch_scattering: 500
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'

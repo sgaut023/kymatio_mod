@@ -25,7 +25,7 @@ from numpy.random import RandomState
 from parametricSN.utils.context import get_context
 from parametricSN.utils.wavelet_visualization import get_filters_visualization
 from parametricSN.utils.create_filters import create_filters_params_random,  morlets
-from parametricSN.utils.create_filters import periodize_filter_fft
+from parametricSN.utils.create_filters import update_psi
 from parametricSN.utils.create_filters import create_filters_params, construct_scattering
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
@@ -38,32 +38,69 @@ class Identity(nn.Module):
         super().__init__()
     def forward(self, x):
         return x
+    
+class MLP(nn.Module):
+  '''
+    Multilayer Perceptron.
+  '''
+  def __init__(self,num_classes=10,  standard=False, n_coefficients=81, 
+                M_coefficient=8, N_coefficient=8):
+    super().__init__()
+
+    if standard:
+        fc1 = nn.Linear(3*32*32, 512)
+    else:
+        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
+    
+    self.layers = nn.Sequential(
+      fc1,
+      nn.ReLU(),
+      nn.Linear(512, 256),
+      nn.ReLU(),
+      nn.Linear(256, 128),
+      nn.ReLU(),
+      nn.Linear(128, 64),
+      nn.ReLU(),
+      nn.Linear(64, num_classes)
+    )
+
+  def forward(self, x):
+    '''Forward pass'''
+    return self.layers(x)
 
 
 class LinearLayer(nn.Module):
-    def __init__(self, in_channels,  k=2, n=4, num_classes=10,  standard=False, n_coefficients=81, 
-                M_coefficient=8, N_coefficient=8) :
+    def __init__(self, num_classes=10,  standard=False, n_coefficients=81, 
+                M_coefficient=8, N_coefficient=8, n_layers = 2) :
         super().__init__()
-        self.inplanes = 16 * k
-        self.ichannels = 16 * k * 3
+
+        self.n_layers = n_layers
         if standard:
             self.fc1 = nn.Linear(3*32*32, 256)
             self.fc2 = nn.Linear(256, num_classes)
-        else:
+        elif n_layers ==2:
             self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 256)
             self.fc2 = nn.Linear(256, num_classes)
+        elif n_layers ==3:
+            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 512)
+            self.fc2 = nn.Linear(512, 256)
+            self.fc3 = nn.Linear(256, num_classes)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.fc1(x)
-        return self.fc2(x)
+        x = self.fc2(x)
+        if self.n_layers == 3:
+            x = self.fc3(x)
+        return x
 
-def get_lr_scheduler(optimizer, params, steps_per_epoch ):
+
+def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
 
     if params['model']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
                                                         steps_per_epoch=steps_per_epoch, 
-                                                        epochs= params['model']['epoch'] , 
+                                                        epochs= epoch, 
                                                         three_phase=params['model']['three_phase'],
                                                         div_factor=params['model']['div_factor'])
     elif params['model']['scheduler'] =='CosineAnnealingLR':
@@ -169,10 +206,16 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     N_coefficient = params['preprocess']['dimension']['N']/(2**J)
     K = n_coefficients*3
     if params['model']['architecture'] == 'linear_layer':
-        model = LinearLayer(K, params['model']['width'], n_coefficients=n_coefficients, 
+        model = LinearLayer(n_coefficients=n_coefficients, 
                 M_coefficient=M_coefficient, N_coefficient=N_coefficient).to(device)
+    elif params['model']['architecture'] == 'linear_layer_3':
+        model = LinearLayer(n_coefficients=n_coefficients, 
+                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=3).to(device)
     elif params['model']['architecture'] == 'cnn': 
         model = Scattering2dResNet(K, params['model']['width']).to(device)
+    elif params['model']['architecture'] == 'mlp': 
+        model = MLP(n_coefficients=n_coefficients, 
+                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=3).to(device)
     else:
         raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
 
@@ -196,11 +239,7 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
-    for i,d in enumerate(psi):
-        for res in range(0, J-2):
-            if res in d.keys():
-                d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device)
-           
+    psi = update_psi(J, psi, wavelets, device)           
     return  model, scattering, psi, wavelets, params_filters
 
 def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_filters):
@@ -211,12 +250,7 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
         if is_scattering_dif:
                 wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                     params_filters[1], params_filters[2], params_filters[3], device=device )
-                for i,d in enumerate(psi):
-                    for res in range(0, scattering.J-2):
-                        if res in d.keys():
-                            d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
-                for i,d in enumerate(psi):
-                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+                psi = update_psi(scattering.J, psi, wavelets, device) 
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
             if is_scattering_dif:
@@ -242,10 +276,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
     train_loss = 0
     wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
-    for i,d in enumerate(psi):
-        for res in range(0, scattering.J-2):
-            if res in d.keys():
-                d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+    psi = update_psi(scattering.J, psi, wavelets, device) 
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
@@ -253,10 +284,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         if is_scattering_dif:
             wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
-            for i,d in enumerate(psi):
-                for res in range(0, scattering.J-2):
-                    if res in d.keys():
-                        d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+            psi = update_psi(scattering.J, psi, wavelets, device) 
             data = construct_scattering(data, scattering, psi)
         elif psi != None:
             data = construct_scattering(data, scattering, psi)
@@ -303,7 +331,8 @@ def run_train(args):
     is_scattering_dif = False
     train_loader,  test_loader = get_dataset(params, use_cuda)
     J = params['scattering']['J']
-    
+    epochs  = params['model']['epoch']
+
     # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
     if params['model']['mode'] == 'scattering_dif':
         is_scattering_dif = True
@@ -317,9 +346,6 @@ def run_train(args):
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
-
-        for i,d in enumerate(psi_skeleton):
-            d[0]=None
 
         #set optimizer
         parameters = [
@@ -339,6 +365,9 @@ def run_train(args):
             momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
         else:
             print("Invalid optimizer parameter passed")
+        
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     params['model']['epoch_scattering'])
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
@@ -354,6 +383,8 @@ def run_train(args):
     
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     epochs)
 
     elif params['model']['mode'] == 'standard': #use the linear model only
         if params['model']['architecture'] == 'linear_layer':
@@ -371,6 +402,8 @@ def run_train(args):
         params_filters =[] 
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     epochs)
 
 
     #M = params['model']['learning_schedule_multi']
@@ -381,20 +414,26 @@ def run_train(args):
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
-        
-
-
-    epochs  = params['model']['epoch']
-    scheduler = get_lr_scheduler(optimizer, params, len(train_loader))
-
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
         lrs.append(optimizer.param_groups[0]['lr'])
         if params['model']['mode'] == 'scattering_dif':
-            lrs_orientation.append(optimizer.param_groups[1]['lr'])
-            lrs_scattering.append(optimizer.param_groups[2]['lr'])
-            
-        
+            if epoch < params['model']['epoch_scattering']:
+                lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                lrs_scattering.append(optimizer.param_groups[2]['lr'])
+
+            elif epoch == params['model']['epoch_scattering']:
+                optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
+                                            momentum=params['model']['momentum'],
+                                             weight_decay=params['model']['weight_decay'])
+                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                            epochs - epoch)
+                lrs_orientation.append(0)     
+                lrs_scattering.append(0)
+            else:
+                lrs_orientation.append(0)     
+                lrs_scattering.append(0)
+
         # training 
         train_loss, train_accuracy = train(model, device, train_loader, is_scattering_dif, scheduler, optimizer,  epoch+1, scattering, psi_skeleton, params_filters )
         train_losses.append(train_loss)
@@ -428,8 +467,7 @@ def run_train(args):
             wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                                 params_filters[2], params_filters[3], device=device )
         
-            for i,d in enumerate(psi):
-                d[0]=wavelets[i] 
+            psi = update_psi(J, psi, wavelets, device)     
     
         for mode in ['fourier','real', 'imag' ]:
             f = get_filters_visualization(psi, J, 8, mode =mode)
@@ -451,7 +489,7 @@ def main():
     subparser.set_defaults(callback=run_train)
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
-    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
+    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer', 'mlp','linear_layer_3' ])
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)
@@ -467,6 +505,7 @@ def main():
     subparser.add_argument("--seed", "-s", type=int)
     subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
     subparser.add_argument("--epoch", "-e", type=int)
+    subparser.add_argument("--epoch-scattering", "-es", type=int)
     subparser.add_argument("--optimizer", "-o", type=str)
     subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
     subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])
