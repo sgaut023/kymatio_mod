@@ -25,6 +25,7 @@ from numpy.random import RandomState
 from parametricSN.utils.context import get_context
 from parametricSN.utils.wavelet_visualization import get_filters_visualization
 from parametricSN.utils.create_filters import create_filters_params_random,  morlets
+from parametricSN.utils.create_filters import periodize_filter_fft
 from parametricSN.utils.create_filters import create_filters_params, construct_scattering
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
@@ -40,7 +41,8 @@ class Identity(nn.Module):
 
 
 class LinearLayer(nn.Module):
-    def __init__(self, in_channels,  k=2, n=4, num_classes=10, standard=False):
+    def __init__(self, in_channels,  k=2, n=4, num_classes=10,  standard=False, n_coefficients=81, 
+                M_coefficient=8, N_coefficient=8) :
         super().__init__()
         self.inplanes = 16 * k
         self.ichannels = 16 * k * 3
@@ -48,7 +50,7 @@ class LinearLayer(nn.Module):
             self.fc1 = nn.Linear(3*32*32, 256)
             self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1=  nn.Linear(3*64*81, 256)
+            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 256)
             self.fc2 = nn.Linear(256, num_classes)
 
     def forward(self, x):
@@ -162,9 +164,13 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     J = params['scattering']['J']
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
-    K = 81*3
+    n_coefficients= 1 + 8*J + 8*8*J*(J-1)//2
+    M_coefficient = params['preprocess']['dimension']['M']/(2**J)
+    N_coefficient = params['preprocess']['dimension']['N']/(2**J)
+    K = n_coefficients*3
     if params['model']['architecture'] == 'linear_layer':
-        model = LinearLayer(K, params['model']['width']).to(device)
+        model = LinearLayer(K, params['model']['width'], n_coefficients=n_coefficients, 
+                M_coefficient=M_coefficient, N_coefficient=N_coefficient).to(device)
     elif params['model']['architecture'] == 'cnn': 
         model = Scattering2dResNet(K, params['model']['width']).to(device)
     else:
@@ -174,7 +180,6 @@ def create_scattering(params, device, use_cuda, seed =0 ):
         scattering = scattering.cuda()
     phi, psi  = scattering.load_filters()
     params_filters = []
-    wavelets = None
        
     # if we want to optimize the parameters used to create the filters
     #if params['model']['mode'] == 'scattering_dif' :      
@@ -190,8 +195,11 @@ def create_scattering(params, device, use_cuda, seed =0 ):
 
     wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
+    
     for i,d in enumerate(psi):
-        d[0]=wavelets[i] 
+        for res in range(0, J-2):
+            if res in d.keys():
+                d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device)
            
     return  model, scattering, psi, wavelets, params_filters
 
@@ -203,6 +211,10 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
         if is_scattering_dif:
                 wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                     params_filters[1], params_filters[2], params_filters[3], device=device )
+                for i,d in enumerate(psi):
+                    for res in range(0, scattering.J-2):
+                        if res in d.keys():
+                            d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
                 for i,d in enumerate(psi):
                     d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
         for data, target in test_loader:
@@ -231,7 +243,9 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
     wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
     for i,d in enumerate(psi):
-        d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+        for res in range(0, scattering.J-2):
+            if res in d.keys():
+                d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
@@ -240,7 +254,9 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
             wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
             for i,d in enumerate(psi):
-                d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device)   
+                for res in range(0, scattering.J-2):
+                    if res in d.keys():
+                        d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
             data = construct_scattering(data, scattering, psi)
         elif psi != None:
             data = construct_scattering(data, scattering, psi)
@@ -286,6 +302,7 @@ def run_train(args):
     device = torch.device("cuda" if use_cuda else "cpu")
     is_scattering_dif = False
     train_loader,  test_loader = get_dataset(params, use_cuda)
+    J = params['scattering']['J']
     
     # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
     if params['model']['mode'] == 'scattering_dif':
@@ -296,7 +313,7 @@ def run_train(args):
         
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
+            f = get_filters_visualization(psi, J, 8, mode =mode) 
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
@@ -332,7 +349,7 @@ def run_train(args):
         
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
+            f = get_filters_visualization(psi, J,8, mode =mode) 
             filters_plots_before [mode]  = f  
     
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
@@ -415,7 +432,7 @@ def run_train(args):
                 d[0]=wavelets[i] 
     
         for mode in ['fourier','real', 'imag' ]:
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode)
+            f = get_filters_visualization(psi, J, 8, mode =mode)
             filters_plots_after[mode]  = f  
     
     # save metrics and params in mlflow
