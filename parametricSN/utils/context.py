@@ -19,5 +19,6 @@ def get_context(parameters_file):
     # Params contains all of the dataset creation parameters and model parameters
     with open(os.path.join(proj_path, f'conf/{parameters_file}'), "r") as f:
         params = yaml.safe_load(f)
+
         
     return catalog, params

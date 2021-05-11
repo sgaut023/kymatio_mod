@@ -1,1 +1,0 @@
-[{"run_id": "62d182be59474a8693376ce809d2f964", "artifact_path": "model", "utc_time_created": "2021-05-04 09:40:10.103786", "flavors": {"pytorch": {"model_data": "data", "pytorch_version": "1.8.1+cu102"}, "python_function": {"pickle_module_name": "mlflow.pytorch.pickle_module", "loader_module": "mlflow.pytorch", "python_version": "3.7.0", "data": "data", "env": "conda.yaml"}}}]
