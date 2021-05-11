@@ -62,7 +62,8 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
                                                         steps_per_epoch=steps_per_epoch, 
                                                         epochs= params['model']['epoch'] , 
-                                                        three_phase=params['model']['three_phase'])
+                                                        three_phase=params['model']['three_phase'],
+                                                        div_factor=params['model']['div_factor'])
     elif params['model']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
     elif params['model']['scheduler'] =='LambdaLR':
@@ -162,7 +163,7 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
     K = 81*3
-    if params == 'linear_layer':
+    if params['model']['architecture'] == 'linear_layer':
         model = LinearLayer(K, params['model']['width']).to(device)
     elif params['model']['architecture'] == 'cnn': 
         model = Scattering2dResNet(K, params['model']['width']).to(device)
@@ -437,6 +438,8 @@ def main():
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)
+    subparser.add_argument("--max-lr", "-lrmax", type=float)
+    subparser.add_argument("--div-factor", "-df", type=float)
     subparser.add_argument("--train-batch-size", "-tbs", type=int)
     subparser.add_argument("--test-batch-size", "-tstbs", type=int)
     subparser.add_argument("--weight-decay", "-wd", type=float)

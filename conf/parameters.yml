@@ -11,7 +11,7 @@ model:
   lr: 0.1
   lr_scattering: 0.1
   lr_orientation: 0.1
-  train_batch_size: 64
+  train_batch_size: 100
   test_batch_size: 512
   weight_decay: 0.0005
   momentum: 0.9
@@ -26,7 +26,8 @@ model:
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
-  max_lr: 0.05 #highest lr we can
+  max_lr: 0.07 #highest lr we can
+  div_factor: 20 # so far, best results with 25 and maxlr = 0.05
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
   comment:

@@ -12,28 +12,65 @@ import time
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
-OPTIM = "adam"
+OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
+LRMAX = 0.06
+DF = 25
 SEED = int(time.time())
 MODE = "scattering_dif"
-EPOCHS = 6000
-
-TOTALRUNS = 4 * (4)
+EPOCHS = 10000
+INIT = "Kymatio"
+TOTALRUNS = 2 * (2)
 
 
 
 for x in range(TOTALRUNS):
-    SEED = int(time.time())
-    OPTIM = "sgd"
-    LR = 0.1
-    LRS = 0.1
-    LRO = 0.1
-    command = "{} {} run-train -o {} -lr {} -lrs {} -lro {} -s {} -m {} -e {}".format(
-    PYTHON,RUN_FILE,OPTIM,LR,LRS,LRO,SEED,MODE,EPOCHS)
+    if x % 2 == 0 and x != 0:
+        SEED = int(time.time())
+
+    if MODE == "scattering":
+        MODE = "scattering_dif"
+    else:
+        MODE = "scattering"    
+
+    command = "{} {} run-train -o {} -lr {} -lrs {} -lro {} -s {} -m {} -e {} -lrmax {} -df {} -ip {}".format(
+    PYTHON,RUN_FILE,OPTIM,LR,LRS,LRO,SEED,MODE,EPOCHS,LRMAX,DF,INIT)
     print("[Running] {}".format(command))
     os.system(command)
+
+OPTIM = "sgd"
+LR = 0.1
+LRS = 0.1
+LRO = 0.1
+LRMAX = 0.06
+DF = 25
+SEED = int(time.time())
+MODE = "scattering_dif"
+EPOCHS = 10000
+INIT = "Random"
+TOTALRUNS = 2 * (2)
+
+for x in range(TOTALRUNS):
+    if x % 2 == 0 and x != 0:
+        SEED = int(time.time())
+
+    if MODE == "scattering":
+        MODE = "scattering_dif"
+    else:
+        MODE = "scattering"    
+
+    command = "{} {} run-train -o {} -lr {} -lrs {} -lro {} -s {} -m {} -e {} -lrmax {} -df {} -ip {}".format(
+    PYTHON,RUN_FILE,OPTIM,LR,LRS,LRO,SEED,MODE,EPOCHS,LRMAX,DF,INIT)
+    print("[Running] {}".format(command))
+    os.system(command)
+
+
+
+
+
+exit(0)
 
 for x in range(TOTALRUNS):
     if x % 4 == 0 and x != 0:
