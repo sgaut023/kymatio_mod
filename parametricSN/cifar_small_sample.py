@@ -91,7 +91,7 @@ def get_dataset(params, use_cuda):
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
     SEED = params['model']['seed'] #None means a random seed 
-    DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+    DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
 
     if use_cuda:
         num_workers = 4
@@ -137,10 +137,10 @@ def get_dataset(params, use_cuda):
     transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
 
     cifar_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
-                transform=transform_train, download=True)
+                transform=transform_train, download=False)
 
     cifar_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
-                transform=transform_val, download=True)
+                transform=transform_val, download=False)
 
     ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
         trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
@@ -274,6 +274,8 @@ def override_params(args,params):
         if v != None and k != "param_file":
             print(k,v)
             params["model"][k] = v
+
+
     return params
 
 
@@ -435,6 +437,8 @@ def main():
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
     subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
+    subparser.add_argument("--data-root", "-dr", type=str)
+    subparser.add_argument("--data-folder", "-dfo", type=str)
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)
