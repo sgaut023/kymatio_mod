@@ -9,6 +9,7 @@ model:
   name: 'linear layer'
   dataset: 'kth' # 'cifar' or 'kth'
   architecture: 'linear_layer' # 'cnn' or 'linear_layer' or 'mlp'
+  sample_set: 'a'  # 'a', 'b', 'c' or 'd'
   num_classes: 11
   lr: 0.1
   lr_scattering: 
@@ -19,8 +20,8 @@ model:
   momentum: 0.9
   seed: 2344   # seed for dataset subselection (if None generate random)
   width: 8   # width factor for resnet
-  train_sample_num: 440  #total train samples in total there are 4752 images
-  test_sample_num: 4312
+  train_sample_num: 1188  #total train samples in total there are 4752 images
+  test_sample_num: 3564
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
   epoch: 1000
   epoch_scattering:  10

@@ -180,8 +180,12 @@ def get_dataset(params, use_cuda):
 
         dataset_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
                     transform=transform_val, download=True)
+        ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
+        trainDataset=dataset_train, valDataset=dataset_val )   
+    
     elif params['model']['dataset'] == 'kth':
-        DATA_DIR = '/NOBACKUP/gauthiers/KTH-TIPS2-bv2/'
+        DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
         dim_M = params['preprocess']['dimension']['M']
         dim_N = params['preprocess']['dimension']['N']
         trainTransform = [
@@ -194,17 +198,21 @@ def get_dataset(params, use_cuda):
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
 
-        dataset_train = datasets.ImageFolder(root=DATA_DIR, #use train dataset
-                transform=transform_train)
-        dataset_val = datasets.ImageFolder(root=DATA_DIR, #use test dataset
-                transform=transform_val)
+        datasets_train = []
+        for sample in ['a', 'b', 'c', 'd']:
+            dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
+                                            transform=transform_train)
+            if params['model']['sample_set'] == sample:
+                dataset_val = dataset
+            else:
+                datasets_train.append(dataset)
+        
+        dataset_train = torch.utils.data.ConcatDataset(datasets_train)
+
+
     else: 
         NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
 
-    ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
-        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
-        trainDataset=dataset_train, valDataset=dataset_val
-    )
         
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
