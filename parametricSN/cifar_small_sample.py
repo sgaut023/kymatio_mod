@@ -137,10 +137,10 @@ def get_dataset(params, use_cuda):
     transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
 
     cifar_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
-                transform=transform_train, download=False)
+                transform=transform_train, download=True)
 
     cifar_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
-                transform=transform_val, download=False)
+                transform=transform_val, download=True)
 
     ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
         trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
