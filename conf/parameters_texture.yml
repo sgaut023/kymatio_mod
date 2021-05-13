@@ -1,8 +1,8 @@
 #data preprocessing:
 preprocess:
   dimension:
-    M:  200   # ultrasound image dimension
-    N:  200   # ultrasound image dimension
+    M:  64  # ultrasound image dimension
+    N:  64 # ultrasound image dimension
 
 #model
 model:
@@ -22,7 +22,7 @@ model:
   train_sample_num: 440  #total train samples in total there are 4752 images
   test_sample_num: 4312
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 10
+  epoch: 1000
   epoch_scattering:  10
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'

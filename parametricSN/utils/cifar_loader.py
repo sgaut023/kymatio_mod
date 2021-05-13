@@ -119,10 +119,10 @@ class SmallSampleController:
                 for classe in range(0, self.numClasses)]) #finds the number of samples for the class with the least number of samples
 
         def __eq__(self,other):
-            # try:
-            #     is_eq = self.dataset.data.shape == other.dataset.data.shape
-            # except:
-            is_eq  = len(self.dataset) == len(other.dataset) 
+            try:
+                is_eq = self.dataset.data.shape == other.dataset.data.shape
+            except:
+                is_eq  = len(self.dataset) == len(other.dataset) 
             return is_eq
 
             

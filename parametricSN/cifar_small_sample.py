@@ -182,12 +182,14 @@ def get_dataset(params, use_cuda):
                     transform=transform_val, download=True)
     elif params['model']['dataset'] == 'kth':
         DATA_DIR = '/NOBACKUP/gauthiers/KTH-TIPS2-bv2/'
+        dim_M = params['preprocess']['dimension']['M']
+        dim_N = params['preprocess']['dimension']['N']
         trainTransform = [
-            transforms.Resize((200,200)),
+            transforms.RandomCrop((dim_M,dim_N )),
             transforms.RandomHorizontalFlip(),
         ]
         valTransform = [
-            transforms.Resize((200,200)),
+            transforms.CenterCrop((dim_M,dim_N)),
         ]
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
@@ -223,20 +225,20 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     M_coefficient = params['preprocess']['dimension']['M']/(2**J)
     N_coefficient = params['preprocess']['dimension']['N']/(2**J)
     K = n_coefficients*3
+
     if params['model']['architecture'] == 'linear_layer':
         model = LinearLayer(n_coefficients=n_coefficients, 
-                M_coefficient=M_coefficient, N_coefficient=N_coefficient).to(device)
-    elif params['model']['architecture'] == 'linear_layer_3':
-        model = LinearLayer(n_coefficients=n_coefficients, 
-                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=3).to(device)
-    elif params['model']['architecture'] == 'linear_layer_4':
-        model = LinearLayer(n_coefficients=n_coefficients, 
-                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=4).to(device)
-    elif params['model']['architecture'] == 'cnn': 
-        model = Scattering2dResNet(K, params['model']['width']).to(device)
+                num_classes = params['model']['num_classes'],
+                M_coefficient=M_coefficient, 
+                N_coefficient=N_coefficient).to(device)
     elif params['model']['architecture'] == 'mlp': 
         model = MLP(n_coefficients=n_coefficients, 
-                M_coefficient=M_coefficient, N_coefficient=N_coefficient).to(device)
+                    num_classes = params['model']['num_classes'],
+                    M_coefficient=M_coefficient, 
+                    N_coefficient=N_coefficient).to(device)
+    elif params['model']['architecture'] == 'cnn': 
+        model = Scattering2dResNet(K, params['model']['width'], 
+                                 num_classes = params['model']['num_classes']).to(device)
     else:
         raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
 
@@ -534,7 +536,7 @@ def main():
     subparser.add_argument("--step-test", "-st", type=int)
     subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
     subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
+    subparser.add_argument('--param_file', "-pf", type=str, default='parameters_texture.yml',
                         help="YML Parameter File Name")
 
     args = parser.parse_args()
