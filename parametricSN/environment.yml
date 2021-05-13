@@ -12,13 +12,12 @@ dependencies:
 - jupyterlab
 - pandas
 - mlflow
-- pipy
 - tqdm
 - pytorch>=1.6
 - torchvision
 - tensorflow==1.14.0
 - pip:
-  - kymatio==0.2.0
+  #- kymatio==0.2.0
   - graphviz
   - ipywidgets
   - nbdev>=0.2.12
