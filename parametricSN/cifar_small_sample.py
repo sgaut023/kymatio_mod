@@ -66,34 +66,31 @@ class MLP(nn.Module):
 
   def forward(self, x):
     '''Forward pass'''
+    x = x.view(x.shape[0], -1)
     return self.layers(x)
 
 
 class LinearLayer(nn.Module):
     def __init__(self, num_classes=10,  standard=False, n_coefficients=81, 
-                M_coefficient=8, N_coefficient=8, n_layers = 2) :
+                M_coefficient=8, N_coefficient=8) :
         super().__init__()
 
-        self.n_layers = n_layers
         if standard:
             self.fc1 = nn.Linear(3*32*32, 256)
             self.fc2 = nn.Linear(256, num_classes)
-        elif n_layers ==2:
-            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 256)
-            self.fc2 = nn.Linear(256, num_classes)
-        elif n_layers ==3:
-            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 512)
-            self.fc2 = nn.Linear(512, 256)
-            self.fc3 = nn.Linear(256, num_classes)
+        else:
+            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
+            self.fc2 = nn.Linear(1024, 512)
+            self.fc3 = nn.Linear(512, 256)
+            self.fc4 = nn.Linear(256, num_classes)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.fc1(x)
         x = self.fc2(x)
-        if self.n_layers == 3:
-            x = self.fc3(x)
+        x = self.fc3(x)
+        x = self.fc4(x)
         return x
-
 
 def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
 
@@ -113,7 +110,7 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
                                             step_size_up=params['model']['T_max']*2,
                                              mode="triangular2")
     elif params['model']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=24000, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
     elif params['model']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
@@ -121,7 +118,7 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
     return scheduler
 
 def get_dataset(params, use_cuda):
-    NUM_CLASSES = 10
+    NUM_CLASSES = params['model']['num_classes']
     TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
     VAL_SAMPLE_NUM = params['model']['test_sample_num']
     TRAIN_BATCH_SIZE = params['model']['train_batch_size']
@@ -130,7 +127,6 @@ def get_dataset(params, use_cuda):
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
     SEED = params['model']['seed'] #None means a random seed 
-    DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
     if use_cuda:
         num_workers = 4
@@ -147,43 +143,65 @@ def get_dataset(params, use_cuda):
     # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
     #                                  std=[0.229, 0.224, 0.225])
 
-    if AUGMENT == 'autoaugment':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
-        trainTransform = [
-            transforms.RandomCrop(32, 4),
-            transforms.RandomHorizontalFlip(),
-            AutoAugment(),
-            Cutout()
-        ]
-    elif AUGMENT == 'original-cifar':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
-        trainTransform = [
-            transforms.RandomCrop(32, 4),
-            transforms.RandomHorizontalFlip(),
-        ]
-    elif AUGMENT == 'noaugment':
-        print("\n[get_dataset(params, use_cuda)] No data augmentation")
-        trainTransform = []
+ 
 
-    elif AUGMENT == 'glico':
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+    if params['model']['dataset'] == 'cifar':
+        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+
+        if AUGMENT == 'autoaugment':
+            print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+            trainTransform = [
+                transforms.RandomCrop(32, 4),
+                transforms.RandomHorizontalFlip(),
+                AutoAugment(),
+                Cutout()
+            ]
+        elif AUGMENT == 'original-cifar':
+            print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+            trainTransform = [
+                transforms.RandomCrop(32, 4),
+                transforms.RandomHorizontalFlip(),
+            ]
+        elif AUGMENT == 'noaugment':
+            print("\n[get_dataset(params, use_cuda)] No data augmentation")
+            trainTransform = []
+
+        elif AUGMENT == 'glico':
+            NotImplemented(f"augment parameter {AUGMENT} not implemented")
+        else: 
+            NotImplemented(f"augment parameter {AUGMENT} not implemented")
+ 
+
+        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+        transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+
+        dataset_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
+                    transform=transform_train, download=True)
+
+        dataset_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
+                    transform=transform_val, download=True)
+    elif params['model']['dataset'] == 'kth':
+        DATA_DIR = '/NOBACKUP/gauthiers/KTH-TIPS2-bv2/'
+        trainTransform = [
+            transforms.Resize((200,200)),
+            transforms.RandomHorizontalFlip(),
+        ]
+        valTransform = [
+            transforms.Resize((200,200)),
+        ]
+        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+        transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
+
+        dataset_train = datasets.ImageFolder(root=DATA_DIR, #use train dataset
+                transform=transform_train)
+        dataset_val = datasets.ImageFolder(root=DATA_DIR, #use test dataset
+                transform=transform_val)
     else: 
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
-
-    
-
-    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
-
-    cifar_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
-                transform=transform_train, download=True)
-
-    cifar_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
-                transform=transform_val, download=True)
+        NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
 
     ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
         trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
-        trainDataset=cifar_train, valDataset=cifar_val
+        trainDataset=dataset_train, valDataset=dataset_val
     )
         
         
@@ -211,11 +229,14 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     elif params['model']['architecture'] == 'linear_layer_3':
         model = LinearLayer(n_coefficients=n_coefficients, 
                 M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=3).to(device)
+    elif params['model']['architecture'] == 'linear_layer_4':
+        model = LinearLayer(n_coefficients=n_coefficients, 
+                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=4).to(device)
     elif params['model']['architecture'] == 'cnn': 
         model = Scattering2dResNet(K, params['model']['width']).to(device)
     elif params['model']['architecture'] == 'mlp': 
         model = MLP(n_coefficients=n_coefficients, 
-                M_coefficient=M_coefficient, N_coefficient=N_coefficient, n_layers=3).to(device)
+                M_coefficient=M_coefficient, N_coefficient=N_coefficient).to(device)
     else:
         raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
 
@@ -426,8 +447,8 @@ def run_train(args):
                 optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
                                             momentum=params['model']['momentum'],
                                              weight_decay=params['model']['weight_decay'])
-                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                            epochs - epoch)
+                params['model']['scheduler'] = 'StepLR'
+                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), epochs)
                 lrs_orientation.append(0)     
                 lrs_scattering.append(0)
             else:
@@ -490,6 +511,7 @@ def main():
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
     subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer', 'mlp','linear_layer_3' ])
+    subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)
