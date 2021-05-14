@@ -80,7 +80,7 @@ class LinearLayer(nn.Module):
             self.fc2 = nn.Linear(256, num_classes)
         else:
             self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
-            self.fc2 = nn.Linear(1024, 512)
+            self.fc2 = nn.Linear(1024, num_classes)
             self.fc3 = nn.Linear(512, 256)
             self.fc4 = nn.Linear(256, num_classes)
 
@@ -560,7 +560,7 @@ def main():
     subparser.add_argument("--step-test", "-st", type=int)
     subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
     subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument('--param_file', "-pf", type=str, default='parameters_texture.yml',
+    subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
 
     args = parser.parse_args()
