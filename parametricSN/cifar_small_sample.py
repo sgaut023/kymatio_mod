@@ -25,6 +25,7 @@ from numpy.random import RandomState
 from parametricSN.utils.context import get_context
 from parametricSN.utils.wavelet_visualization import get_filters_visualization
 from parametricSN.utils.create_filters import create_filters_params_random,  morlets
+from parametricSN.utils.create_filters import update_psi
 from parametricSN.utils.create_filters import create_filters_params, construct_scattering
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
@@ -37,31 +38,63 @@ class Identity(nn.Module):
         super().__init__()
     def forward(self, x):
         return x
+    
+class MLP(nn.Module):
+  '''
+    Multilayer Perceptron.
+  '''
+  def __init__(self,num_classes=10,  standard=False, n_coefficients=81, 
+                M_coefficient=8, N_coefficient=8):
+    super().__init__()
+
+    if standard:
+        fc1 = nn.Linear(3*32*32, 512)
+    else:
+        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
+    
+    self.layers = nn.Sequential(
+      fc1,
+      nn.ReLU(),
+      nn.Linear(512, 256),
+      nn.ReLU(),
+      nn.Linear(256, 128),
+      nn.ReLU(),
+      nn.Linear(128, 64),
+      nn.ReLU(),
+      nn.Linear(64, num_classes)
+    )
+
+  def forward(self, x):
+    '''Forward pass'''
+    x = x.view(x.shape[0], -1)
+    return self.layers(x)
 
 
 class LinearLayer(nn.Module):
-    def __init__(self, in_channels,  k=2, n=4, num_classes=10, standard=False):
+    def __init__(self, num_classes=10,  standard=False, n_coefficients=81, 
+                M_coefficient=8, N_coefficient=8) :
         super().__init__()
-        self.inplanes = 16 * k
-        self.ichannels = 16 * k * 3
+
         if standard:
             self.fc1 = nn.Linear(3*32*32, 256)
             self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1=  nn.Linear(3*64*81, 256)
-            self.fc2 = nn.Linear(256, num_classes)
+            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
+            self.fc2 = nn.Linear(1024, num_classes)
+
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.fc1(x)
-        return self.fc2(x)
+        x = self.fc2(x)
+        return x
 
-def get_lr_scheduler(optimizer, params, steps_per_epoch ):
+def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
 
     if params['model']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
                                                         steps_per_epoch=steps_per_epoch, 
-                                                        epochs= params['model']['epoch'] , 
+                                                        epochs= epoch, 
                                                         three_phase=params['model']['three_phase'],
                                                         div_factor=params['model']['div_factor'])
     elif params['model']['scheduler'] =='CosineAnnealingLR':
@@ -74,15 +107,15 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch ):
                                             step_size_up=params['model']['T_max']*2,
                                              mode="triangular2")
     elif params['model']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=24000, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
     elif params['model']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
         raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
     return scheduler
 
-def get_dataset(params, use_cuda):
-    NUM_CLASSES = 10
+def get_dataset(params, use_cuda):    
+    NUM_CLASSES = params['model']['num_classes']
     TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
     VAL_SAMPLE_NUM = params['model']['test_sample_num']
     TRAIN_BATCH_SIZE = params['model']['train_batch_size']
@@ -108,53 +141,96 @@ def get_dataset(params, use_cuda):
     # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
     #                                  std=[0.229, 0.224, 0.225])
 
-    if AUGMENT == 'autoaugment':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
-        trainTransform = [
-            transforms.RandomCrop(32, 4),
-            transforms.RandomHorizontalFlip(),
-            AutoAugment(),
-            Cutout()
-        ]
-    elif AUGMENT == 'original-cifar':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
-        trainTransform = [
-            transforms.RandomCrop(32, 4),
-            transforms.RandomHorizontalFlip(),
-        ]
-    elif AUGMENT == 'noaugment':
-        print("\n[get_dataset(params, use_cuda)] No data augmentation")
-        trainTransform = []
-
-    elif AUGMENT == 'glico':
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
-    else: 
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
-
-    
-
-    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
-
-    cifar_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
-                transform=transform_train, download=True)
-
-    cifar_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
-                transform=transform_val, download=True)
-
-    ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
-        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
-        trainDataset=cifar_train, valDataset=cifar_val
-    )
-        
-        
+ 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if params['model']['dataset'] == 'cifar':
+        #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+
+        if AUGMENT == 'autoaugment':
+            print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+            trainTransform = [
+                transforms.RandomCrop(32, 4),
+                transforms.RandomHorizontalFlip(),
+                AutoAugment(),
+                Cutout()
+            ]
+        elif AUGMENT == 'original-cifar':
+            print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+            trainTransform = [
+                transforms.RandomCrop(32, 4),
+                transforms.RandomHorizontalFlip(),
+            ]
+        elif AUGMENT == 'noaugment':
+            print("\n[get_dataset(params, use_cuda)] No data augmentation")
+            trainTransform = []
+
+        elif AUGMENT == 'glico':
+            NotImplemented(f"augment parameter {AUGMENT} not implemented")
+        else: 
+            NotImplemented(f"augment parameter {AUGMENT} not implemented")
+ 
+
+        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+        transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+
+        dataset_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
+                    transform=transform_train, download=True)
+
+        dataset_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
+                    transform=transform_val, download=True)
+        ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
+        trainDataset=dataset_train, valDataset=dataset_val )  
+
     
-    train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
+        train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
         device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
 
-    params['model']['seed'] = seed
-    train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0]
+        params['model']['seed'] = seed
+        train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
+    
+    elif params['model']['dataset'] == 'kth':
+        #DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
+
+        if params['model']['seed'] == None:
+            params['model']['seed'] = int(time.time()) #generate random seed
+        dim_M = params['preprocess']['dimension']['M']
+        dim_N = params['preprocess']['dimension']['N']
+        trainTransform = [
+            transforms.RandomCrop((dim_M,dim_N )),
+            transforms.RandomHorizontalFlip(),
+        ]
+        valTransform = [
+            transforms.CenterCrop((dim_M,dim_N)),
+        ]
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+        transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
+
+        datasets_val = []
+        for sample in ['a', 'b', 'c', 'd']:
+            if params['model']['sample_set'] == sample:
+                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
+                                            transform=transform_train)
+                dataset_train = dataset
+            else:
+                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
+                                            transform=transform_val)
+                datasets_val.append(dataset)
+        
+        dataset_val = torch.utils.data.ConcatDataset(datasets_val)
+                
+        train_loader = torch.utils.data.DataLoader(dataset_train,
+                                           batch_size=TRAIN_BATCH_SIZE, shuffle=True,
+                                           num_workers = num_workers, pin_memory = True)
+        test_loader = torch.utils.data.DataLoader(dataset_val,
+                                           batch_size=VAL_BATCH_SIZE, shuffle=True,
+                                           num_workers = num_workers, pin_memory = True)
+
+
+    else: 
+        NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
+
     
     return train_loader,  test_loader 
 
@@ -162,11 +238,24 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     J = params['scattering']['J']
     M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
     scattering = Scattering2D(J=J, shape=(M, N))
-    K = 81*3
+    n_coefficients= 1 + 8*J + 8*8*J*(J-1)//2
+    M_coefficient = params['preprocess']['dimension']['M']/(2**J)
+    N_coefficient = params['preprocess']['dimension']['N']/(2**J)
+    K = n_coefficients*3
+
     if params['model']['architecture'] == 'linear_layer':
-        model = LinearLayer(K, params['model']['width']).to(device)
+        model = LinearLayer(n_coefficients=n_coefficients, 
+                num_classes = params['model']['num_classes'],
+                M_coefficient=M_coefficient, 
+                N_coefficient=N_coefficient).to(device)
+    elif params['model']['architecture'] == 'mlp': 
+        model = MLP(n_coefficients=n_coefficients, 
+                    num_classes = params['model']['num_classes'],
+                    M_coefficient=M_coefficient, 
+                    N_coefficient=N_coefficient).to(device)
     elif params['model']['architecture'] == 'cnn': 
-        model = Scattering2dResNet(K, params['model']['width']).to(device)
+        model = Scattering2dResNet(K, params['model']['width'], 
+                                 num_classes = params['model']['num_classes']).to(device)
     else:
         raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
 
@@ -174,7 +263,6 @@ def create_scattering(params, device, use_cuda, seed =0 ):
         scattering = scattering.cuda()
     phi, psi  = scattering.load_filters()
     params_filters = []
-    wavelets = None
        
     # if we want to optimize the parameters used to create the filters
     #if params['model']['mode'] == 'scattering_dif' :      
@@ -190,9 +278,8 @@ def create_scattering(params, device, use_cuda, seed =0 ):
 
     wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
-    for i,d in enumerate(psi):
-        d[0]=wavelets[i] 
-           
+    
+    psi = update_psi(J, psi, wavelets, device)           
     return  model, scattering, psi, wavelets, params_filters
 
 def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_filters):
@@ -203,8 +290,7 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
         if is_scattering_dif:
                 wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                     params_filters[1], params_filters[2], params_filters[3], device=device )
-                for i,d in enumerate(psi):
-                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+                psi = update_psi(scattering.J, psi, wavelets, device) 
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
             if is_scattering_dif:
@@ -230,8 +316,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
     train_loss = 0
     wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
-    for i,d in enumerate(psi):
-        d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    psi = update_psi(scattering.J, psi, wavelets, device) 
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
@@ -239,8 +324,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         if is_scattering_dif:
             wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
-            for i,d in enumerate(psi):
-                d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device)   
+            psi = update_psi(scattering.J, psi, wavelets, device) 
             data = construct_scattering(data, scattering, psi)
         elif psi != None:
             data = construct_scattering(data, scattering, psi)
@@ -288,7 +372,9 @@ def run_train(args):
     device = torch.device("cuda" if use_cuda else "cpu")
     is_scattering_dif = False
     train_loader,  test_loader = get_dataset(params, use_cuda)
-    
+    J = params['scattering']['J']
+    epochs  = params['model']['epoch']
+
     # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
     if params['model']['mode'] == 'scattering_dif':
         is_scattering_dif = True
@@ -298,13 +384,10 @@ def run_train(args):
         
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
+            f = get_filters_visualization(psi, J, 8, mode =mode) 
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
-
-        for i,d in enumerate(psi_skeleton):
-            d[0]=None
 
         #set optimizer
         parameters = [
@@ -324,6 +407,9 @@ def run_train(args):
             momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
         else:
             print("Invalid optimizer parameter passed")
+        
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     params['model']['epoch_scattering'])
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
@@ -334,11 +420,13 @@ def run_train(args):
         
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode) 
+            f = get_filters_visualization(psi, J,8, mode =mode) 
             filters_plots_before [mode]  = f  
     
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     epochs)
 
     elif params['model']['mode'] == 'standard': #use the linear model only
         if params['model']['architecture'] == 'linear_layer':
@@ -356,6 +444,8 @@ def run_train(args):
         params_filters =[] 
         optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
         momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
+        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
+                                     epochs)
 
 
     #M = params['model']['learning_schedule_multi']
@@ -366,20 +456,26 @@ def run_train(args):
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
-        
-
-
-    epochs  = params['model']['epoch']
-    scheduler = get_lr_scheduler(optimizer, params, len(train_loader))
-
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
         lrs.append(optimizer.param_groups[0]['lr'])
         if params['model']['mode'] == 'scattering_dif':
-            lrs_orientation.append(optimizer.param_groups[1]['lr'])
-            lrs_scattering.append(optimizer.param_groups[2]['lr'])
-            
-        
+            if epoch < params['model']['epoch_scattering']:
+                lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                lrs_scattering.append(optimizer.param_groups[2]['lr'])
+
+            elif epoch == params['model']['epoch_scattering']:
+                optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
+                                            momentum=params['model']['momentum'],
+                                             weight_decay=params['model']['weight_decay'])
+                params['model']['scheduler'] = 'StepLR'
+                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), epochs)
+                lrs_orientation.append(0)     
+                lrs_scattering.append(0)
+            else:
+                lrs_orientation.append(0)     
+                lrs_scattering.append(0)
+
         # training 
         train_loss, train_accuracy = train(model, device, train_loader, is_scattering_dif, scheduler, optimizer,  epoch+1, scattering, psi_skeleton, params_filters )
         train_losses.append(train_loss)
@@ -413,11 +509,10 @@ def run_train(args):
             wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                                 params_filters[2], params_filters[3], device=device )
         
-            for i,d in enumerate(psi):
-                d[0]=wavelets[i] 
+            psi = update_psi(J, psi, wavelets, device)     
     
         for mode in ['fourier','real', 'imag' ]:
-            f = get_filters_visualization(psi, num_row = 2 , num_col =8 , mode =mode)
+            f = get_filters_visualization(psi, J, 8, mode =mode)
             filters_plots_after[mode]  = f  
     
     # save metrics and params in mlflow
@@ -436,6 +531,7 @@ def main():
     subparser.set_defaults(callback=run_train)
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
+    subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
     subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
     subparser.add_argument("--data-root", "-dr", type=str)
     subparser.add_argument("--data-folder", "-dfo", type=str)
@@ -454,6 +550,7 @@ def main():
     subparser.add_argument("--seed", "-s", type=int)
     subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
     subparser.add_argument("--epoch", "-e", type=int)
+    subparser.add_argument("--epoch-scattering", "-es", type=int)
     subparser.add_argument("--optimizer", "-o", type=str)
     subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
     subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])

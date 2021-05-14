@@ -45,7 +45,56 @@ def construct_scattering(input, scattering, psi):
     #         x['coef'] = x['coef'].reshape(new_shape)
 
     return S
-    
+
+def update_psi(J, psi, wavelets,  device):
+    if J ==2:
+        for i,d in enumerate(psi):
+                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    else:
+        for i,d in enumerate(psi):
+            for res in range(0, J-2):
+                if res in d.keys():
+                    d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device)
+    return psi
+
+def periodize_filter_fft(x, res, device):
+    """
+        Parameters
+        ----------
+        x : numpy array
+            signal to periodize in Fourier
+        res :
+            resolution to which the signal is cropped.
+
+        Returns
+        -------
+        crop : torch array
+            It returns a crop version of the filter, assuming that
+             the convolutions will be done via compactly supported signals.
+    """
+
+    M = x.shape[0]
+    N = x.shape[1]
+
+    crop = torch.zeros((M // 2 ** res, N // 2 ** res), dtype = x.dtype).to(device)
+
+    mask = torch.ones(x.shape, dtype =torch.float32).to(device)
+    len_x = int(M * (1 - 2 ** (-res)))
+    start_x = int(M * 2 ** (-res - 1))
+    len_y = int(N * (1 - 2 ** (-res)))
+    start_y = int(N * 2 ** (-res - 1))
+    mask[start_x:start_x + len_x,:] = 0
+    mask[:, start_y:start_y + len_y] = 0
+    x = x*mask
+
+    for k in range(int(M / 2 ** res)):
+        for l in range(int(N / 2 ** res)):
+            for i in range(int(2 ** res)):
+                for j in range(int(2 ** res)):
+                    crop[k, l] += x[k + i * int(M / 2 ** res), l + j * int(N / 2 ** res)]
+
+    return crop
+
 def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     #n_filters = J*L
     np.random.seed(seed)

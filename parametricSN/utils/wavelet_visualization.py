@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def get_filters_visualization(psi, num_row = 2 , num_col =8 , mode ='fourier'):
+def get_filters_visualization(psi, J,L, mode ='fourier'):
     '''
         Function that logs the metrics on MLFLOW
         Params: 
@@ -10,25 +10,35 @@ def get_filters_visualization(psi, num_row = 2 , num_col =8 , mode ='fourier'):
         num_col: number of columns in the visualization
         mode: fourier, real or imag
     '''
-    f, axarr = plt.subplots(num_row,num_col, figsize=(20, 5))
-    count = 0
-    for i in range(0, num_row) :
-        for j in range(0, num_col) :
-            if mode =='fourier':
-                x =np.fft.fftshift(psi[count][0].squeeze().cpu().detach().numpy()).real
-            elif mode == 'real':
-                x= np.fft.fftshift(np.fft.ifft2(psi[count][0].squeeze().cpu().detach().numpy())).real
-            elif mode == 'imag':
-                x= np.fft.fftshift(np.fft.ifft2(psi[count][0].squeeze().cpu().detach().numpy())).imag
-            else:
-                raise NotImplemented(f"Model {params['name']} not implemented")
-            axarr[i,j].imshow(x)
-            axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}")
-            axarr[i,j].axis('off')
-            count = count +1
-            axarr[i,j].set_xticklabels([])
-            axarr[i,j].set_yticklabels([])
-            axarr[i,j].set_aspect('equal')
+    n_filters =0
+    for j in range(2, J+1):
+        n_filters+=  j* L
+    num_rows = int(n_filters/L) 
+    num_col = L
+    f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
+    start_row = 0
+    for scale in range(J-1):
+        count = L * scale
+        end_row = (J-scale) + start_row 
+        for i in range(start_row, end_row) :
+            for j in range(0, L) :
+                if mode =='fourier':
+                    x =np.fft.fftshift(psi[count][scale].squeeze().cpu().detach().numpy()).real
+                elif mode == 'real':
+                    x= np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).real
+                elif mode == 'imag':
+                    x= np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).imag
+                else:
+                    raise NotImplemented(f"Model {params['name']} not implemented")
+                
+                axarr[i,j].imshow(x)
+                axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}, S:{scale} ")
+                axarr[i,j].axis('off')
+                count = count +1
+                axarr[i,j].set_xticklabels([])
+                axarr[i,j].set_yticklabels([])
+                axarr[i,j].set_aspect('equal')
+        start_row = end_row
 
     f.subplots_adjust(wspace=0, hspace=0.2)
     return f
