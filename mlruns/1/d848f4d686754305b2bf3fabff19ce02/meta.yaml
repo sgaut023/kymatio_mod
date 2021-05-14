@@ -1,0 +1,15 @@
+artifact_uri: /home/mila/g/gauthies/kymatio_mod/mlruns/1/d848f4d686754305b2bf3fabff19ce02/artifacts
+end_time: 1620931717076
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: d848f4d686754305b2bf3fabff19ce02
+run_uuid: d848f4d686754305b2bf3fabff19ce02
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1620931697236
+status: 3
+tags: []
+user_id: gauthies

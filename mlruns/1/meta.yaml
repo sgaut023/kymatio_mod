@@ -1,0 +1,4 @@
+artifact_location: /home/mila/g/gauthies/kymatio_mod/mlruns/1
+experiment_id: '1'
+lifecycle_stage: active
+name: test
