@@ -141,34 +141,34 @@ def get_dataset(params, use_cuda):
     # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
     #                                  std=[0.229, 0.224, 0.225])
 
- 
+    dim_M = params['preprocess']['dimension']['M']
+    dim_N = params['preprocess']['dimension']['N']
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if AUGMENT == 'autoaugment':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+        trainTransform = [
+            transforms.RandomCrop(dim_M, 4),
+            transforms.RandomHorizontalFlip(),
+            AutoAugment(),
+            Cutout()
+        ]
+    elif AUGMENT == 'original-cifar':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+        trainTransform = [
+            transforms.RandomCrop(dim_M, 4),
+            transforms.RandomHorizontalFlip(),
+        ]
+    elif AUGMENT == 'noaugment':
+        print("\n[get_dataset(params, use_cuda)] No data augmentation")
+        trainTransform = []
+
+    elif AUGMENT == 'glico':
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+    else: 
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+
     if params['model']['dataset'] == 'cifar':
         #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-        if AUGMENT == 'autoaugment':
-            print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
-            trainTransform = [
-                transforms.RandomCrop(32, 4),
-                transforms.RandomHorizontalFlip(),
-                AutoAugment(),
-                Cutout()
-            ]
-        elif AUGMENT == 'original-cifar':
-            print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
-            trainTransform = [
-                transforms.RandomCrop(32, 4),
-                transforms.RandomHorizontalFlip(),
-            ]
-        elif AUGMENT == 'noaugment':
-            print("\n[get_dataset(params, use_cuda)] No data augmentation")
-            trainTransform = []
-
-        elif AUGMENT == 'glico':
-            NotImplemented(f"augment parameter {AUGMENT} not implemented")
-        else: 
-            NotImplemented(f"augment parameter {AUGMENT} not implemented")
- 
 
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
@@ -194,16 +194,20 @@ def get_dataset(params, use_cuda):
 
         if params['model']['seed'] == None:
             params['model']['seed'] = int(time.time()) #generate random seed
-        dim_M = params['preprocess']['dimension']['M']
-        dim_N = params['preprocess']['dimension']['N']
-        trainTransform = [
-            transforms.RandomCrop((dim_M,dim_N )),
-            transforms.RandomHorizontalFlip(),
-        ]
+
+        # trainTransform = [
+        #     #transforms.Resize((200,200)),
+        #     transforms.RandomAffine(degrees=40,
+        #                             translate=(0.25, 0.5),
+        #                             scale=(1.2, 2.0)), 
+        #     transforms.RandomCrop((dim_M,dim_N )),
+        #     transforms.RandomHorizontalFlip(),
+        # ]
         valTransform = [
+            #transforms.Resize((200,200)),
             transforms.CenterCrop((dim_M,dim_N)),
         ]
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
 
@@ -557,7 +561,7 @@ def main():
     subparser.add_argument("--step-test", "-st", type=int)
     subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
     subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
+    subparser.add_argument('--param_file', "-pf", type=str, default='parameters_texture.yml',
                         help="YML Parameter File Name")
 
     args = parser.parse_args()
