@@ -81,15 +81,12 @@ class LinearLayer(nn.Module):
         else:
             self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
             self.fc2 = nn.Linear(1024, num_classes)
-            self.fc3 = nn.Linear(512, 256)
-            self.fc4 = nn.Linear(256, num_classes)
+
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.fc1(x)
         x = self.fc2(x)
-        x = self.fc3(x)
-        x = self.fc4(x)
         return x
 
 def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
