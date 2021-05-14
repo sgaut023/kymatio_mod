@@ -45,4 +45,4 @@ scattering:
 
 mlflow:
   tracking_uri: 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'test'
+  experiment_name: 'test2'

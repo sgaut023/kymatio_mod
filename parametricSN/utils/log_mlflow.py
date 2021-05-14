@@ -58,7 +58,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_
         mlflow.log_params(params['preprocess']['dimension'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
-        mlflow.pytorch.log_model(model, artifact_path = 'model')
+        #mlflow.pytorch.log_model(model, artifact_path = 'model')
 
         #save filters 
         for key in filters_plots_before:
