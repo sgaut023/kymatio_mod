@@ -117,7 +117,7 @@ def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
         raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
     return scheduler
 
-def get_dataset(params, use_cuda):
+def get_dataset(params, use_cuda):    
     NUM_CLASSES = params['model']['num_classes']
     TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
     VAL_SAMPLE_NUM = params['model']['test_sample_num']
@@ -127,10 +127,7 @@ def get_dataset(params, use_cuda):
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
     SEED = params['model']['seed'] #None means a random seed 
-<<<<<<< HEAD
-=======
     DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
->>>>>>> master
 
     if use_cuda:
         num_workers = 4
@@ -148,9 +145,9 @@ def get_dataset(params, use_cuda):
     #                                  std=[0.229, 0.224, 0.225])
 
  
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if params['model']['dataset'] == 'cifar':
-        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+        #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
         if AUGMENT == 'autoaugment':
             print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
@@ -186,10 +183,20 @@ def get_dataset(params, use_cuda):
                     transform=transform_val, download=True)
         ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
         trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
-        trainDataset=dataset_train, valDataset=dataset_val )   
+        trainDataset=dataset_train, valDataset=dataset_val )  
+
+    
+        train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
+        device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
+
+        params['model']['seed'] = seed
+        train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
     
     elif params['model']['dataset'] == 'kth':
-        DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
+        #DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
+
+        if params['model']['seed'] == None:
+            params['model']['seed'] = int(time.time()) #generate random seed
         dim_M = params['preprocess']['dimension']['M']
         dim_N = params['preprocess']['dimension']['N']
         trainTransform = [
@@ -199,33 +206,34 @@ def get_dataset(params, use_cuda):
         valTransform = [
             transforms.CenterCrop((dim_M,dim_N)),
         ]
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
 
-        datasets_train = []
+        datasets_val = []
         for sample in ['a', 'b', 'c', 'd']:
-            dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
-                                            transform=transform_train)
             if params['model']['sample_set'] == sample:
-                dataset_val = dataset
+                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
+                                            transform=transform_train)
+                dataset_train = dataset
             else:
-                datasets_train.append(dataset)
+                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
+                                            transform=transform_val)
+                datasets_val.append(dataset)
         
-        dataset_train = torch.utils.data.ConcatDataset(datasets_train)
+        dataset_val = torch.utils.data.ConcatDataset(datasets_val)
+                
+        train_loader = torch.utils.data.DataLoader(dataset_train,
+                                           batch_size=TRAIN_BATCH_SIZE, shuffle=True,
+                                           num_workers = num_workers, pin_memory = True)
+        test_loader = torch.utils.data.DataLoader(dataset_val,
+                                           batch_size=VAL_BATCH_SIZE, shuffle=True,
+                                           num_workers = num_workers, pin_memory = True)
 
 
     else: 
         NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
 
-        
-        
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
-        device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
-
-    params['model']['seed'] = seed
-    train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0]
     
     return train_loader,  test_loader 
 

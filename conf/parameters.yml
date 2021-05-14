@@ -13,6 +13,7 @@ model:
   data_root: '/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
   lr: 0.1
+  num_classes: 10
   lr_scattering: 
   lr_orientation: 
   train_batch_size: 128
@@ -24,7 +25,7 @@ model:
   train_sample_num: 500  #total train samples
   test_sample_num: 10000
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 10000
+  epoch: 10
   epoch_scattering:  10000
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
