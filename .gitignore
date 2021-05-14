@@ -27,7 +27,7 @@ doc/source/gallery_3d
 /data/03_features/
 /data/01_raw/raw_images/
 /src/kymatio/
-/mlruns/
+
 
 
 # Byte-compiled / optimized / DLL files

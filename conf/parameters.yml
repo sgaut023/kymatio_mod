@@ -4,13 +4,14 @@ preprocess:
     M:  32   # ultrasound image dimension
     N:  32   # ultrasound image dimension
 
-
+#   path: '/home/gauthiers/kymatio_datasets/CIFAR'
 #model
 model:
   name: 'linear layer'
   dataset: 'cifar' # 'cifar' or 'kth'
-  architecture: 'linear_layer' # 'cnn' or 'linear_layer' or 'mlp'
-  num_classes: 10
+  architecture: 'linear_layer' # 'cnn' or 'linear_layer'
+  data_root: '/home/gauthiers/kymatio_datasets/'
+  data_folder: 'CIFAR'
   lr: 0.1
   lr_scattering: 
   lr_orientation: 
@@ -44,5 +45,5 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri: '/NOBACKUP/gauthiers/kymatio_mod/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri:  'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
   experiment_name: 'test'

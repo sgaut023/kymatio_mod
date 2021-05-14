@@ -127,6 +127,10 @@ def get_dataset(params, use_cuda):
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
     SEED = params['model']['seed'] #None means a random seed 
+<<<<<<< HEAD
+=======
+    DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+>>>>>>> master
 
     if use_cuda:
         num_workers = 4
@@ -349,6 +353,8 @@ def override_params(args,params):
         if v != None and k != "param_file":
             print(k,v)
             params["model"][k] = v
+
+
     return params
 
 
@@ -520,8 +526,10 @@ def main():
     subparser.set_defaults(callback=run_train)
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
-    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer', 'mlp','linear_layer_3' ])
     subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
+    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
+    subparser.add_argument("--data-root", "-dr", type=str)
+    subparser.add_argument("--data-folder", "-dfo", type=str)
     subparser.add_argument("--lr", "-lr", type=float)
     subparser.add_argument("--lr-scattering", "-lrs", type=float)
     subparser.add_argument("--lr-orientation", "-lro", type=float)

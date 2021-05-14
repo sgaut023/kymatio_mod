@@ -58,7 +58,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_
         mlflow.log_params(params['preprocess']['dimension'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
-        mlflow.pytorch.log_model(model, artifact_path = 'model')
+        #mlflow.pytorch.log_model(model, artifact_path = 'model')
 
         #save filters 
         for key in filters_plots_before:
@@ -69,8 +69,10 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_
         mlflow.log_figure(figures_plot[2], f'plot/train_test_accuracy_2.pdf')
         mlflow.log_figure(f_lr, f'plot/lr.pdf')
         # saving all accuracies
-        log_csv_file('test_acc.csv', test_acc,)
-        log_csv_file('train_acc.csv', train_acc,)
-        log_csv_file('test_loss.csv', test_loss,)
-        log_csv_file('train_loss.csv', train_loss,)
+        log_csv_file('test_acc.csv', test_acc)
+        log_csv_file('train_acc.csv', train_acc)
+        log_csv_file('test_loss.csv', test_loss)
+        log_csv_file('train_loss.csv', train_loss)
+        print(f"finish logging{params['mlflow']['tracking_uri']}")
+
 
