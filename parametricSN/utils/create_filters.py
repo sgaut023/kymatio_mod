@@ -96,6 +96,9 @@ def periodize_filter_fft(x, res, device):
     return crop
 
 def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
+    """
+    a 'random' initialization
+    """
     #n_filters = J*L
     np.random.seed(seed)
     sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
@@ -122,6 +125,8 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
 def create_filters_params(J, L, is_scattering_dif, ndim =2):
     '''
         Create reusable filters parameters: orientations, xis, sigmas, sigmas
+
+        mimicking the kymatio initialization
     '''
     orientations = []
     xis = []
@@ -197,3 +202,6 @@ def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morle
     norm_factors = norm_factors.expand([n_filters,grid_or_shape[0]]).unsqueeze(2).repeat(1,1,grid_or_shape[1])
     wavelets = wavelets / norm_factors
     return wavelets
+
+
+
