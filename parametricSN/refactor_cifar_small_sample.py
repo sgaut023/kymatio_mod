@@ -1,33 +1,25 @@
-"""
-Classification on CIFAR10 (ResNet)
-==================================
+"""Main moodule for learnable Scattering Networks
 
-Based on pytorch example for CIFAR10
-"""
+Authors: Benjamin Therien, Shanel Gauthier
 
-from parametricSN.utils.models import sn_HybridModel, sn_ScatteringBase
+"""
 import sys
 from pathlib import Path 
-import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
-import numpy as np
+
 import time
-import copy
-import os
-import torchvision
-from torchvision import datasets, transforms
-import torch.nn.functional as F
-import torch
 import argparse
-import kymatio.datasets as scattering_datasets
-from kymatio import Scattering2D
+import torch
+
+import torch.nn.functional as F
 import torch.nn as nn
+import kymatio.datasets as scattering_datasets
+import matplotlib.pyplot as plt
+import numpy as np
+
+from torchvision import datasets, transforms
 from numpy.random import RandomState
 from parametricSN.utils.context import get_context
-from parametricSN.utils.wavelet_visualization import get_filters_visualization
-from parametricSN.utils.create_filters import create_filters_params_random,  morlets
-from parametricSN.utils.create_filters import update_psi
-from parametricSN.utils.create_filters import create_filters_params, construct_scattering
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
@@ -35,26 +27,24 @@ from parametricSN.utils.cifar_loader import SmallSampleController
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
 from parametricSN.utils.models import *
 
-     
-class Identity(nn.Module):
-    """Identity nn.Module for ski"""
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-    def forward(self, x):
-        return x
-    
+
+class InvalidOptimizerError(Exception):
+    """Error thrown when an invalid optimizer name is passed"""
+    pass
 
 def schedulerFactory(optimizer, params, steps_per_epoch, epoch ):
     """Factory for different schedulers"""
 
     if params['model']['scheduler'] =='OneCycleLR':
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
-                                                        steps_per_epoch=steps_per_epoch, 
-                                                        epochs= epoch, 
-                                                        three_phase=params['model']['three_phase'],
-                                                        div_factor=params['model']['div_factor'])
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=params['model']['max_lr'], 
+            steps_per_epoch=steps_per_epoch, epochs=epoch, 
+            three_phase=params['model']['three_phase'],
+            div_factor=params['model']['div_factor']
+        )
     elif params['model']['scheduler'] =='CosineAnnealingLR':
-        scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
+        scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
     elif params['model']['scheduler'] =='LambdaLR':
         lmbda = lambda epoch: 0.95
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
@@ -70,7 +60,28 @@ def schedulerFactory(optimizer, params, steps_per_epoch, epoch ):
         raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
     return scheduler
 
-def get_dataset(params, use_cuda):    
+def optimizerFactory(parameters,params):
+    """Factory for different optimizers"""
+
+    if params['model']['optimizer'] == 'adam':
+        return torch.optim.Adam(
+            parameters,lr=params['model']['lr'], 
+            betas=(0.9, 0.999), eps=1e-08, 
+            weight_decay=params['model']['weight_decay'], amsgrad=False
+        )
+    elif params['model']['optimizer'] == 'sgd': 
+        return torch.optim.SGD(
+            parameters, lr=params['model']['lr'], 
+            momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay']
+        )
+    else:
+        print("Invalid optimizer parameter passed")
+        raise InvalidOptimizerError
+
+def get_dataset(params, use_cuda):
+    """loads the dataset into memory and creates dataloaders for train and test"""
+
+
     NUM_CLASSES = params['model']['num_classes']
     TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
     VAL_SAMPLE_NUM = params['model']['test_sample_num']
@@ -80,7 +91,11 @@ def get_dataset(params, use_cuda):
     AUGMENT = params['model']['augment']
     CIFAR_TRAIN = True
     SEED = params['model']['seed'] #None means a random seed 
-    DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+
+    if params['model']['data_root'] != None:
+        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+    else:
+        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
     if use_cuda:
         num_workers = 4
@@ -129,16 +144,22 @@ def get_dataset(params, use_cuda):
         transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
 
-        dataset_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
-                    transform=transform_train, download=True)
+        dataset_train = datasets.CIFAR10(#load train dataset
+            root=DATA_DIR, train=True, 
+            transform=transform_train, download=True
+        )
 
-        dataset_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
-                    transform=transform_val, download=True)
+        dataset_val = datasets.CIFAR10(#load test dataset
+            root=DATA_DIR, train=False, 
+            transform=transform_val, download=True
+        )
 
-        ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
-        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
-        trainDataset=dataset_train, valDataset=dataset_val )  
-
+        ss = SmallSampleController(
+            trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+            trainBatchSize=TRAIN_BATCH_SIZE, valBatchSize=VAL_BATCH_SIZE, 
+            multiplier=VALIDATION_SET_NUM, trainDataset=dataset_train, 
+            valDataset=dataset_val 
+        )  
     
         train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
         device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
@@ -249,6 +270,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch):
 def override_params(args,params):
     """override passed params dict with CLI arguments"""
 
+    print("Overriding parameters:")
     for k,v in args.__dict__.items():
         if v != None and k != "param_file":
             print(k,v)
@@ -281,36 +303,27 @@ def run_train(args):
         learnable=('scattering_dif' == params['model']['mode']),
         lr_orientation=params['model']['lr_orientation'],
         lr_scattering=params['model']['lr_scattering'],
-        CUDA=use_cuda
+        use_cuda=use_cuda
     )
 
     top = modelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
         architecture=params['model']['architecture'],
-        num_classes=len(train_loader.classes)
+        num_classes=params['model']['num_classes'], 
+        use_cuda=use_cuda
     )
 
     #use for cnn?
     # model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
 
-    hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top)
-    parameters = hybridModel.parameters()
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top,use_cuda=use_cuda)
 
+    optimizer = optimizerFactory(hybridModel.parameters(),params)
 
-
-    if params['model']['optimizer'] == 'adam':
-        optimizer = torch.optim.Adam(parameters,lr=params['model']['lr'], 
-            betas=(0.9, 0.999), eps=1e-08, 
-            weight_decay=params['model']['weight_decay'], amsgrad=False)
-    elif params['model']['optimizer'] == 'sgd': 
-        optimizer = torch.optim.SGD(parameters,lr=params['model']['lr'], 
-        momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
-    else:
-        print("Invalid optimizer parameter passed")
-
-
-    scheduler = schedulerFactory(optimizer, params, len(train_loader), 
-                                 params['model']['epoch'])
+    scheduler = schedulerFactory(
+        optimizer, params, 
+        len(train_loader), params['model']['epoch']
+    )
 
 
     #M = params['model']['learning_schedule_multi']
@@ -326,7 +339,7 @@ def run_train(args):
 
     for epoch in  range(0, params['model']['epoch']) :
         lrs.append(optimizer.param_groups[0]['lr'])
-        
+
         if params['model']['mode'] == 'scattering_dif':
             lrs_orientation.append(optimizer.param_groups[1]['lr'])
             lrs_scattering.append(optimizer.param_groups[2]['lr'])

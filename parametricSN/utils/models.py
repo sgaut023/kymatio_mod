@@ -1,9 +1,24 @@
 """Contains all the pytorch NN.modules for this project
 
 Authors: Benjamin Therien, Shanel Gauthier
+
+Exceptions:
+    InvalidInitializationException --
+    InvalidArchitectureError --
+
+Functions: 
+    create_scatteringExclusive -- creates scattering parameters
+    model_factory -- creates different models based on input
+
+Classes: 
+    sn_Identity -- computes the identity function in forward pass
+    sn_HybridModel -- combinations of a scattering and other nn.modules
+    sn_ScatteringBase -- a scattering network
+    sn_CNN -- CNN fitted for scattering input
+    sn_LinearLayer -- Linear layer fitted for scattering input
+    sn_MLP -- multilayer perceptron fitted for scattering input
 """
 
-import kymatio
 import torch 
 import torch.nn as nn
 
@@ -16,12 +31,36 @@ class InvalidInitializationException(Exception):
     """Error thrown when an invalid initialization scheme is passed"""
     pass
 
-
 class InvalidArchitectureError(Exception):
     """Error thrown when an invalid architecture name is passed"""
     pass
 
-def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,CUDA=True):
+def modelFactory(base,architecture,num_classes,use_cuda=True):
+    """factory for the creation of different model architectures associated to a scattering base"""
+
+    if architecture.lower() == 'cnn':
+        return sn_CNN(
+            num_classes=num_classes, n_coefficients=base.n_coefficients, 
+            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
+            standard=False
+        )
+    elif architecture.lower() == 'mlp':
+        return sn_MLP(
+            num_classes=num_classes, n_coefficients=base.n_coefficients, 
+            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
+            standard=False,use_cuda=use_cuda
+        )
+    elif architecture.lower() == 'linear_layer':
+        return sn_LinearLayer(
+            num_classes=num_classes, n_coefficients=base.n_coefficients, 
+            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
+            standard=False
+        )
+    else:
+        print("In modelFactory() incorrect module name for architecture={}".format(architecture))
+        raise InvalidArchitectureError()
+
+def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns its for modification. Next,
@@ -29,7 +68,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,CUD
     update the psi Kymatio object to match their api.
 
     arguments:
-    CUDA -- True if were using gpu
+    use_cuda -- True if were using gpu
     J -- scale of scattering (always 2 for now)
     N -- height of the input image
     M -- width of the input image
@@ -44,8 +83,9 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,CUD
     n_coefficients= 1 + L*J + L*L*J*(J-1)//2
     K = n_coefficients*3
 
-    if CUDA:
+    if use_cuda:
         scattering = scattering.cuda()
+
     phi, psi  = scattering.load_filters()
     
     params_filters = []
@@ -65,20 +105,39 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,CUD
 
     return scattering, psi, wavelets, params_filters, n_coefficients
 
+class sn_Identity(nn.Module):
+    """Identity nn.Module for identity"""
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+    def forward(self, x):
+        return x
+    
+
 class sn_HybridModel(nn.Module):
     """An nn.Module incorporating scattering an a learnable network"""
-    def __init__(self,scatteringBase,top):
-        self.scatteringBase = scatteringBase
-        self.top = top
+    def __init__(self,scatteringBase,top,use_cuda=True):
+        super(sn_HybridModel,self).__init__()
+        if use_cuda:
+            self.scatteringBase = scatteringBase.cuda()
+            self.top = top.cuda()
+        else:
+            self.scatteringBase = scatteringBase.cpu()
+            self.top = top.cpu()
 
     def parameters(self):
-        """implement parameters method correctly (THIS MIGHT NOT BE NEEDED)"""
-        temp = self.top.parameters()
-        temp.extend(self.scatteringBase.parameters())
-        return temp
+        """implements parameters method allowing the use of scatteringBase's method """
+        return list(self.top.parameters()) + list(self.scatteringBase.parameters())
 
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))
+
+    def train(self):
+        self.scatteringBase.train()
+        self.top.train()
+
+    def eval(self):
+        self.scatteringBase.eval()
+        self.top.eval()
 
 
 class sn_ScatteringBase(nn.Module):
@@ -86,7 +145,7 @@ class sn_ScatteringBase(nn.Module):
 
     parameters:
     learnable -- should the filters be learnable parameters of this model
-    CUDA -- True if we are using cuda
+    use_cuda -- True if we are using cuda
     J -- scale of scattering (always 2 for now)
     N -- height of the input image
     M -- width of the input image
@@ -104,14 +163,14 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,CUDA=True):
+    def __init__(self,J,N,M,initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
         """Creates scattering filters and adds them to the nn.parameters if learnable"""
         super(sn_ScatteringBase,self).__init__()
         self.J = J
         self.N = N
         self.M = M
         self.learnable = learnable
-        self.CUDA = CUDA 
+        self.use_cuda = use_cuda 
         self.initialization = initialization
         self.lr_scattering = lr_scattering
         self.lr_orientation = lr_orientation
@@ -119,34 +178,30 @@ class sn_ScatteringBase(nn.Module):
         self.N_coefficient = self.N/(2**self.J)
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
-            J,N,M,initilization=self.initialization,seed=seed,requires_grad=learnable,CUDA=self.CUDA
+            J,N,M,initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
         )
         
         self.filters_plots_before = self.getFilterViz()
 
         self.scatteringTrain = False
 
-    def train(self):
-        super(sn_ScatteringBase,self).train()
+    def train(self,mode=True):
+        super().train(mode=mode)
         self.scatteringTrain = True
 
     def eval(self):
-        super(sn_ScatteringBase,self).eval()
+        super().eval()
         if self.scatteringTrain:
             self.updateFilters()
         self.scatteringTrain = False
 
-        
+
     def parameters(self):
         """ override parameters to include learning rates """
         if self.learnable:
-            return [
-                {'params': self.params_filters[0], 'lr': self.lr_orientation},
-                {'params': [self.params_filters[1], self.params_filters[2],
+            yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
+            yield {'params': [self.params_filters[1], self.params_filters[2],
                 self.params_filters[3]],'lr': self.lr_scattering}
-            ]
-        else: 
-            return []
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -166,32 +221,6 @@ class sn_ScatteringBase(nn.Module):
         return construct_scattering(ip, self.scattering, self.psi)
 
 
-def modelFactory(base,architecture,num_classes):
-    """factory for the creation of different model architectures associated to a scattering base"""
-
-    if architecture.lower() == 'cnn':
-        return sn_CNN(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
-            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False
-        )
-    elif architecture.lower() == 'mlp':
-        return sn_MLP(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
-            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False
-        )
-    elif architecture.lower() == 'linear_layer':
-        return sn_LinearLayer(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
-            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False
-        )
-    else:
-        print("In modelFactory() incorrect module name for architecture={}".format(architecture))
-        raise InvalidArchitectureError()
-
-
 class sn_CNN(nn.Module):
     pass
 
@@ -199,8 +228,10 @@ class sn_MLP(nn.Module):
   '''
     Multilayer Perceptron.
   '''
-  def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False):
+  def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
     super(sn_MLP,self).__init__()
+    if use_cuda:
+        self.cuda()
 
     if standard:
         fc1 = nn.Linear(3*32*32, 512)
@@ -226,8 +257,10 @@ class sn_MLP(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False):
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
+        if use_cuda:
+            self.cuda()
 
         if standard:
             self.fc1 = nn.Linear(3*32*32, 256)

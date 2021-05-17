@@ -1,18 +1,34 @@
-import torch
-from torchvision.datasets import MNIST, SVHN
-from torchvision import transforms
+"""Wrapper for the cifar dataset with various options 
 
-import matplotlib.pyplot as plt
+Author: Benjamin Therien
+
+Exceptions: 
+    ImpossibleSampleNumException --
+    IncompatibleBatchSizeException -- 
+    IncompatibleClassNumberException --
+    IndicesNotSetupException --
+
+Functions:
+    cifar_getDataloaders -- 
+    cifar_augmentationFactory -- 
+
+Classes: 
+    SmallSampleController -- class used to sample a small portion from an existing dataset
+"""
+
+
+
+import torch
+import gc
+import time
+
 import numpy as np
 
-import torch.nn as nn
-import torch.nn.functional as F
-
+from parametricSN.utils.auto_augment import AutoAugment, Cutout
+from torchvision import datasets, transforms
 from numpy.random import RandomState
 from torch.utils.data import Subset
 
-import gc
-import time
 
 class ImpossibleSampleNumException(Exception):
     """Error thrown when an impossible class balancedsample number is requested"""
@@ -29,6 +45,92 @@ class IncompatibleClassNumberException(Exception):
 class IndicesNotSetupException(Exception):
     """Error thrown when an impossible class balancedsample number is requested"""
     pass
+
+def cifar_augmentationFactory(augmentation):
+    """Factory for different augmentation choices"""
+
+    if augmentation == 'autoaugment':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+        trainTransform = [
+            transforms.RandomCrop(32, 4),
+            transforms.RandomHorizontalFlip(),
+            AutoAugment(),
+            Cutout()
+        ]
+    elif augmentation == 'original-cifar':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+        trainTransform = [
+            transforms.RandomCrop(32, 4),
+            transforms.RandomHorizontalFlip(),
+        ]
+    elif augmentation == 'noaugment':
+        print("\n[get_dataset(params, use_cuda)] No data augmentation")
+        trainTransform = []
+
+    elif augmentation == 'glico':
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+    else: 
+        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+    pass
+
+def cifar_getDataloaders(trainSampleNum, valSampleNum, 
+                         trainBatchSize, valBatchSize, 
+                         multiplier, trainDataset, 
+                         valDataset,seed=None,
+                         dataDir=".",use_cuda=True):
+    """Factory for different augmentation choices"""
+
+    if params['model']['data_root'] != None:
+        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+    else:
+        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+
+    if use_cuda:
+        num_workers = 4
+        pin_memory = True
+    else:
+        num_workers = 0
+        pin_memory = False
+        
+    #CIFAR-10 normalization    
+    normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                                  std=[0.247, 0.243, 0.261])
+
+    #default normalization
+    # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+    #                                  std=[0.229, 0.224, 0.225])
+
+ 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+
+    
+    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+
+    dataset_train = datasets.CIFAR10(#load train dataset
+        root=DATA_DIR, train=True, 
+        transform=transform_train, download=True
+    )
+
+    dataset_val = datasets.CIFAR10(#load test dataset
+        root=DATA_DIR, train=False, 
+        transform=transform_val, download=True
+    )
+
+    ss = SmallSampleController(
+        trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+        trainBatchSize=TRAIN_BATCH_SIZE, valBatchSize=VAL_BATCH_SIZE, 
+        multiplier=VALIDATION_SET_NUM, trainDataset=dataset_train, 
+        valDataset=dataset_val 
+    )  
+
+    train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
+    device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
+
+    params['model']['seed'] = seed
+    train_loader, test_loader =  
+    return train_loader_in_list[0], test_loader_in_list[0]
 
 class SmallSampleController:
     """
@@ -64,7 +166,8 @@ class SmallSampleController:
 
         def sample(self,dataset,offset,workers,RP,shuffle=True):
             """Creates a list of dataloaders based on input"""
-            
+
+
             if self.dataLoaders != None:
                 del self.dataLoaders
                 torch.cuda.empty_cache()
@@ -127,7 +230,7 @@ class SmallSampleController:
 
             
     def __str__(self):
-        return "[SmallSampleController] num classes:{}, batch size:{}".format(self.numClasses,batchSize)
+        return "[SmallSampleController] num classes:{}, train batch size:{}".format(self.numClasses,self.trainSampler.batchSize)
 
 
     def __init__(self, trainSampleNum, valSampleNum, trainBatchSize, valBatchSize, multiplier, trainDataset, valDataset):

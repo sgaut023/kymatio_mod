@@ -9,7 +9,7 @@ dimension:
 model:
   name: 'linear layer'
   architecture: 'linear_layer' # 'cnn' or 'linear_layer'
-  data_root: '/home/gauthiers/kymatio_datasets/'
+  data_root: #'/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
   lr: 0.1
   lr_scattering: 0.1
@@ -34,6 +34,8 @@ model:
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
   comment:
+  num_classes: 10
+  dataset: 'cifar'
   
 
 
@@ -43,5 +45,5 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri: 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
