@@ -5,6 +5,7 @@ Classification on CIFAR10 (ResNet)
 Based on pytorch example for CIFAR10
 """
 
+from parametricSN.utils.models import sn_HybridModel, sn_ScatteringBase
 import sys
 from pathlib import Path 
 import matplotlib.pyplot as plt
@@ -32,64 +33,19 @@ from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import SmallSampleController
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
+from parametricSN.utils.models import *
+
      
 class Identity(nn.Module):
+    """Identity nn.Module for ski"""
     def __init__(self, *args, **kwargs):
         super().__init__()
     def forward(self, x):
         return x
     
-class MLP(nn.Module):
-  '''
-    Multilayer Perceptron.
-  '''
-  def __init__(self,num_classes=10,  standard=False, n_coefficients=81, 
-                M_coefficient=8, N_coefficient=8):
-    super().__init__()
 
-    if standard:
-        fc1 = nn.Linear(3*32*32, 512)
-    else:
-        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
-    
-    self.layers = nn.Sequential(
-      fc1,
-      nn.ReLU(),
-      nn.Linear(512, 256),
-      nn.ReLU(),
-      nn.Linear(256, 128),
-      nn.ReLU(),
-      nn.Linear(128, 64),
-      nn.ReLU(),
-      nn.Linear(64, num_classes)
-    )
-
-  def forward(self, x):
-    '''Forward pass'''
-    x = x.view(x.shape[0], -1)
-    return self.layers(x)
-
-
-class LinearLayer(nn.Module):
-    def __init__(self, num_classes=10,  standard=False, n_coefficients=81, 
-                M_coefficient=8, N_coefficient=8) :
-        super().__init__()
-
-        if standard:
-            self.fc1 = nn.Linear(3*32*32, 256)
-            self.fc2 = nn.Linear(256, num_classes)
-        else:
-            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
-            self.fc2 = nn.Linear(1024, num_classes)
-
-
-    def forward(self, x):
-        x = x.view(x.shape[0], -1)
-        x = self.fc1(x)
-        x = self.fc2(x)
-        return x
-
-def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
+def schedulerFactory(optimizer, params, steps_per_epoch, epoch ):
+    """Factory for different schedulers"""
 
     if params['model']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
@@ -178,6 +134,7 @@ def get_dataset(params, use_cuda):
 
         dataset_val = datasets.CIFAR10(root=DATA_DIR,train=False, #use test dataset
                     transform=transform_val, download=True)
+
         ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
         trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
         trainDataset=dataset_train, valDataset=dataset_val )  
@@ -194,8 +151,8 @@ def get_dataset(params, use_cuda):
 
         if params['model']['seed'] == None:
             params['model']['seed'] = int(time.time()) #generate random seed
-        dim_M = params['preprocess']['dimension']['M']
-        dim_N = params['preprocess']['dimension']['N']
+        dim_M = params['dimension']['M']
+        dim_N = params['dimension']['N']
         trainTransform = [
             transforms.RandomCrop((dim_M,dim_N )),
             transforms.RandomHorizontalFlip(),
@@ -234,71 +191,16 @@ def get_dataset(params, use_cuda):
     
     return train_loader,  test_loader 
 
-def create_scattering(params, device, use_cuda, seed =0 ):
-    J = params['scattering']['J']
-    M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
-    scattering = Scattering2D(J=J, shape=(M, N))
-    n_coefficients= 1 + 8*J + 8*8*J*(J-1)//2
-    M_coefficient = params['preprocess']['dimension']['M']/(2**J)
-    N_coefficient = params['preprocess']['dimension']['N']/(2**J)
-    K = n_coefficients*3
 
-    if params['model']['architecture'] == 'linear_layer':
-        model = LinearLayer(n_coefficients=n_coefficients, 
-                num_classes = params['model']['num_classes'],
-                M_coefficient=M_coefficient, 
-                N_coefficient=N_coefficient).to(device)
-    elif params['model']['architecture'] == 'mlp': 
-        model = MLP(n_coefficients=n_coefficients, 
-                    num_classes = params['model']['num_classes'],
-                    M_coefficient=M_coefficient, 
-                    N_coefficient=N_coefficient).to(device)
-    elif params['model']['architecture'] == 'cnn': 
-        model = Scattering2dResNet(K, params['model']['width'], 
-                                 num_classes = params['model']['num_classes']).to(device)
-    else:
-        raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
+def test(model, device, test_loader):
+    """test method"""
 
-    if use_cuda:
-        scattering = scattering.cuda()
-    phi, psi  = scattering.load_filters()
-    params_filters = []
-       
-    # if we want to optimize the parameters used to create the filters
-    #if params['model']['mode'] == 'scattering_dif' :      
-    # We can initialize the parameters randomly or as the kymatio package does
-    requires_grad = True
-    if params['model']['mode']== 'scattering':
-        requires_grad = False
-    if params['model']['init_params'] =='Random':
-        params_filters = create_filters_params_random( J* scattering.L ,  requires_grad,  2, seed)
-    else:
-        n_filters = J*scattering.L
-        params_filters = create_filters_params(J, scattering.L,  requires_grad,  2)
-
-    wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3], device=device )
-    
-    psi = update_psi(J, psi, wavelets, device)           
-    return  model, scattering, psi, wavelets, params_filters
-
-def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_filters):
     model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        if is_scattering_dif:
-                wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
-                                    params_filters[1], params_filters[2], params_filters[3], device=device )
-                psi = update_psi(scattering.J, psi, wavelets, device) 
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
-            if is_scattering_dif:
-                data = construct_scattering(data, scattering, psi)
-            elif psi != None:
-                data = construct_scattering(data, scattering, psi)
-            else:
-                data = scattering(data)
             output = model(data)
             test_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
@@ -308,29 +210,19 @@ def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_
     accuracy = 100. * correct / len(test_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),accuracy ))
+
     return accuracy, test_loss
 
-def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, epoch, scattering, psi, params_filters):
+def train(model, device, train_loader, scheduler, optimizer, epoch):
+    """training method"""
+
     model.train()
     correct = 0
     train_loss = 0
-    wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
-                                params_filters[1], params_filters[2], params_filters[3], device=device )
-    psi = update_psi(scattering.J, psi, wavelets, device) 
-    
+
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
-        if is_scattering_dif:
-            wavelets = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
-                                params_filters[1], params_filters[2], params_filters[3], device=device )
-            psi = update_psi(scattering.J, psi, wavelets, device) 
-            data = construct_scattering(data, scattering, psi)
-        elif psi != None:
-            data = construct_scattering(data, scattering, psi)
-        else:
-            data = scattering(data)
-            
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
@@ -342,10 +234,11 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
         train_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
+    
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
 
-    #if batch_idx % 50 == 0:
+    
     print('Train Epoch: {}\t Average Loss: {:.6f}, Accuracy: {}/{} ({:.2f}%): '.format(
                 epoch, train_loss, correct , len(train_loader.dataset),
                 train_accuracy))
@@ -354,6 +247,8 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
 
 
 def override_params(args,params):
+    """override passed params dict with CLI arguments"""
+
     for k,v in args.__dict__.items():
         if v != None and k != "param_file":
             print(k,v)
@@ -365,87 +260,57 @@ def override_params(args,params):
 
 
 def run_train(args):
-    catalog, params = get_context(args.param_file)
-    params = override_params(args,params)
+    """Initializes and trains scattering models with different architectures
+    """
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    is_scattering_dif = False
-    train_loader,  test_loader = get_dataset(params, use_cuda)
-    J = params['scattering']['J']
-    epochs  = params['model']['epoch']
 
-    # if the mode is 'scattering' or 'scattering_dif', then we need to construct the filters phi
-    if params['model']['mode'] == 'scattering_dif':
-        is_scattering_dif = True
-        model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda, seed = params['model']['seed'])
-        lr_scattering = params['model']['lr_scattering']  
-        lr_orientation = params['model']['lr_orientation']  
-        
-        filters_plots_before = {}
-        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, J, 8, mode =mode) 
-            filters_plots_before [mode]  = f  
-        
-        psi_skeleton = psi #build psi skeleton (kymatio data structure)
+    catalog, params = get_context(args.param_file) #parse params
+    params = override_params(args,params) #override from CLI
 
-        #set optimizer
-        parameters = [
-            {'params': model.parameters()},
-            {'params': params_filters[0], 'lr': lr_orientation},
-            {'params': [params_filters[1], params_filters[2],
-             params_filters[3]],'lr': lr_scattering}
-        ]
-
-        if params['model']['optimizer'] == 'adam':
-            optimizer = torch.optim.Adam(parameters,lr=params['model']['lr'], 
-                betas=(0.9, 0.999), eps=1e-08, 
-                weight_decay=params['model']['weight_decay'], amsgrad=False)
-
-        elif params['model']['optimizer'] == 'sgd': 
-            optimizer = torch.optim.SGD(parameters,lr=params['model']['lr'], 
-            momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
-        else:
-            print("Invalid optimizer parameter passed")
-        
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     params['model']['epoch_scattering'])
-
-    elif params['model']['mode'] == 'scattering':
-        model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
-        #scattering.psi = psi
-        lr_scattering = None 
-        lr_orientation = None
-        psi_skeleton = psi
-        
-        filters_plots_before = {}
-        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, J,8, mode =mode) 
-            filters_plots_before [mode]  = f  
+    train_loader, test_loader = get_dataset(params, use_cuda) #load Dataset
     
-        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     epochs)
 
-    elif params['model']['mode'] == 'standard': #use the linear model only
-        if params['model']['architecture'] == 'linear_layer':
-            model = LinearLayer(8, params['model']['width'], standard=True).to(device)
-        elif params['model']['architecture'] == 'cnn':
-            model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
-        else:
-            raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
+    scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
+        J=params['scattering']['J'],
+        N=params['dimension']['N'],
+        M=params['dimension']['M'],
+        initialization=params['model']['init_params'],
+        seed=params['model']['seed'],
+        learnable=('scattering_dif' == params['model']['mode']),
+        lr_orientation=params['model']['lr_orientation'],
+        lr_scattering=params['model']['lr_scattering'],
+        CUDA=use_cuda
+    )
 
-        
-        scattering = Identity()
-        psi = None
-        filters_plots_before = {}
-        psi_skeleton = None
-        params_filters =[] 
-        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     epochs)
+    top = modelFactory( #create cnn, mlp, linearlayer, or other
+        base=scatteringBase,
+        architecture=params['model']['architecture'],
+        num_classes=len(train_loader.classes)
+    )
+
+    #use for cnn?
+    # model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
+
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top)
+    parameters = hybridModel.parameters()
+
+
+
+    if params['model']['optimizer'] == 'adam':
+        optimizer = torch.optim.Adam(parameters,lr=params['model']['lr'], 
+            betas=(0.9, 0.999), eps=1e-08, 
+            weight_decay=params['model']['weight_decay'], amsgrad=False)
+    elif params['model']['optimizer'] == 'sgd': 
+        optimizer = torch.optim.SGD(parameters,lr=params['model']['lr'], 
+        momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
+    else:
+        print("Invalid optimizer parameter passed")
+
+
+    scheduler = schedulerFactory(optimizer, params, len(train_loader), 
+                                 params['model']['epoch'])
 
 
     #M = params['model']['learning_schedule_multi']
@@ -459,67 +324,57 @@ def run_train(args):
 
     params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
 
-    for epoch in  range(0, epochs) :
-        # save learning rates for mlflow
+    for epoch in  range(0, params['model']['epoch']) :
         lrs.append(optimizer.param_groups[0]['lr'])
+        
         if params['model']['mode'] == 'scattering_dif':
-            if epoch < params['model']['epoch_scattering']:
-                lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                lrs_scattering.append(optimizer.param_groups[2]['lr'])
+            lrs_orientation.append(optimizer.param_groups[1]['lr'])
+            lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
-            elif epoch == params['model']['epoch_scattering']:
-                optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-                                            momentum=params['model']['momentum'],
-                                             weight_decay=params['model']['weight_decay'])
-                params['model']['scheduler'] = 'StepLR'
-                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), epochs)
-                lrs_orientation.append(0)     
-                lrs_scattering.append(0)
-            else:
-                lrs_orientation.append(0)     
-                lrs_scattering.append(0)
-
-        # training 
-        train_loss, train_accuracy = train(model, device, train_loader, is_scattering_dif, scheduler, optimizer,  epoch+1, scattering, psi_skeleton, params_filters )
+        train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer,  epoch+1)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
 
-       # at every 10 epochs, the test accuracy will be displayed
-        if epoch%params['model']['step_test']==0 or epoch == epochs -1:
-            accuracy, test_loss = test(model, device, test_loader, is_scattering_dif, scattering, psi_skeleton, params_filters )
-            test_losses.append(test_loss )
+        
+        if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
+            accuracy, test_loss = test(hybridModel, device, test_loader)
+            test_losses.append(test_loss)
             test_acc.append(accuracy)
 
 
+
+    #MLFLOW logging below
+
+
+
     # plot train and test loss
-    f_loss = visualize_loss(train_losses ,test_losses, step_test = params['model']['step_test'], 
-                            y_label='loss', num_samples =int(params['model']['train_sample_num']))
+    f_loss = visualize_loss(
+        train_losses, test_losses, step_test=params['model']['step_test'], 
+        y_label='loss', num_samples=int(params['model']['train_sample_num'])
+    )
                              
-    f_accuracy = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['train_sample_num']))
+    f_accuracy = visualize_loss(
+        train_accuracies ,test_acc, step_test=params['model']['step_test'], 
+        y_label='accuracy', num_samples=int(params['model']['train_sample_num'])
+    )
                              
-    f_accuracy_benchmark = visualize_loss(train_accuracies ,test_acc, step_test = params['model']['step_test'], 
-                            y_label='accuracy', num_samples =int(params['model']['train_sample_num']),
-                            benchmark =True)
+    f_accuracy_benchmark = visualize_loss(
+        train_accuracies, test_acc, step_test=params['model']['step_test'], 
+        y_label='accuracy', num_samples=int(params['model']['train_sample_num']),
+        benchmark =True
+    )
 
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
     #visualize filters
-    filters_plots_after= {}
-    if psi is not None:
-        if params['model']['mode'] == 'scattering_dif':
-            wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
-                                params_filters[2], params_filters[3], device=device )
-        
-            psi = update_psi(J, psi, wavelets, device)     
-    
-        for mode in ['fourier','real', 'imag' ]:
-            f = get_filters_visualization(psi, J, 8, mode =mode)
-            filters_plots_after[mode]  = f  
-    
+    filters_plots_before = hybridModel.scatteringBase.filters_plots_before
+    hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
+    filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
+
+       
     # save metrics and params in mlflow
-    log_mlflow(params, model, np.array(test_acc).round(2), np.array(test_losses).round(2), 
+    log_mlflow(params, hybridModel, np.array(test_acc).round(2), np.array(test_losses).round(2), 
                 np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
                filters_plots_before , filters_plots_after, 
                [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr )
