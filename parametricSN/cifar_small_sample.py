@@ -32,6 +32,8 @@ from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import SmallSampleController
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
+from parametricSN.utils.Optimizer import Optimizer, Scheduler
+from parametricSN.utils.kth_loader import KTHLoader
      
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -89,30 +91,6 @@ class LinearLayer(nn.Module):
         x = self.fc2(x)
         return x
 
-def get_lr_scheduler(optimizer, params, steps_per_epoch, epoch ):
-
-    if params['model']['scheduler'] =='OneCycleLR':
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=params['model']['max_lr'], 
-                                                        steps_per_epoch=steps_per_epoch, 
-                                                        epochs= epoch, 
-                                                        three_phase=params['model']['three_phase'],
-                                                        div_factor=params['model']['div_factor'])
-    elif params['model']['scheduler'] =='CosineAnnealingLR':
-        scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
-    elif params['model']['scheduler'] =='LambdaLR':
-        lmbda = lambda epoch: 0.95
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
-    elif params['model']['scheduler'] =='CyclicLR':
-        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
-                                            step_size_up=params['model']['T_max']*2,
-                                             mode="triangular2")
-    elif params['model']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
-    elif params['model']['scheduler'] == 'NoScheduler':
-        scheduler = None
-    else:
-        raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
-    return scheduler
 
 def get_dataset(params, use_cuda):    
     NUM_CLASSES = params['model']['num_classes']
@@ -158,6 +136,20 @@ def get_dataset(params, use_cuda):
             transforms.RandomCrop(dim_M, 4),
             transforms.RandomHorizontalFlip(),
         ]
+    elif AUGMENT == 'original-kth':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-kth augmentation")
+        trainTransform = [
+        #transforms.Resize((200,200)),
+        transforms.RandomAffine(degrees=40,
+                                translate=(0.25, 0.5),
+                                scale=(1.2, 2.0)), 
+        transforms.RandomCrop((dim_M,dim_N )),
+        transforms.RandomHorizontalFlip(),
+        ]
+        valTransform = [
+            #transforms.Resize((200,200)),
+            transforms.CenterCrop((dim_M,dim_N)),
+        ]
     elif AUGMENT == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
         trainTransform = []
@@ -167,11 +159,12 @@ def get_dataset(params, use_cuda):
     else: 
         NotImplemented(f"augment parameter {AUGMENT} not implemented")
 
+    
+    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
+    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+    
     if params['model']['dataset'] == 'cifar':
         #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-        transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
 
         dataset_train = datasets.CIFAR10(root=DATA_DIR,train=True, #use train dataset
                     transform=transform_train, download=True)
@@ -190,52 +183,11 @@ def get_dataset(params, use_cuda):
         train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
     
     elif params['model']['dataset'] == 'kth':
-        #DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
-
-        if params['model']['seed'] == None:
-            params['model']['seed'] = int(time.time()) #generate random seed
-
-        # trainTransform = [
-        #     #transforms.Resize((200,200)),
-        #     transforms.RandomAffine(degrees=40,
-        #                             translate=(0.25, 0.5),
-        #                             scale=(1.2, 2.0)), 
-        #     transforms.RandomCrop((dim_M,dim_N )),
-        #     transforms.RandomHorizontalFlip(),
-        # ]
-        valTransform = [
-            #transforms.Resize((200,200)),
-            transforms.CenterCrop((dim_M,dim_N)),
-        ]
-        # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
+        loader = KTHLoader(DATA_DIR,TRAIN_BATCH_SIZE, VAL_BATCH_SIZE, transform_train, transform_val, 
+                num_workers, seed = params['model']['seed'], sample = params['model']['sample_set'])
+        train_loader,  test_loader = loader.get_dataloaders()
 
-        datasets_val = []
-        for sample in ['a', 'b', 'c', 'd']:
-            if params['model']['sample_set'] == sample:
-                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
-                                            transform=transform_train)
-                dataset_train = dataset
-            else:
-                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
-                                            transform=transform_val)
-                datasets_val.append(dataset)
-        
-        dataset_val = torch.utils.data.ConcatDataset(datasets_val)
-                
-        train_loader = torch.utils.data.DataLoader(dataset_train,
-                                           batch_size=TRAIN_BATCH_SIZE, shuffle=True,
-                                           num_workers = num_workers, pin_memory = True)
-        test_loader = torch.utils.data.DataLoader(dataset_val,
-                                           batch_size=VAL_BATCH_SIZE, shuffle=True,
-                                           num_workers = num_workers, pin_memory = True)
-
-
-    else: 
-        NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
-
-    
     return train_loader,  test_loader 
 
 def create_scattering(params, device, use_cuda, seed =0 ):
@@ -324,7 +276,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
-        optimizer.zero_grad()
+        optimizer.optimizer.zero_grad()
         if is_scattering_dif:
             wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
@@ -338,11 +290,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
-        optimizer.step()
-
-        if scheduler != None:
-            scheduler.step()
-
+        optimizer.step(epoch)
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
         train_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
@@ -384,36 +332,14 @@ def run_train(args):
         is_scattering_dif = True
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda, seed = params['model']['seed'])
         lr_scattering = params['model']['lr_scattering']  
-        lr_orientation = params['model']['lr_orientation']  
-        
+        lr_orientation = params['model']['lr_orientation'] 
+
         filters_plots_before = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, J, 8, mode =mode) 
             filters_plots_before [mode]  = f  
         
         psi_skeleton = psi #build psi skeleton (kymatio data structure)
-
-        #set optimizer
-        parameters = [
-            {'params': model.parameters()},
-            {'params': params_filters[0], 'lr': lr_orientation},
-            {'params': [params_filters[1], params_filters[2],
-             params_filters[3]],'lr': lr_scattering}
-        ]
-
-        if params['model']['optimizer'] == 'adam':
-            optimizer = torch.optim.Adam(parameters,lr=params['model']['lr'], 
-                betas=(0.9, 0.999), eps=1e-08, 
-                weight_decay=params['model']['weight_decay'], amsgrad=False)
-
-        elif params['model']['optimizer'] == 'sgd': 
-            optimizer = torch.optim.SGD(parameters,lr=params['model']['lr'], 
-            momentum=params['model']['momentum'],weight_decay=params['model']['weight_decay'])
-        else:
-            print("Invalid optimizer parameter passed")
-        
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     params['model']['epoch_scattering'])
 
     elif params['model']['mode'] == 'scattering':
         model, scattering, psi, wavelets, params_filters = create_scattering(params, device, use_cuda)
@@ -426,11 +352,6 @@ def run_train(args):
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, J,8, mode =mode) 
             filters_plots_before [mode]  = f  
-    
-        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     epochs)
 
     elif params['model']['mode'] == 'standard': #use the linear model only
         if params['model']['architecture'] == 'linear_layer':
@@ -439,21 +360,23 @@ def run_train(args):
             model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
         else:
             raise NotImplemented(f"Model {params['model']['architecture']} not implemented")
-
-        
         scattering = Identity()
         psi = None
+        lr_scattering = None 
+        lr_orientation = None
         filters_plots_before = {}
         psi_skeleton = None
         params_filters =[] 
-        optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-        momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay'])
-        scheduler = get_lr_scheduler(optimizer, params, len(train_loader), 
-                                     epochs)
 
+    #define optimzer and scheduler
+    optimizer = Optimizer(model, params_filters, params['model']['optimizer'], is_scattering_dif , 
+                params['model']['lr'], lr_scattering, lr_orientation, params['model']['weight_decay'],
+                params['model']['momentum'], params['model']['epoch'], num_phase=params['model']['num_phase'])
+    scheduler = Scheduler (optimizer, params['model']['scheduler'], len(train_loader), 
+                optimizer.epoch_alternate[0], params['model']['div_factor'], params['model']['max_lr'],
+                 params['model']['T_max'])
+    optimizer.scheduler = scheduler
 
-    #M = params['model']['learning_schedule_multi']
-    #drops = [60*M,120*M,160*M] #eugene's scheduler
 
     test_acc = []
     start_time = time.time()
@@ -462,23 +385,16 @@ def run_train(args):
 
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
-        lrs.append(optimizer.param_groups[0]['lr'])
-        if params['model']['mode'] == 'scattering_dif':
-            if epoch < params['model']['epoch_scattering']:
-                lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
-            elif epoch == params['model']['epoch_scattering']:
-                optimizer = torch.optim.SGD(model.parameters(), lr=params['model']['lr'], 
-                                            momentum=params['model']['momentum'],
-                                             weight_decay=params['model']['weight_decay'])
-                params['model']['scheduler'] = 'StepLR'
-                scheduler = get_lr_scheduler(optimizer, params, len(train_loader), epochs)
-                lrs_orientation.append(0)     
-                lrs_scattering.append(0)
-            else:
-                lrs_orientation.append(0)     
-                lrs_scattering.append(0)
+        if optimizer.phase %2 == 0: 
+            lrs.append(optimizer.optimizer.param_groups[0]['lr'])
+            lrs_orientation.append(0)     
+            lrs_scattering.append(0)
+
+        else:
+            lrs_orientation.append(optimizer.optimizer.param_groups[0]['lr'])
+            lrs_scattering.append(optimizer.optimizer.param_groups[1]['lr'])
+            lrs.append(0) 
 
         # training 
         train_loss, train_accuracy = train(model, device, train_loader, is_scattering_dif, scheduler, optimizer,  epoch+1, scattering, psi_skeleton, params_filters )
