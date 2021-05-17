@@ -284,42 +284,7 @@ def create_scattering(params, device, use_cuda, seed =0 ):
 
 
 
-def create_scatteringExclusive(params, device, use_cuda, seed=0):
-    J = params['scattering']['J']
-    M, N= params['preprocess']['dimension']['M'], params['preprocess']['dimension']['N']
-    scattering = Scattering2D(J=J, shape=(M, N))
-    L = scattering.L
-    n_coefficients= 1 + L*J + L*L*J*(J-1)//2
-    M_coefficient = params['preprocess']['dimension']['M']/(2**J)
-    N_coefficient = params['preprocess']['dimension']['N']/(2**J)
-    K = n_coefficients*3
-    if use_cuda:
-        scattering = scattering.cuda()
-    phi, psi  = scattering.load_filters()
-    params_filters = []
-       
-    # if we want to optimize the parameters used to create the filters
-    #if params['model']['mode'] == 'scattering_dif' :      
-    # We can initialize the parameters randomly or as the kymatio package does
-    requires_grad = True
 
-
-    if params['model']['mode'] == 'scattering':
-        requires_grad = False
-    if params['model']['init_params'] =='Random':
-        params_filters = create_filters_params_random( J* scattering.L ,  requires_grad,  2, seed)
-    else:
-        # n_filters = J*scattering.L
-        params_filters = create_filters_params(J, scattering.L,  requires_grad,  2)
-
-
-
-    wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3], device=device )
-    
-    psi = update_psi(J, psi, wavelets, device)  
-
-    return scattering, psi, wavelets, params_filters
     
 
 def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_filters):

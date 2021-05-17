@@ -322,7 +322,7 @@ def train(model, device, train_loader, is_scattering_dif, scheduler, optimizer, 
         data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
         if is_scattering_dif:
-            wavelets  = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
+            wavelets = morlets((scattering.M_padded, scattering.N_padded), params_filters[0], 
                                 params_filters[1], params_filters[2], params_filters[3], device=device )
             psi = update_psi(scattering.J, psi, wavelets, device) 
             data = construct_scattering(data, scattering, psi)
