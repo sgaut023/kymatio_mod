@@ -254,6 +254,9 @@ def run_train(args):
 
     scheduler = schedulerFactory(optimizer, params, len(train_loader))
 
+    if params['optim']['alternating']:
+        optimizer.scheduler = scheduler
+
 
     #M = params['model']['learning_schedule_multi']
     #drops = [60*M,120*M,160*M] #eugene's scheduler

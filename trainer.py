@@ -3,7 +3,7 @@
 
 example command:
 
-python parametricSN/refactor_cifar_small_sample.py run-train -o sgd -lr 0.1 -lrs 0.1 -lro 0.1 -s 1620406577 -m scattering -e 3000
+python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
 """
 
 

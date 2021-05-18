@@ -12,6 +12,7 @@ class:
 
 import torch
 import time
+import os
 
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
@@ -44,7 +45,7 @@ def kth_augmentationFactory(augmentation):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    return transforms.compose(transform + [transforms.ToTensor(), normalize])
+    return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 
 
