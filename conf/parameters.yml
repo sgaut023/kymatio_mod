@@ -16,8 +16,8 @@ dataset:
   test_sample_num: 10000
   data_root: #'/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
-  Height:  32   # ultrasound image dimension
-  Width:  32   # ultrasound image dimension
+  height:  32   # ultrasound image dimension
+  width:  32   # ultrasound image dimension
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
 
 # kymatio 

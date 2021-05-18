@@ -76,7 +76,7 @@ def cifar_augmentationFactory(augmentation):
     normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
                                      std=[0.247, 0.243, 0.261])
 
-    return transforms.compose(transform + [transforms.ToTensor(), normalize])
+    return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
                          valBatchSize, multiplier, trainAugmentation,

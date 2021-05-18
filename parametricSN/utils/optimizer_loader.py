@@ -45,6 +45,10 @@ class Optimizer():
             print("Invalid optimizer parameter passed")
 
 
+    def zero_grad(self):
+        self.optimizer.zero_grad()
+
+
     def step(self, epoch):
         self.optimizer.step()
         # if self.scheduler.scheduler != None:
@@ -61,7 +65,7 @@ class Optimizer():
 
             self.define_optimizer(params)
             self.scheduler.define_scheduler()
-            self.scheduler.skipStep = True
+            self.scheduler.skipStep = True #skip the step to make this compatible with scheduler trianing loop behaviours
 
 class Scheduler():
     def __init__(self, optimizer, scheduler_name, steps_per_epoch, epochs, div_factor= 25, 
@@ -75,7 +79,7 @@ class Scheduler():
         self.T_max = T_max
         self.num_step = num_step
         self.scheduler = None
-        self.skipSteps = False
+        self.skipStep = False
 
         # number of iteration to decrease the lr for step lr
         self.step_size = int((self.epochs * self.steps_per_epoch) /num_step)

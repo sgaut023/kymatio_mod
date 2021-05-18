@@ -150,7 +150,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch):
+def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True):
     """training method"""
 
     model.train()
@@ -164,7 +164,11 @@ def train(model, device, train_loader, scheduler, optimizer, epoch):
         loss = F.cross_entropy(output, target)
         loss.backward()
 
-        optimizer.step()
+        if alternating:
+            optimizer.step(epoch)
+        else:
+            optimizer.step()
+
         if scheduler != None:
             scheduler.step()
 
@@ -190,8 +194,13 @@ def override_params(args,params):
     for k,v in args.__dict__.items():
         if v != None and k != "param_file":
             tempSplit = k.split('_')
-            print(k,v)
-            params[tempSplit[0]]["_".join(tempSplit[1:])] = v
+            prefix = tempSplit[0]
+            key = "_".join(tempSplit[1:])
+            try:
+                params[prefix][key] = v
+                print("    ",k,v)
+            except KeyError:
+                print("Invalid parameter {} skipped".format(prefix))
 
     return params
 
@@ -227,8 +236,8 @@ def run_train(args):
 
     top = modelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
-        architecture=params['model']['architecture'],
-        num_classes=params['model']['num_classes'], 
+        architecture=params['model']['name'],
+        num_classes=params['dataset']['num_classes'], 
         use_cuda=use_cuda
     )
 
@@ -250,16 +259,17 @@ def run_train(args):
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
-    params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
+    params['model']['trainable_parameters'] = "to be fixed"
+    #params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
 
     for epoch in  range(0, params['model']['epoch']) :
-        lrs.append(optimizer.param_groups[0]['lr'])
+        # lrs.append(optimizer.param_groups[0]['lr'])
 
-        if params['model']['mode'] == 'scattering_dif':
-            lrs_orientation.append(optimizer.param_groups[1]['lr'])
-            lrs_scattering.append(optimizer.param_groups[2]['lr'])
+        # if params['model']['mode'] == 'scattering_dif':
+        #     lrs_orientation.append(optimizer.param_groups[1]['lr'])
+        #     lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
-        train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer,  epoch+1)
+        train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, epoch+1, alternating=params['optim']['alternating'])
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
 
@@ -339,14 +349,13 @@ def main():
     subparser.add_argument("--scattering-j", "-sj", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
-    subparser.add_argument("--scattering-lr-scattering", "-slro", type=float)
+    subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
     subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=bool)
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
     subparser.add_argument("--optim-weight-decay", "-owd", type=float)
-    subparser.add_argument("--optim-momentum", "-omo", type=float)
     subparser.add_argument("--optim-momentum", "-omo", type=float)
     subparser.add_argument("--optim-max-lr", "-omaxlr", type=float)
     subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
