@@ -17,7 +17,10 @@ cp -r /network/datasets/cifar10 $SLURM_TMPDIR
 
 # 4. Launch your job, tell it to save the model in $SLURM_TMPDIR
 #    and look for the dataset into $SLURM_TMPDIR
-python parametricSN/cifar_small_sample.py run-train -dr $SLURM_TMPDIR  -dfo cifar10 -pf parameters.yml
+python parametricSN/cifar_small_sample.py run-train -dr $SLURM_TMPDIR  -dfo KTH -pf parameters_texture.yml -ar linear_model
+python parametricSN/cifar_small_sample.py run-train -dr $SLURM_TMPDIR  -dfo KTH -pf parameters_texture.yml-m scattering -ar linear_model
+python parametricSN/cifar_small_sample.py run-train -dr $SLURM_TMPDIR  -dfo KTH -pf parameters_texture.yml -lrmax 0.01 -ar linear_model
+python parametricSN/cifar_small_sample.py run-train -dr $SLURM_TMPDIR  -dfo KTH -pf parameters_texture.yml-m scattering -lrmax 0.01 -ar linear_model
 
 # 5. Copy whatever you want to save on $SCRATCH
 #cp $SLURM_TMPDIR/<to_save> /network/tmp1/<user>/

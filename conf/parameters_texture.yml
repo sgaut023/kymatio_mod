@@ -1,17 +1,17 @@
 #data preprocessing:
 preprocess:
   dimension:
-    M:  64  # ultrasound image dimension
-    N:  64 # ultrasound image dimension
+    M:  32  # ultrasound image dimension
+    N:  32 # ultrasound image dimension
 
 #model
 model:
   name: 'linear layer'
   dataset: 'kth' # 'cifar' or 'kth'
-  architecture: 'linear_layer' # 'cnn' or 'linear_layer' or 'mlp'
+  architecture: 'cnn' # 'cnn' or 'linear_layer' or 'mlp'
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'KTH'
-  sample_set: 'b'  # 'a', 'b', 'c' or 'd'
+  sample_set: 'a'  # 'a', 'b', 'c' or 'd'
   num_classes: 11
   lr: 0.01
   lr_scattering: 0.1
@@ -24,15 +24,15 @@ model:
   width: 8   # width factor for resnet
   train_sample_num: 1188  #total train samples in total there are 4752 images
   test_sample_num: 3564
-  mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 25
+  mode: 'scattering' # network_type: choices=['scattering_dif', 'scattering', 'standard']
+  epoch: 5000
   num_phase: 3
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
   init_params: 'Random' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
-  max_lr: 0.01 #highest lr we can
+  max_lr: 0.05 #highest lr we can
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
   augment: 'original-kth' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
@@ -46,6 +46,6 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri:  'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db # 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
-  experiment_name: 'exp'
+  tracking_uri:  'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
+  experiment_name: 'alternation'
 
