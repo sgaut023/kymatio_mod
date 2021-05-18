@@ -32,6 +32,7 @@ class Optimizer():
 
         self.phase = 0
         self.define_optimizer(self.model.parameters())
+        self.param_groups = self.optimizer.param_groups
         self.scheduler = None
 
     def define_optimizer(self, parameters):
@@ -42,7 +43,9 @@ class Optimizer():
             self.optimizer = torch.optim.SGD(parameters, lr=self.lr, 
                                          momentum=self.momentum, weight_decay=self.weight_decay)
         else:
-            print("Invalid optimizer parameter passed")
+            raise NotImplemented(f"Optimizer {self.optimizer_name} not implemented")
+
+        self.param_groups = self.optimizer.param_groups
 
 
     def zero_grad(self):

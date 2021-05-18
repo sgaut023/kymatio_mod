@@ -106,6 +106,10 @@ def optimizerFactory(model,scatteringModel,params):
 
 
 def datasetFactory(params,dataDir,use_cuda):
+    """
+    returns:
+        train_loader, test_loader, seed
+    """
 
     if params['dataset']['name'] == "cifar":
         return cifar_getDataloaders(
@@ -260,14 +264,27 @@ def run_train(args):
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
     params['model']['trainable_parameters'] = "to be fixed"
-    #params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
+    # params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
 
-    for epoch in  range(0, params['model']['epoch']) :
-        # lrs.append(optimizer.param_groups[0]['lr'])
+    for epoch in  range(0, params['model']['epoch']):
 
-        # if params['model']['mode'] == 'scattering_dif':
-        #     lrs_orientation.append(optimizer.param_groups[1]['lr'])
-        #     lrs_scattering.append(optimizer.param_groups[2]['lr'])
+        if params['optim']['alternating']:
+            if optimizer.phase % 2 == 0:
+                lrs.append(optimizer.param_groups[0]['lr'])
+                if params['scattering']['learnable']:
+                    lrs_orientation.append(0)
+                    lrs_scattering.append(0)
+            else:
+                lrs.append(0)
+                if params['scattering']['learnable']:
+                    lrs_orientation.append(optimizer.param_groups[0]['lr'])
+                    lrs_scattering.append(optimizer.param_groups[1]['lr'])
+
+        else:
+            lrs.append(optimizer.param_groups[0]['lr'])
+            if params['scattering']['learnable']:
+                lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, epoch+1, alternating=params['optim']['alternating'])
         train_losses.append(train_loss)
