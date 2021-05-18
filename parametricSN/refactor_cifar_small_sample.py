@@ -35,7 +35,6 @@ from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import cifar_getDataloaders
 from parametricSN.utils.kth_loader import kth_getDataloaders
-from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
@@ -242,6 +241,7 @@ def run_train(args):
         base=scatteringBase,
         architecture=params['model']['name'],
         num_classes=params['dataset']['num_classes'], 
+        width= params['model']['width'], 
         use_cuda=use_cuda
     )
 
