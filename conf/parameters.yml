@@ -1,50 +1,53 @@
 #data preprocessing:
-preprocess:
-  dimension:
-    M:  32   # ultrasound image dimension
-    N:  32   # ultrasound image dimension
+general:
+  cores: 4
+  seed:    # seed for dataset subselection and random initialization
 
-#   path: '/home/gauthiers/kymatio_datasets/CIFAR'
-#model
-model:
-  name: 'linear layer'
-  dataset: 'cifar' # 'cifar' or 'kth'
-  architecture: 'linear_layer' # 'cnn' or 'linear_layer'
-  data_root: '/home/gauthiers/kymatio_datasets/'
-  data_folder: 'CIFAR'
-  lr: 0.1
+mlflow:
+  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  experiment_name: 'test2'
+
+dataset:
+  name: 'cifar' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 10
-  lr_scattering: 
-  lr_orientation: 
-  train_batch_size: 128
+  train_batch_size: 100
   test_batch_size: 512
-  weight_decay: 0.0005
-  momentum: 0.9
-  seed: 2344   # seed for dataset subselection (if None generate random)
-  width: 8   # width factor for resnet
-  train_sample_num: 500  #total train samples
+  train_sample_num: 100  #total train samples
   test_sample_num: 10000
-  mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 10
-  epoch_scattering:  10000
-  optimizer: 'sgd'
-  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
-  init_params: 'Random' # 'Random' or 'Kymatio'
-  step_test: 25
-  three_phase: False 
-  max_lr: 0.05 #highest lr we can
-  div_factor: 25 # so far, best results with 25 and maxlr = 0.05
-  augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  T_max: 
-  comment:
-  
-
-
+  data_root: #'/home/gauthiers/kymatio_datasets/'
+  data_folder: 'CIFAR'
+  height:  32   # ultrasound image dimension
+  width:  32   # ultrasound image dimension
+  augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
+  sample: 
 # kymatio 
 scattering:
   J: 2
   max_order: 2
+  lr_scattering: 0.1
+  lr_orientation: 0.1
+  init_params: 'Random' # 'Random' or 'Kymatio'
+  learnable: True # True if learnable
 
-mlflow:
-  tracking_uri:  'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
-  experiment_name: 'test'
+optim: 
+  name: 'sgd' #choices=['adam', 'sgd']
+  lr: 0.1
+  weight_decay: 0.0005
+  momentum: 0.9
+  max_lr: 0.07 #highest lr we can
+  scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  div_factor: 20 # so far, best results with 25 and maxlr = 0.05
+  three_phase: False 
+  phase_num:
+  alternating: True
+  T_max: 
+
+model:
+  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
+  width: 8   # width factor for resnet
+  epoch: 5
+  step_test: 25
+  
+
+
+

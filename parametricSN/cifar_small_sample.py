@@ -282,6 +282,11 @@ def create_scattering(params, device, use_cuda, seed =0 ):
     psi = update_psi(J, psi, wavelets, device)           
     return  model, scattering, psi, wavelets, params_filters
 
+
+
+
+    
+
 def test(model, device, test_loader, is_scattering_dif, scattering, psi, params_filters):
     model.eval()
     test_loss = 0
@@ -455,6 +460,9 @@ def run_train(args):
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
+
+
+    params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
 
     for epoch in  range(0, epochs) :
         # save learning rates for mlflow
