@@ -10,10 +10,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import numpy as np
-import time
-import copy
 import os
-import torchvision
+import time
+import pandas as pd
 from torchvision import datasets, transforms
 import torch.nn.functional as F
 import torch
@@ -34,6 +33,7 @@ from parametricSN.utils.cifar_loader import SmallSampleController
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
 from parametricSN.utils.Optimizer import Optimizer, Scheduler
 from parametricSN.utils.kth_loader import KTHLoader
+from parametricSN.utils.chestxray_loader import ChestXrayDataset
      
 class Identity(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -182,6 +182,21 @@ def get_dataset(params, use_cuda):
         params['model']['seed'] = seed
         train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
     
+    elif params['model']['dataset'] == 'chest_xray':
+        dataset_train= datasets.ImageFolder(root=os.path.join(DATA_DIR,'train'), #use train dataset
+                                            transform=transform_train)
+        dataset_val = datasets.ImageFolder(root=os.path.join(DATA_DIR,'test'), #use train dataset
+                                            transform=transform_val)
+        ss = SmallSampleController(trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
+        trainBatchSize=TRAIN_BATCH_SIZE,valBatchSize=VAL_BATCH_SIZE, multiplier=VALIDATION_SET_NUM, 
+        trainDataset=dataset_train, valDataset=dataset_val )  
+
+        train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
+        device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
+        params['model']['seed'] = seed
+        train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
+    
+
     elif params['model']['dataset'] == 'kth':
         transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
         loader = KTHLoader(DATA_DIR,TRAIN_BATCH_SIZE, VAL_BATCH_SIZE, transform_train, transform_val, 
@@ -451,7 +466,7 @@ def main():
     subparser.set_defaults(callback=run_train)
     subparser.add_argument("--name", "-n")
     subparser.add_argument("--tester", "-tst", type=float)
-    subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
+    subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth','chest_xray'])
     subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
     subparser.add_argument("--data-root", "-dr", type=str)
     subparser.add_argument("--data-folder", "-dfo", type=str)
@@ -477,7 +492,7 @@ def main():
     subparser.add_argument("--step-test", "-st", type=int)
     subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
     subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument('--param_file', "-pf", type=str, default='parameters_texture.yml',
+    subparser.add_argument('--param_file', "-pf", type=str, default='parameters_xray.yml',
                         help="YML Parameter File Name")
 
     args = parser.parse_args()

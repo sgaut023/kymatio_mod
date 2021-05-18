@@ -1,0 +1,50 @@
+#data preprocessing:
+preprocess:
+  dimension:
+    M:  32   # ultrasound image dimension
+    N:  32   # ultrasound image dimension
+
+#   path: '/home/gauthiers/kymatio_datasets/CIFAR'
+#model
+model:
+  name: 'linear layer'
+  dataset: 'chest_xray' # 'cifar' or 'kth'
+  architecture: 'cnn' # 'cnn' or 'linear_layer'
+  data_root: '/NOBACKUP/gauthiers/'
+  data_folder: 'chest_xrays_preprocess'
+  num_classes: 10
+  lr: 0.1
+  lr_scattering: 0.1
+  lr_orientation: 0.1
+  train_batch_size: 128
+  test_batch_size: 512
+  weight_decay: 0.0005
+  momentum: 0.9
+  seed: 2344   # seed for dataset subselection (if None generate random)
+  width: 8   # width factor for resnet
+  train_sample_num: 100  #total train samples
+  test_sample_num: 400
+  mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
+  epoch: 115
+  num_phase: 3
+  optimizer: 'sgd'
+  scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
+  init_params: 'Random' # 'Random' or 'Kymatio'
+  step_test: 25
+  three_phase: False 
+  max_lr: 0.05 #highest lr we can
+  div_factor: 25 # so far, best results with 25 and maxlr = 0.05
+  augment: 'original-kth' #choices=['autoaugment','original-cifar','noaugment','glico']
+  T_max: 
+  comment:
+  
+
+
+# kymatio 
+scattering:
+  J: 2
+  max_order: 2
+
+mlflow:
+  tracking_uri:  'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db # 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
+  experiment_name: 'alternatio'

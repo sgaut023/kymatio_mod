@@ -46,6 +46,6 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri:  'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db # 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
+  tracking_uri:  'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db # 'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
   experiment_name: 'exp'
 
