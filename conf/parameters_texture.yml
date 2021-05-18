@@ -19,6 +19,7 @@ dataset:
   height:  64   # ultrasound image dimension
   width:  64   # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
+  sample: 'a'
 
 # kymatio 
 scattering:

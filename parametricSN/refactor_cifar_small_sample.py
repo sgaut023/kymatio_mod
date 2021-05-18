@@ -372,6 +372,8 @@ def main():
     subparser.add_argument("--dataset-height", "-dh", type=int)
     subparser.add_argument("--dataset-width", "-dw", type=int)
     subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
+    subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
+    
     #scattering
     subparser.add_argument("--scattering-j", "-sj", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
