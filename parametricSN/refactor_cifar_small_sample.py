@@ -122,8 +122,10 @@ def datasetFactory(params,dataDir,use_cuda):
     elif params['dataset']['name'].lower() == "kth":
         return kth_getDataloaders(
                     trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
-                    trainAugmentation=params['dataset']['augment'], height= params['dataset']['height'] , width = params['dataset']['width'],
-                    seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], use_cuda=use_cuda
+                    trainAugmentation=params['dataset']['augment'], height= params['dataset']['height'] , 
+                    width = params['dataset']['width'], sample = params['dataset']['sample'] , 
+                    seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], 
+                    use_cuda=use_cuda
                 )
     elif params['dataset']['name'].lower() == "x-ray":
         return xray_getDataloaders(
@@ -373,7 +375,6 @@ def main():
     subparser.add_argument("--dataset-width", "-dw", type=int)
     subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
-    
     #scattering
     subparser.add_argument("--scattering-j", "-sj", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)

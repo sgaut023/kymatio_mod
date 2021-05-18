@@ -52,7 +52,7 @@ def kth_augmentationFactory(augmentation, height, width):
 
 
 def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
-                       height, width, seed=None, dataDir=".", 
+                       height, width, sample, seed=None, dataDir=".", 
                        num_workers=4, use_cuda=True):
     """Samples a specified class balanced number of samples form the kth dataset"""
     transform_train = kth_augmentationFactory(trainAugmentation, height, width)
@@ -62,7 +62,7 @@ def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
                        val_batch_size=valBatchSize, transform_train=transform_train, 
                        transform_val=transform_val, 
                        num_workers=num_workers, seed=seed, 
-                       sample='a')
+                       sample=sample)
 
     train_loader, test_loader = loader.get_dataloaders()
 
