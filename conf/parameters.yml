@@ -36,6 +36,9 @@ model:
   comment:
   num_classes: 10
   dataset: 'cifar'
+
+processor:
+  cores: 4
   
 
 

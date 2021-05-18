@@ -23,7 +23,8 @@ from parametricSN.utils.context import get_context
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
-from parametricSN.utils.cifar_loader import SmallSampleController
+from parametricSN.utils.cifar_loader import cifar_getDataloaders
+from parametricSN.utils.kth_loader import kth_getDataloaders
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
 from parametricSN.utils.models import *
 
@@ -78,139 +79,28 @@ def optimizerFactory(parameters,params):
         print("Invalid optimizer parameter passed")
         raise InvalidOptimizerError
 
-def get_dataset(params, use_cuda):
-    """loads the dataset into memory and creates dataloaders for train and test"""
+def datasetFactory(params,dataDir,use_cuda):
 
-
-    NUM_CLASSES = params['model']['num_classes']
-    TRAIN_SAMPLE_NUM = params['model']['train_sample_num']
-    VAL_SAMPLE_NUM = params['model']['test_sample_num']
-    TRAIN_BATCH_SIZE = params['model']['train_batch_size']
-    VAL_BATCH_SIZE = params['model']['test_batch_size']
-    VALIDATION_SET_NUM = 1
-    AUGMENT = params['model']['augment']
-    CIFAR_TRAIN = True
-    SEED = params['model']['seed'] #None means a random seed 
-
-    if params['model']['data_root'] != None:
-        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+    if params['model']['dataset'] == "cifar":
+        return cifar_getDataloaders(
+                    trainSampleNum=params['model']['train_sample_num'], valSampleNum=params['model']['test_sample_num'], 
+                    trainBatchSize=params['model']['train_batch_size'], valBatchSize=params['model']['test_batch_size'], 
+                    multiplier=1, trainAugmentation=params['model']['augment'],
+                    seed=params['model']['seed'], dataDir=dataDir, 
+                    num_workers=params['processor']['cores'], use_cuda=use_cuda
+                )
+    elif params['model']['dataset'] == "kth":
+        return kth_getDataloaders(
+                    trainBatchSize=params['model']['train_batch_size'], valBatchSize=params['model']['test_batch_size'], 
+                    trainAugmentation=params['model']['augment'], seed=params['model']['seed'], 
+                    dataDir=dataDir, num_workers=4, 
+                    use_cuda=use_cuda
+                )
+    elif params['model']['dataset'] == "x-ray":
+        raise NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
     else:
-        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+        raise NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
 
-    if use_cuda:
-        num_workers = 4
-        pin_memory = True
-    else:
-        num_workers = 0
-        pin_memory = False
-        
-    #CIFAR-10 normalization    
-    normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
-                                  std=[0.247, 0.243, 0.261])
-
-    #default normalization
-    # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                                  std=[0.229, 0.224, 0.225])
-
- 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if params['model']['dataset'] == 'cifar':
-        #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-        if AUGMENT == 'autoaugment':
-            print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
-            trainTransform = [
-                transforms.RandomCrop(32, 4),
-                transforms.RandomHorizontalFlip(),
-                AutoAugment(),
-                Cutout()
-            ]
-        elif AUGMENT == 'original-cifar':
-            print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
-            trainTransform = [
-                transforms.RandomCrop(32, 4),
-                transforms.RandomHorizontalFlip(),
-            ]
-        elif AUGMENT == 'noaugment':
-            print("\n[get_dataset(params, use_cuda)] No data augmentation")
-            trainTransform = []
-
-        elif AUGMENT == 'glico':
-            NotImplemented(f"augment parameter {AUGMENT} not implemented")
-        else: 
-            NotImplemented(f"augment parameter {AUGMENT} not implemented")
- 
-
-        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-        transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
-
-        dataset_train = datasets.CIFAR10(#load train dataset
-            root=DATA_DIR, train=True, 
-            transform=transform_train, download=True
-        )
-
-        dataset_val = datasets.CIFAR10(#load test dataset
-            root=DATA_DIR, train=False, 
-            transform=transform_val, download=True
-        )
-
-        ss = SmallSampleController(
-            trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
-            trainBatchSize=TRAIN_BATCH_SIZE, valBatchSize=VAL_BATCH_SIZE, 
-            multiplier=VALIDATION_SET_NUM, trainDataset=dataset_train, 
-            valDataset=dataset_val 
-        )  
-    
-        train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
-        device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
-
-        params['model']['seed'] = seed
-        train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
-    
-    elif params['model']['dataset'] == 'kth':
-        #DATA_DIR = '/NOBACKUP/gauthiers/KTH/'
-
-        if params['model']['seed'] == None:
-            params['model']['seed'] = int(time.time()) #generate random seed
-        dim_M = params['dimension']['M']
-        dim_N = params['dimension']['N']
-        trainTransform = [
-            transforms.RandomCrop((dim_M,dim_N )),
-            transforms.RandomHorizontalFlip(),
-        ]
-        valTransform = [
-            transforms.CenterCrop((dim_M,dim_N)),
-        ]
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-        transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-        transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
-
-        datasets_val = []
-        for sample in ['a', 'b', 'c', 'd']:
-            if params['model']['sample_set'] == sample:
-                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
-                                            transform=transform_train)
-                dataset_train = dataset
-            else:
-                dataset = datasets.ImageFolder(root=Path(DATA_DIR)/f'sample_{sample}', #use train dataset
-                                            transform=transform_val)
-                datasets_val.append(dataset)
-        
-        dataset_val = torch.utils.data.ConcatDataset(datasets_val)
-                
-        train_loader = torch.utils.data.DataLoader(dataset_train,
-                                           batch_size=TRAIN_BATCH_SIZE, shuffle=True,
-                                           num_workers = num_workers, pin_memory = True)
-        test_loader = torch.utils.data.DataLoader(dataset_val,
-                                           batch_size=VAL_BATCH_SIZE, shuffle=True,
-                                           num_workers = num_workers, pin_memory = True)
-
-
-    else: 
-        NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
-
-    
-    return train_loader,  test_loader 
 
 
 def test(model, device, test_loader):
@@ -284,14 +174,18 @@ def override_params(args,params):
 def run_train(args):
     """Initializes and trains scattering models with different architectures
     """
+    catalog, params = get_context(args.param_file) #parse params
+    params = override_params(args,params) #override from CLI
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    catalog, params = get_context(args.param_file) #parse params
-    params = override_params(args,params) #override from CLI
+    if params['model']['data_root'] != None:
+        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+    else:
+        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
-    train_loader, test_loader = get_dataset(params, use_cuda) #load Dataset
+    train_loader, test_loader, params['model']['seed'] = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
     
 
     scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering

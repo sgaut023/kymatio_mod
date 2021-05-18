@@ -9,8 +9,8 @@ Exceptions:
     IndicesNotSetupException --
 
 Functions:
-    cifar_getDataloaders -- 
-    cifar_augmentationFactory -- 
+    cifar_getDataloaders -- samples from the cifar-10 dataset based on input
+    cifar_augmentationFactory -- returns different augmentations for cifar-10
 
 Classes: 
     SmallSampleController -- class used to sample a small portion from an existing dataset
@@ -26,8 +26,9 @@ import numpy as np
 
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
-from numpy.random import RandomState
 from torch.utils.data import Subset
+from numpy.random import RandomState
+
 
 
 class ImpossibleSampleNumException(Exception):
@@ -51,7 +52,7 @@ def cifar_augmentationFactory(augmentation):
 
     if augmentation == 'autoaugment':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
-        trainTransform = [
+        transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
@@ -59,78 +60,59 @@ def cifar_augmentationFactory(augmentation):
         ]
     elif augmentation == 'original-cifar':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
-        trainTransform = [
+        transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
-        trainTransform = []
+        transform = []
 
     elif augmentation == 'glico':
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
+        NotImplemented(f"augment parameter {augmentation} not implemented")
     else: 
-        NotImplemented(f"augment parameter {AUGMENT} not implemented")
-    pass
+        NotImplemented(f"augment parameter {augmentation} not implemented")
 
-def cifar_getDataloaders(trainSampleNum, valSampleNum, 
-                         trainBatchSize, valBatchSize, 
-                         multiplier, trainDataset, 
-                         valDataset,seed=None,
-                         dataDir=".",use_cuda=True):
-    """Factory for different augmentation choices"""
-
-    if params['model']['data_root'] != None:
-        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
-    else:
-        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-    if use_cuda:
-        num_workers = 4
-        pin_memory = True
-    else:
-        num_workers = 0
-        pin_memory = False
-        
-    #CIFAR-10 normalization    
     normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
-                                  std=[0.247, 0.243, 0.261])
+                                     std=[0.247, 0.243, 0.261])
 
-    #default normalization
-    # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                                  std=[0.229, 0.224, 0.225])
+    return transforms.compose(transform + [transforms.ToTensor(), normalize])
 
- 
+def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
+                         valBatchSize, multiplier, trainAugmentation,
+                         seed=None, dataDir=".", num_workers=4, 
+                         use_cuda=True):
+    """Samples a specified class balanced number of samples form the cifar dataset"""
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
     
-    transform_train = transforms.Compose(trainTransform + [transforms.ToTensor(), normalize]) 
-    transform_val = transforms.Compose([transforms.ToTensor(), normalize]) #careful to keep this one same
+    transform_train = cifar_augmentationFactory(trainAugmentation)
+    transform_val = cifar_augmentationFactory("noaugment")
 
     dataset_train = datasets.CIFAR10(#load train dataset
-        root=DATA_DIR, train=True, 
+        root=dataDir, train=True, 
         transform=transform_train, download=True
     )
 
     dataset_val = datasets.CIFAR10(#load test dataset
-        root=DATA_DIR, train=False, 
+        root=dataDir, train=False, 
         transform=transform_val, download=True
     )
 
-    ss = SmallSampleController(
-        trainSampleNum=TRAIN_SAMPLE_NUM, valSampleNum=VAL_SAMPLE_NUM, 
-        trainBatchSize=TRAIN_BATCH_SIZE, valBatchSize=VAL_BATCH_SIZE, 
-        multiplier=VALIDATION_SET_NUM, trainDataset=dataset_train, 
+    ssc = SmallSampleController(
+        trainSampleNum=trainSampleNum, valSampleNum=valSampleNum, 
+        trainBatchSize=trainBatchSize, valBatchSize=valBatchSize, 
+        multiplier=multiplier, trainDataset=dataset_train, 
         valDataset=dataset_val 
     )  
 
-    train_loader_in_list, test_loader_in_list, seed = ss.generateNewSet(
-    device,workers=num_workers,valMultiplier=VALIDATION_SET_NUM,seed=SEED) #Sample from datasets
+    train_loader_in_list, test_loader_in_list, seed = ssc.generateNewSet(#Sample from datasets
+        device,workers=num_workers,
+        valMultiplier=multiplier,
+        seed=seed
+    ) 
 
-    params['model']['seed'] = seed
-    train_loader, test_loader =  
-    return train_loader_in_list[0], test_loader_in_list[0]
+    return train_loader_in_list[0], test_loader_in_list[0], seed
 
 class SmallSampleController:
     """
