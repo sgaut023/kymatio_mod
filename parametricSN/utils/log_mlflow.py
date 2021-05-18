@@ -46,6 +46,8 @@ def log_csv_file(name, file):
     mlflow.log_artifact(name, 'metrics')
     os.remove(name)
 
+def rename_params(prefix, params):
+    return {f'{prefix}-' + str(key): val for key, val in  params.items()}
 
 def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_time,filters_plots_before, filters_plots_after , 
                 figures_plot, f_lr):
@@ -53,10 +55,11 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment(params['mlflow']['experiment_name'])
     with mlflow.start_run():
-        mlflow.log_params(params['model'])   
-        mlflow.log_params(params['scattering'])
-        mlflow.log_params(params['dataset'])
-        mlflow.log_params(params['optim'])
+        #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
+        mlflow.log_params(rename_params('model', params['model']))   
+        mlflow.log_params(rename_params('scattering', params['scattering']))
+        mlflow.log_params(rename_params('dataset', params['dataset']))
+        mlflow.log_params(rename_params('optim', params['optim']))
         mlflow.log_params(params['general'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
