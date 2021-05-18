@@ -1,6 +1,16 @@
-"""Main moodule for learnable Scattering Networks
+"""Main module for learnable Scattering Networks
 
 Authors: Benjamin Therien, Shanel Gauthier
+
+Functions: 
+    schedulerFactory -- get selected scheduler
+    optimizerFactory -- get selected optimizer
+    datasetFactory -- get selected dataset
+    test -- test loop
+    train -- train loop per epoch
+    override_params -- override defaults from command line
+    run_train -- callable functions for the program
+    main -- parses arguments an calls specified callable
 
 """
 import sys
@@ -27,79 +37,95 @@ from parametricSN.utils.cifar_loader import cifar_getDataloaders
 from parametricSN.utils.kth_loader import kth_getDataloaders
 from parametricSN.utils.Scattering2dResNet import Scattering2dResNet
 from parametricSN.utils.models import *
+from parametricSN.utils.optimizer_loader import *
 
 
-class InvalidOptimizerError(Exception):
-    """Error thrown when an invalid optimizer name is passed"""
-    pass
-
-def schedulerFactory(optimizer, params, steps_per_epoch, epoch ):
+def schedulerFactory(optimizer, params, steps_per_epoch):
     """Factory for different schedulers"""
+    if params['optim']['alternating']: 
+        return Scheduler(
+                    optimizer, params['optim']['scheduler'], 
+                    steps_per_epoch, optimizer.epoch_alternate[0], 
+                    div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
+                    T_max = params['optim']['T_max'], num_step = 3
+                )
 
-    if params['model']['scheduler'] =='OneCycleLR':
+    if params['optim']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=params['model']['max_lr'], 
-            steps_per_epoch=steps_per_epoch, epochs=epoch, 
-            three_phase=params['model']['three_phase'],
-            div_factor=params['model']['div_factor']
+            optimizer, max_lr=params['optim']['max_lr'], 
+            steps_per_epoch=steps_per_epoch, epochs=params['model']['epoch'], 
+            three_phase=params['optim']['three_phase'],
+            div_factor=params['optim']['div_factor']
         )
-    elif params['model']['scheduler'] =='CosineAnnealingLR':
+    elif params['optim']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max = params['model']['T_max'], eta_min = 1e-8)
-    elif params['model']['scheduler'] =='LambdaLR':
+            optimizer, T_max = params['optim']['T_max'], eta_min = 1e-8)
+    elif params['optim']['scheduler'] =='LambdaLR':
         lmbda = lambda epoch: 0.95
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
-    elif params['model']['scheduler'] =='CyclicLR':
+    elif params['optim']['scheduler'] =='CyclicLR':
         scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
-                                            step_size_up=params['model']['T_max']*2,
+                                            step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
-    elif params['model']['scheduler'] =='StepLR':
+    elif params['optim']['scheduler'] =='StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
-    elif params['model']['scheduler'] == 'NoScheduler':
+    elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
-        raise NotImplemented(f"Scheduler {params['model']['scheduler']} not implemented")
+        raise NotImplemented(f"Scheduler {params['optim']['scheduler']} not implemented")
     return scheduler
 
-def optimizerFactory(parameters,params):
-    """Factory for different optimizers"""
 
-    if params['model']['optimizer'] == 'adam':
+
+def optimizerFactory(model,scatteringModel,params):
+    """Factory for different optimizers"""
+    if params['optim']['alternating']:
+        return Optimizer(
+                    model=model, scatteringModel=scatteringModel, 
+                    optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
+                    weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
+                    epoch=params['model']['epoch'], num_phase=2
+                )
+
+    parameters = list(model.parameters()+list(scatteringModel.parameters()))
+    if params['optim']['name'] == 'adam':
         return torch.optim.Adam(
-            parameters,lr=params['model']['lr'], 
+            parameters,lr=params['optim']['lr'], 
             betas=(0.9, 0.999), eps=1e-08, 
-            weight_decay=params['model']['weight_decay'], amsgrad=False
+            weight_decay=params['optim']['weight_decay'], amsgrad=False
         )
-    elif params['model']['optimizer'] == 'sgd': 
+    elif params['optim']['name'] == 'sgd': 
+        parameters = list(model.parameters()+list(scatteringModel.parameters()))
         return torch.optim.SGD(
-            parameters, lr=params['model']['lr'], 
-            momentum=params['model']['momentum'], weight_decay=params['model']['weight_decay']
+            parameters, lr=params['optim']['lr'], 
+            momentum=params['optim']['momentum'], weight_decay=params['optim']['weight_decay']
         )
+        
     else:
-        print("Invalid optimizer parameter passed")
-        raise InvalidOptimizerError
+        raise NotImplemented(f"Optimizer {params['optim']['name']} not implemented")
+
 
 def datasetFactory(params,dataDir,use_cuda):
 
-    if params['model']['dataset'] == "cifar":
+    if params['dataset']['name'] == "cifar":
         return cifar_getDataloaders(
-                    trainSampleNum=params['model']['train_sample_num'], valSampleNum=params['model']['test_sample_num'], 
-                    trainBatchSize=params['model']['train_batch_size'], valBatchSize=params['model']['test_batch_size'], 
-                    multiplier=1, trainAugmentation=params['model']['augment'],
-                    seed=params['model']['seed'], dataDir=dataDir, 
-                    num_workers=params['processor']['cores'], use_cuda=use_cuda
+                    trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
+                    trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
+                    multiplier=1, trainAugmentation=params['dataset']['augment'],
+                    seed=params['general']['seed'], dataDir=dataDir, 
+                    num_workers=params['general']['cores'], use_cuda=use_cuda
                 )
-    elif params['model']['dataset'] == "kth":
+    elif params['dataset']['name'] == "kth":
         return kth_getDataloaders(
-                    trainBatchSize=params['model']['train_batch_size'], valBatchSize=params['model']['test_batch_size'], 
-                    trainAugmentation=params['model']['augment'], seed=params['model']['seed'], 
-                    dataDir=dataDir, num_workers=4, 
+                    trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
+                    trainAugmentation=params['dataset']['augment'], seed=params['general']['seed'], 
+                    dataDir=dataDir, num_workers=params['general']['cores'], 
                     use_cuda=use_cuda
                 )
-    elif params['model']['dataset'] == "x-ray":
-        raise NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
+    elif params['dataset']['name'] == "x-ray":
+        raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
     else:
-        raise NotImplemented(f"Dataset {params['model']['dataset']} not implemented")
+        raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
 
 
 
@@ -137,8 +163,8 @@ def train(model, device, train_loader, scheduler, optimizer, epoch):
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
-        optimizer.step()
 
+        optimizer.step()
         if scheduler != None:
             scheduler.step()
 
@@ -163,12 +189,11 @@ def override_params(args,params):
     print("Overriding parameters:")
     for k,v in args.__dict__.items():
         if v != None and k != "param_file":
+            tempSplit = k.split('_')
             print(k,v)
-            params["model"][k] = v
-
+            params[tempSplit[0]]["_".join(tempSplit[1:])] = v
 
     return params
-
 
 
 def run_train(args):
@@ -180,23 +205,23 @@ def run_train(args):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    if params['model']['data_root'] != None:
-        DATA_DIR = Path(params['model']['data_root'])/params['model']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
+    if params['dataset']['data_root'] != None:
+        DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
-    train_loader, test_loader, params['model']['seed'] = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
+    train_loader, test_loader, params['general']['seed'] = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
     
 
     scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
         J=params['scattering']['J'],
-        N=params['dimension']['N'],
-        M=params['dimension']['M'],
-        initialization=params['model']['init_params'],
-        seed=params['model']['seed'],
-        learnable=('scattering_dif' == params['model']['mode']),
-        lr_orientation=params['model']['lr_orientation'],
-        lr_scattering=params['model']['lr_scattering'],
+        N=params['dataset']['height'],
+        M=params['dataset']['width'],
+        initialization=params['scattering']['init_params'],
+        seed=params['general']['seed'],
+        learnable=params['scattering']['learnable'],
+        lr_orientation=params['scattering']['lr_orientation'],
+        lr_scattering=params['scattering']['lr_scattering'],
         use_cuda=use_cuda
     )
 
@@ -212,12 +237,9 @@ def run_train(args):
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top,use_cuda=use_cuda)
 
-    optimizer = optimizerFactory(hybridModel.parameters(),params)
+    optimizer = optimizerFactory(model=top, scatteringModel=scatteringBase, params=params)
 
-    scheduler = schedulerFactory(
-        optimizer, params, 
-        len(train_loader), params['model']['epoch']
-    )
+    scheduler = schedulerFactory(optimizer, params, len(train_loader))
 
 
     #M = params['model']['learning_schedule_multi']
@@ -227,7 +249,6 @@ def run_train(args):
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
-
 
     params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
 
@@ -257,17 +278,17 @@ def run_train(args):
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
-        y_label='loss', num_samples=int(params['model']['train_sample_num'])
+        y_label='loss', num_samples=int(params['dataset']['train_sample_num'])
     )
                              
     f_accuracy = visualize_loss(
         train_accuracies ,test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['model']['train_sample_num'])
+        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num'])
     )
                              
     f_accuracy_benchmark = visualize_loss(
         train_accuracies, test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['model']['train_sample_num']),
+        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num']),
         benchmark =True
     )
 
@@ -281,10 +302,12 @@ def run_train(args):
 
        
     # save metrics and params in mlflow
-    log_mlflow(params, hybridModel, np.array(test_acc).round(2), np.array(test_losses).round(2), 
-                np.array(train_accuracies).round(2),np.array(train_losses).round(2), start_time, 
-               filters_plots_before , filters_plots_after, 
-               [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr )
+    log_mlflow(
+        params, hybridModel, np.array(test_acc).round(2), 
+        np.array(test_losses).round(2), np.array(train_accuracies).round(2), np.array(train_losses).round(2), 
+        start_time, filters_plots_before, filters_plots_after, 
+        [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr
+    )
 
 
 
@@ -294,36 +317,81 @@ def main():
 
     subparser = subparsers.add_parser("run-train")
     subparser.set_defaults(callback=run_train)
-    subparser.add_argument("--name", "-n")
-    subparser.add_argument("--tester", "-tst", type=float)
-    subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
-    subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
-    subparser.add_argument("--data-root", "-dr", type=str)
-    subparser.add_argument("--data-folder", "-dfo", type=str)
-    subparser.add_argument("--lr", "-lr", type=float)
-    subparser.add_argument("--lr-scattering", "-lrs", type=float)
-    subparser.add_argument("--lr-orientation", "-lro", type=float)
-    subparser.add_argument("--max-lr", "-lrmax", type=float)
-    subparser.add_argument("--div-factor", "-df", type=float)
-    subparser.add_argument("--train-batch-size", "-tbs", type=int)
-    subparser.add_argument("--test-batch-size", "-tstbs", type=int)
-    subparser.add_argument("--weight-decay", "-wd", type=float)
-    subparser.add_argument("--train-sample-num", "-tsn", type=int)
-    subparser.add_argument("--test-sample-num", "-tstsn", type=int)
-    subparser.add_argument("--width", "-width", type=int)
-    subparser.add_argument("--momentum", "-mom", type=float)
-    subparser.add_argument("--seed", "-s", type=int)
-    subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
-    subparser.add_argument("--epoch", "-e", type=int)
-    subparser.add_argument("--epoch-scattering", "-es", type=int)
-    subparser.add_argument("--optimizer", "-o", type=str)
-    subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
-    subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])
-    subparser.add_argument("--step-test", "-st", type=int)
-    subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
-    subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
+    #processor
+    subparser.add_argument("--general-cores", "-gc", type=int)
+    subparser.add_argument("--general-seed", "-gseed", type=int)
+    #mlflow 
+    subparser.add_argument("--mlflow-tracking-uri", "-turi", type=str)
+    subparser.add_argument("--mlflow-experiment-name", "-en", type=str)
+    #dataset
+    subparser.add_argument("--dataset-name", "-dname", type=str, choices=['cifar', 'kth', 'x-ray'])
+    subparser.add_argument("--dataset-num-classes", "-dnc", type=int)
+    subparser.add_argument("--dataset-train-batch-size", "-dtbs", type=int)
+    subparser.add_argument("--dataset-test-batch-size", "-dtstbs", type=int)
+    subparser.add_argument("--dataset-train-sample-num", "-dtsn", type=int)
+    subparser.add_argument("--dataset-test-sample-num", "-dtstsn", type=int)
+    subparser.add_argument("--dataset-data-root", "-ddr", type=str)
+    subparser.add_argument("--dataset-data-folder", "-ddf", type=str)
+    subparser.add_argument("--dataset-height", "-dh", type=int)
+    subparser.add_argument("--dataset-width", "-dw", type=int)
+    subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
+    #scattering
+    subparser.add_argument("--scattering-j", "-sj", type=int)
+    subparser.add_argument("--scattering-max-order", "-smo", type=int)
+    subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
+    subparser.add_argument("--scattering-lr-scattering", "-slro", type=float)
+    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','random'])
+    subparser.add_argument("--scattering-learnable", "-sl", type=bool)
+    #optim
+    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
+    subparser.add_argument("--optim-lr", "-olr", type=float)
+    subparser.add_argument("--optim-weight-decay", "-owd", type=float)
+    subparser.add_argument("--optim-momentum", "-omo", type=float)
+    subparser.add_argument("--optim-momentum", "-omo", type=float)
+    subparser.add_argument("--optim-max-lr", "-omaxlr", type=float)
+    subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
+    subparser.add_argument("--optim-div-factor", "-odivf", type=int)
+    subparser.add_argument("--optim-three-phase", "-otp", type=bool)
+    subparser.add_argument("--optim-alternating", "-oalt", type=bool)
+    subparser.add_argument("--optim-phase-num", "-opn", type=int)
+    subparser.add_argument("--optim-T-max", "-otmax", type=int)
+    #model 
+    subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer'])
+    subparser.add_argument("--model-width", "-mw", type=int)
+    subparser.add_argument("--model-epoch", "-me", type=int)
+    subparser.add_argument("--model-step-test", "-mst", type=int)
+
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
+
+    # subparser.add_argument("--tester", "-tst", type=float)
+    # subparser.add_argument("--dataset", "-d", type=str, choices=['cifar', 'kth'])
+    # subparser.add_argument("--architecture", "-ar", type=str, choices=['cnn', 'linear_layer'])
+    # subparser.add_argument("--data-root", "-dr", type=str)
+    # subparser.add_argument("--data-folder", "-dfo", type=str)
+    # subparser.add_argument("--lr", "-lr", type=float)
+    # subparser.add_argument("--lr-scattering", "-lrs", type=float)
+    # subparser.add_argument("--lr-orientation", "-lro", type=float)
+    # subparser.add_argument("--max-lr", "-lrmax", type=float)
+    # subparser.add_argument("--div-factor", "-df", type=float)
+    # subparser.add_argument("--train-batch-size", "-tbs", type=int)
+    # subparser.add_argument("--test-batch-size", "-tstbs", type=int)
+    # subparser.add_argument("--weight-decay", "-wd", type=float)
+    # subparser.add_argument("--train-sample-num", "-tsn", type=int)
+    # subparser.add_argument("--test-sample-num", "-tstsn", type=int)
+    # subparser.add_argument("--width", "-width", type=int)
+    # subparser.add_argument("--momentum", "-mom", type=float)
+    # subparser.add_argument("--seed", "-s", type=int)
+    # subparser.add_argument("--mode", "-m", type=str, choices=['scattering_dif', 'scattering', 'standard'])
+    # subparser.add_argument("--epoch", "-e", type=int)
+    # subparser.add_argument("--epoch-scattering", "-es", type=int)
+    # subparser.add_argument("--optimizer", "-o", type=str)
+    # subparser.add_argument("--scheduler", "-sch", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
+    # subparser.add_argument("--init-params", "-ip", type=str,choices=['Random','Kymatio'])
+    # subparser.add_argument("--step-test", "-st", type=int)
+    # subparser.add_argument("--three_phase", "-tp", action="store_true",default=None)
+    # subparser.add_argument("--augment", "-a", type=str,choices=['autoaugment','original-cifar','noaugment','glico'])
+    
 
     args = parser.parse_args()
     args.callback(args)

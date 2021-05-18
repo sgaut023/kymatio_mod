@@ -55,7 +55,9 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc, train_loss, start_
     with mlflow.start_run():
         mlflow.log_params(params['model'])   
         mlflow.log_params(params['scattering'])
-        mlflow.log_params(params['preprocess']['dimension'])
+        mlflow.log_params(params['dataset'])
+        mlflow.log_params(params['optim'])
+        mlflow.log_params(params['general'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
         #mlflow.pytorch.log_model(model, artifact_path = 'model')
