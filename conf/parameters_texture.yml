@@ -18,7 +18,7 @@ dataset:
   data_folder: 'KTH'
   height:  64   # ultrasound image dimension
   width:  64   # ultrasound image dimension
-  augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
+  augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
 
 # kymatio 
 scattering:

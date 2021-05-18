@@ -35,6 +35,7 @@ from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import cifar_getDataloaders
 from parametricSN.utils.kth_loader import kth_getDataloaders
+from parametricSN.utils.xray_loader import xray_getDataloaders
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
@@ -125,7 +126,14 @@ def datasetFactory(params,dataDir,use_cuda):
                     seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], use_cuda=use_cuda
                 )
     elif params['dataset']['name'].lower() == "x-ray":
-        raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
+        return xray_getDataloaders(
+            trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
+            trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
+            multiplier=1, trainAugmentation=params['dataset']['augment'],
+            height= params['dataset']['height'] , width = params['dataset']['width'],
+            seed=params['general']['seed'], dataDir=dataDir, 
+            num_workers=params['general']['cores'], use_cuda=use_cuda
+                )
     else:
         raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
 

@@ -23,7 +23,7 @@ def kth_augmentationFactory(augmentation, height, width):
     if augmentation == 'autoaugment':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
-            transforms.RandomCrop(height, width),
+            transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
             Cutout()
