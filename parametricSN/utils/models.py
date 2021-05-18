@@ -309,7 +309,7 @@ class BasicBlock(nn.Module):
 
 
 class sn_CNN(nn.Module):
-    def __init__(self, in_channels ,  k=8, n=4, num_classes=10,standard=False):
+    def __init__(self, in_channels , k=8, n=4, num_classes=10,standard=False):
         super(sn_CNN, self).__init__()
         self.inplanes = 16 * k
         self.ichannels = 16 * k
@@ -358,7 +358,7 @@ class sn_CNN(nn.Module):
 
     def forward(self, x):
         if not self.standard:
-            x = x.view(x.size(0), self.K, 8, 8)
+            x = x.view(x.size(0), self.K, x.size(3), x.size(4))
 
         x = self.init_conv(x)
 

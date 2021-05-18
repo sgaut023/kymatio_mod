@@ -17,13 +17,13 @@ import os
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
 
-def kth_augmentationFactory(augmentation):
+def kth_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""
 
     if augmentation == 'autoaugment':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
-            transforms.RandomCrop(32, 4),
+            transforms.RandomCrop(height, width),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
             Cutout()
@@ -31,12 +31,14 @@ def kth_augmentationFactory(augmentation):
     elif augmentation == 'original-cifar':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
-            transforms.RandomCrop(32, 4),
+            transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
-        transform = []
+        transform = [
+            transforms.CenterCrop((height, width))
+        ]
     elif augmentation == 'glico':
         NotImplemented(f"augment parameter {augmentation} not implemented")
     else: 
@@ -50,11 +52,11 @@ def kth_augmentationFactory(augmentation):
 
 
 def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
-                       seed=None, dataDir=".", num_workers=4, 
-                       use_cuda=True):
+                       height, width, seed=None, dataDir=".", 
+                       num_workers=4, use_cuda=True):
     """Samples a specified class balanced number of samples form the kth dataset"""
-    transform_train = kth_augmentationFactory(trainAugmentation)
-    transform_val = kth_augmentationFactory('noaugment')
+    transform_train = kth_augmentationFactory(trainAugmentation, height, width)
+    transform_val = kth_augmentationFactory('noaugment', height, width)
 
     loader = KTHLoader(data_dir=dataDir, train_batch_size=trainBatchSize, 
                        val_batch_size=valBatchSize, transform_train=transform_train, 

@@ -110,7 +110,7 @@ def datasetFactory(params,dataDir,use_cuda):
         train_loader, test_loader, seed
     """
 
-    if params['dataset']['name'] == "cifar":
+    if params['dataset']['name'].lower() == "cifar":
         return cifar_getDataloaders(
                     trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
                     trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
@@ -118,14 +118,13 @@ def datasetFactory(params,dataDir,use_cuda):
                     seed=params['general']['seed'], dataDir=dataDir, 
                     num_workers=params['general']['cores'], use_cuda=use_cuda
                 )
-    elif params['dataset']['name'] == "kth":
+    elif params['dataset']['name'].lower() == "kth":
         return kth_getDataloaders(
                     trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
-                    trainAugmentation=params['dataset']['augment'], seed=params['general']['seed'], 
-                    dataDir=dataDir, num_workers=params['general']['cores'], 
-                    use_cuda=use_cuda
+                    trainAugmentation=params['dataset']['augment'], height= params['dataset']['height'] , width = params['dataset']['width'],
+                    seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], use_cuda=use_cuda
                 )
-    elif params['dataset']['name'] == "x-ray":
+    elif params['dataset']['name'].lower() == "x-ray":
         raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
     else:
         raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
