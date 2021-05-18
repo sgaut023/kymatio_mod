@@ -89,7 +89,7 @@ class Scheduler():
         if self.scheduler_name =='OneCycleLR':
             self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer.optimizer, max_lr=self.max_lr, 
                                                             steps_per_epoch=self.steps_per_epoch, 
-                                                            epochs= self.epochs, 
+                                                            epochs= self.epochs+1, 
                                                             three_phase=False,
                                                             div_factor=self.div_factor)
         elif self.scheduler_name =='CosineAnnealingLR':

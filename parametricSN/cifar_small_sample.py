@@ -150,6 +150,20 @@ def get_dataset(params, use_cuda):
             #transforms.Resize((200,200)),
             transforms.CenterCrop((dim_M,dim_N)),
         ]
+    elif AUGMENT == 'original-kth':
+        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-kth augmentation")
+        trainTransform = [
+        transforms.Resize((224,224)),
+        transforms.RandomAffine(degrees=40,
+                                translate=(0.25, 0.5),
+                                scale=(1.2, 2.0)), 
+        transforms.RandomCrop((dim_M,dim_N )),
+        transforms.RandomHorizontalFlip(),
+        ]
+        valTransform = [
+            transforms.Resize((224,224)),
+            transforms.CenterCrop((dim_M,dim_N)),
+        ]
     elif AUGMENT == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
         trainTransform = []
@@ -183,6 +197,7 @@ def get_dataset(params, use_cuda):
         train_loader, test_loader = train_loader_in_list[0], test_loader_in_list[0] 
     
     elif params['model']['dataset'] == 'chest_xray':
+        transform_val = transforms.Compose(valTransform + [transforms.ToTensor(), normalize]) #careful to keep this one same
         dataset_train= datasets.ImageFolder(root=os.path.join(DATA_DIR,'train'), #use train dataset
                                             transform=transform_train)
         dataset_val = datasets.ImageFolder(root=os.path.join(DATA_DIR,'test'), #use train dataset

@@ -9,7 +9,7 @@ preprocess:
 model:
   name: 'linear layer'
   dataset: 'cifar' # 'cifar' or 'kth'
-  architecture: 'cnn' # 'cnn' or 'linear_layer'
+  architecture: 'linear_layer' # 'cnn' or 'linear_layer'
   data_root: '/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
   num_classes: 10
@@ -20,21 +20,21 @@ model:
   test_batch_size: 512
   weight_decay: 0.0005
   momentum: 0.9
-  seed: 42   # seed for dataset subselection (if None generate random)
+  seed: 51   # seed for dataset subselection (if None generate random)
   width: 8   # width factor for resnet
   train_sample_num: 1000  #total train samples
   test_sample_num: 10000
   mode: 'scattering_dif' # network_type: choices=['scattering_dif', 'scattering', 'standard']
-  epoch: 6000
-  num_phase: 3
+  epoch: 10000
+  num_phase: 2
   optimizer: 'sgd'
   scheduler: 'OneCycleLR' # 'CosineAnnealingLR' or 'OneCycleLR' or 'LambdaLR' or 'StepLR', or 'NoScheduler'
-  init_params: 'Random' # 'Random' or 'Kymatio'
+  init_params: 'Kymatio' # 'Random' or 'Kymatio'
   step_test: 25
   three_phase: False 
-  max_lr: 0.05 #highest lr we can
+  max_lr: 0.1 #highest lr we can
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
-  augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
+  augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   T_max: 
   comment:
   
@@ -46,5 +46,5 @@ scattering:
   max_order: 2
 
 mlflow:
-  tracking_uri:  'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
+  tracking_uri:  'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  #'sqlite:////home/mila/g/gauthies/kymatio_mod/mlruns/store.db' 
   experiment_name: 'alternation'
