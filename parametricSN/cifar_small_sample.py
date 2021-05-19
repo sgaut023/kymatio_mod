@@ -82,7 +82,7 @@ def optimizerFactory(hybridModel,params):
     print("\n\nAlternating: {}\n\n".format(params['optim']['alternating']))
     if params['optim']['alternating']:
         return Optimizer(
-                    model=hybridModel.top, scatteringModel=hybridModel.scatteringModel, 
+                    model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
                     epoch=params['model']['epoch'], num_phase=2
