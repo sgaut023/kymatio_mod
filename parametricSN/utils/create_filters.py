@@ -101,7 +101,7 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     """
     #n_filters = J*L
     np.random.seed(seed)
-    sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
+    #sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
     # or take complex exponential/ cos & sin of uniform between 0 and 2pi).
@@ -110,7 +110,8 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(1, 2, n_filters )
-    
+    sigmas = np.concatenate((np.log(np.random.uniform(np.exp(0), np.exp(3), int(n_filters/2) )),
+                            np.log(np.random.uniform(np.exp(3), np.exp(5), n_filters - int(n_filters/2) ))))
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
     slants = torch.FloatTensor(slants)

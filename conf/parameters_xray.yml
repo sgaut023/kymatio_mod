@@ -2,6 +2,7 @@
 general:
   cores: 4
   seed:    # seed for dataset subselection and random initialization
+  save_metric: False
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'

@@ -12,7 +12,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["run-train"]
+            "args": ["--data-root", "/NOBACKUP/gauthiers/"]
         }
     ]
 }

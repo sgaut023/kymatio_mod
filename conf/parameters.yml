@@ -2,9 +2,10 @@
 general:
   cores: 4
   seed:    # seed for dataset subselection and random initialization
+  save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
 
 dataset:
@@ -14,7 +15,7 @@ dataset:
   test_batch_size: 512
   train_sample_num: 100  #total train samples
   test_sample_num: 10000
-  data_root: #'/home/gauthiers/kymatio_datasets/'
+  data_root: '/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
   height:  32   # ultrasound image dimension
   width:  32   # ultrasound image dimension
@@ -43,7 +44,7 @@ optim:
   T_max: 
 
 model:
-  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
   epoch: 5
   step_test: 25

@@ -47,7 +47,7 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                     optimizer, params['optim']['scheduler'], 
                     steps_per_epoch, optimizer.epoch_alternate[0], 
                     div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 3
+                    T_max = params['optim']['T_max'], num_step = 2
                 )
 
     if params['optim']['scheduler'] =='OneCycleLR':
@@ -68,7 +68,8 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
     elif params['optim']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
+                                                    gamma=0.2)
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
@@ -82,7 +83,7 @@ def optimizerFactory(hybridModel,params):
     print("\n\nAlternating: {}\n\n".format(params['optim']['alternating']))
     if params['optim']['alternating']:
         return Optimizer(
-                    model=hybridModel.top, scatteringModel=hybridModel.scatteringModel, 
+                    model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
                     epoch=params['model']['epoch'], num_phase=2
@@ -313,7 +314,7 @@ def run_train(args):
     #MLFLOW logging below
 
 
-
+    
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
@@ -359,6 +360,7 @@ def main():
     #processor
     subparser.add_argument("--general-cores", "-gc", type=int)
     subparser.add_argument("--general-seed", "-gseed", type=int)
+    subparser.add_argument("--general-save-metric", "-gsm", type=int)
     #mlflow 
     subparser.add_argument("--mlflow-tracking-uri", "-turi", type=str)
     subparser.add_argument("--mlflow-experiment-name", "-en", type=str)
