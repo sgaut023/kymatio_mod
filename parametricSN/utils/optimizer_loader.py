@@ -98,10 +98,10 @@ class Scheduler():
     def define_scheduler(self):
         if self.scheduler_name =='OneCycleLR':
             self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer.optimizer, max_lr=self.max_lr, 
-                                                            steps_per_epoch=self.steps_per_epoch, 
-                                                            epochs= self.epochs, 
-                                                            three_phase=False,
-                                                            div_factor=self.div_factor)
+                                                                 steps_per_epoch=self.steps_per_epoch, 
+                                                                 epochs=self.epochs+1, 
+                                                                 three_phase=False,
+                                                                 div_factor=self.div_factor)
         elif self.scheduler_name =='CosineAnnealingLR':
             self.scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer.optimizer, T_max = self.T_max, eta_min = 1e-8)
         elif self.scheduler_name =='LambdaLR':

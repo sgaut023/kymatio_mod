@@ -1,6 +1,6 @@
 """Wrapper for the cifar dataset with various options 
 
-Author: Benjamin Therien
+Author: Benjamin Therien, Shanel Gauthier
 
 Exceptions: 
     ImpossibleSampleNumException --

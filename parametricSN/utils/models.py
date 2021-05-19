@@ -124,7 +124,9 @@ class sn_HybridModel(nn.Module):
 
     def parameters(self):
         """implements parameters method allowing the use of scatteringBase's method """
-        return list(self.top.parameters()) + list(self.scatteringBase.parameters())
+        temp = [{'params': list(self.top.parameters())}]
+        temp.extend(list(self.scatteringBase.parameters()))
+        return temp
 
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))

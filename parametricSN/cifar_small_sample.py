@@ -77,27 +77,27 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
 
 
 
-def optimizerFactory(model,scatteringModel,params):
+def optimizerFactory(hybridModel,params):
     """Factory for different optimizers"""
+    print("\n\nAlternating: {}\n\n".format(params['optim']['alternating']))
     if params['optim']['alternating']:
         return Optimizer(
-                    model=model, scatteringModel=scatteringModel, 
+                    model=hybridModel.top, scatteringModel=hybridModel.scatteringModel, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
                     epoch=params['model']['epoch'], num_phase=2
                 )
 
-    parameters = list(model.parameters()+list(scatteringModel.parameters()))
+
     if params['optim']['name'] == 'adam':
         return torch.optim.Adam(
-            parameters,lr=params['optim']['lr'], 
+            hybridModel.parameters(),lr=params['optim']['lr'], 
             betas=(0.9, 0.999), eps=1e-08, 
             weight_decay=params['optim']['weight_decay'], amsgrad=False
         )
     elif params['optim']['name'] == 'sgd': 
-        parameters = list(model.parameters()+list(scatteringModel.parameters()))
         return torch.optim.SGD(
-            parameters, lr=params['optim']['lr'], 
+            hybridModel.parameters(), lr=params['optim']['lr'], 
             momentum=params['optim']['momentum'], weight_decay=params['optim']['weight_decay']
         )
         
@@ -259,7 +259,7 @@ def run_train(args):
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top,use_cuda=use_cuda)
 
-    optimizer = optimizerFactory(model=top, scatteringModel=scatteringBase, params=params)
+    optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
     scheduler = schedulerFactory(optimizer, params, len(train_loader))
 
@@ -381,7 +381,7 @@ def main():
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
     subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','random'])
-    subparser.add_argument("--scattering-learnable", "-sl", type=bool)
+    subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
@@ -390,8 +390,8 @@ def main():
     subparser.add_argument("--optim-max-lr", "-omaxlr", type=float)
     subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
     subparser.add_argument("--optim-div-factor", "-odivf", type=int)
-    subparser.add_argument("--optim-three-phase", "-otp", type=bool)
-    subparser.add_argument("--optim-alternating", "-oalt", type=bool)
+    subparser.add_argument("--optim-three-phase", "-otp", type=int, choices=[0,1])
+    subparser.add_argument("--optim-alternating", "-oalt", type=int, choices=[0,1])
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
     #model 
@@ -404,6 +404,13 @@ def main():
                         help="YML Parameter File Name")
 
     args = parser.parse_args()
+
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable']:
+        if args.__dict__[key] != None:
+            print("Before:",key,args.__dict__[key])
+            args.__dict__[key] = bool(args.__dict__[key])
+            print("After:",key,args.__dict__[key])
+
     args.callback(args)
 
 

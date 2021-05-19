@@ -1,6 +1,6 @@
-"""Cifar-10 100 samples kymatio initialization experiment script
+"""Cifar-10 500 samples kymatio initialization experiment script
 
-Experiment: learnable vs non-learnable scattering for cifar-10 100 samples with kymatio initialization
+Experiment: learnable vs non-learnable scattering for cifar-10 500 samples with kymatio initialization
 
 example command:
 
@@ -16,9 +16,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Cifar-10 100 Samples Kymatio Initialization\""
+mlflow_exp_name = "\"Cifar-10 500 Samples Kymatio Initialization\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -29,15 +29,14 @@ LRO = 0.1
 LRMAX = 0.06
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-LEARNABLE = 1
-EPOCHS = 10000
+LEARNABLE = True
+EPOCHS = 25
 INIT = "Kymatio"
-RUNS_PER_SEED = 10
+RUNS_PER_SEED = 12
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 100
+TRAIN_SAMPLE_NUM = 500
 AUGMENT = "autoaugment"
-ALTERNATING = 0
 
 def runCommand(cmd):
     print("[Running] {}".format(command))
@@ -49,13 +48,12 @@ if __name__ == '__main__':
 
     for x in range(TOTALRUNS):
 
-        LEARNABLE = 1 if LEARNABLE == 1 else 0
-        
+        LEARNABLE = not LEARNABLE
         if x % 2 == 0  and x != 0:
             SEED = int(time.time() * np.random.rand(1))
 
-        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {}".format(
-        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name)
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name)
 
         commands.append(command)
 
@@ -74,7 +72,7 @@ if __name__ == '__main__':
             process.join()
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
-        time.sleep(1)
+        time.sleep(5)
 
 
 
