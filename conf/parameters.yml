@@ -4,7 +4,7 @@ general:
   seed:    # seed for dataset subselection and random initialization
 
 mlflow:
-  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'sqlite:////home/mila/b/benjamin.therien/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
 
 dataset:

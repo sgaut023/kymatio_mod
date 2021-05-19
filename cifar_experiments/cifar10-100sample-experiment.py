@@ -17,11 +17,11 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 2
 
 mlflow_exp_name = "\"Cifar-10 100 Samples Kymatio Initialization\""
 
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = 'python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
 LR = 0.1
@@ -38,7 +38,7 @@ TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
 AUGMENT = "autoaugment"
-ALTERNATING = 1
+ALTERNATING = 0
 
 
 def runCommand(cmd):
@@ -47,16 +47,16 @@ def runCommand(cmd):
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
 
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = cli()
 
-    if args["data_root"] != None and args["data_folder"] != None:
-        DATA_ARG = "-ddr {} -ddf {}".format(args["data_root"],args["data_folder"])
+    if args.data_root != None and args.data_folder != None:
+        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
     else:
         DATA_ARG = ""
 
