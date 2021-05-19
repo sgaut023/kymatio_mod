@@ -17,7 +17,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 4
 
 mlflow_exp_name = "\"Cifar-10 100 Samples Kymatio Initialization\""
 
@@ -33,7 +33,7 @@ SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
 EPOCHS = 10000
 INIT = "Kymatio"
-RUNS_PER_SEED = 1
+RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
@@ -42,8 +42,8 @@ ALTERNATING = 1
 
 
 def runCommand(cmd):
-    print("[Running] {}".format(command))
-    os.system(command)
+    print("[Running] {}".format(cmd))
+    os.system(cmd)
 
 def cli():
     parser = argparse.ArgumentParser()
@@ -55,8 +55,8 @@ def cli():
 if __name__ == '__main__':
     args = cli()
 
-    if args["data_root"] != None and args["data_folder"] != None:
-        DATA_ARG = "-ddr {} -ddf {}".format(args["data_root"],args["data_folder"])
+    if args.data_root != None and args.data_folder != None:
+        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
     else:
         DATA_ARG = ""
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     for x in range(TOTALRUNS):
 
-        LEARNABLE = 1 if LEARNABLE == 1 else 0
+        LEARNABLE = 0 if LEARNABLE == 1 else 1
 
         if x % 2 == 0  and x != 0:
             SEED = int(time.time() * np.random.rand(1))
@@ -74,7 +74,10 @@ if __name__ == '__main__':
 
         commands.append(command)
 
-    processes = [Process(target=runCommand,args=(cmd,)) for cmd in commands]
+    for cmd in commands:
+        print(cmd)
+
+    processes = [Process(target=runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
     processBatches = [processes[i*PROCESS_BATCH_SIZE:(i+1)*PROCESS_BATCH_SIZE] for i in range(math.ceil(len(processes)/PROCESS_BATCH_SIZE))]
 
     for i,batch in enumerate(processBatches):
@@ -82,6 +85,7 @@ if __name__ == '__main__':
         startTime = time.time()
 
         for process in batch:
+            print("From Main: {}".format(process._args))
             process.start()
             time.sleep(5)
 
