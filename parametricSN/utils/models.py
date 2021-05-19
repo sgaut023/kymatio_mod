@@ -88,7 +88,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     
     params_filters = []
 
-    if initilization == "kymatio":
+    if initilization == "Kymatio":
         params_filters = create_filters_params(J,L,requires_grad,2) #kymatio init
     elif initilization == "Random":
         params_filters = create_filters_params_random( J*L,requires_grad,2,seed) #random init
