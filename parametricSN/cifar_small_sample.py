@@ -380,7 +380,7 @@ def main():
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
-    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','random'])
+    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
