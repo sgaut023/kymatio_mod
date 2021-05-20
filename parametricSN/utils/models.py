@@ -78,7 +78,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     scattering = Scattering2D(J=J, shape=(M, N))
 
     L = scattering.L
-    n_coefficients= 1 + L*J + L*L*J*(J-1)//2
+    n_coefficients=  L*L*J*(J-1)//2 #1 + L*J  +
     K = n_coefficients*3
 
     if use_cuda:
@@ -257,6 +257,7 @@ class sn_MLP(nn.Module):
 class sn_LinearLayer(nn.Module):
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
+        self.n_coefficients = n_coefficients
         if use_cuda:
             self.cuda()
 
@@ -269,7 +270,8 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        x = x.view(x.shape[0], -1)
+        x = x[:,:, -self.n_coefficients:,:,:]
+        x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         x = self.fc2(x)
         return x

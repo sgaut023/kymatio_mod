@@ -93,6 +93,7 @@ def periodize_filter_fft(x, res, device):
                 for j in range(int(2 ** res)):
                     crop[k, l] += x[k + i * int(M / 2 ** res), l + j * int(N / 2 ** res)]
 
+
     return crop
 
 def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
@@ -110,8 +111,9 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(1, 2, n_filters )
-    sigmas = np.concatenate((np.log(np.random.uniform(np.exp(0), np.exp(3), int(n_filters/2) )),
+    sigmas = np.concatenate((np.log(np.random.uniform(np.exp(1), np.exp(3), int(n_filters/2) )),
                             np.log(np.random.uniform(np.exp(3), np.exp(5), n_filters - int(n_filters/2) ))))
+    
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
     slants = torch.FloatTensor(slants)
@@ -143,6 +145,8 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
             #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
             R_inv = np.array([[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]], np.float32)
             orientations.append(R_inv)
+
+            
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
     slants = torch.FloatTensor(slants)
@@ -153,6 +157,8 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
         for param in params:
             param.requires_grad = True
     return  params
+
+
 
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):
     n_filters, n_dim = wave_vectors.shape

@@ -68,8 +68,8 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
     elif params['optim']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
-                                                    gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/3), 
+                                                    gamma=0.5)
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
@@ -314,7 +314,7 @@ def run_train(args):
     #MLFLOW logging below
 
 
-    
+
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
@@ -382,7 +382,7 @@ def main():
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
-    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','random'])
+    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])

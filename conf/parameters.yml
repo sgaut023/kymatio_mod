@@ -27,8 +27,8 @@ scattering:
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Random' # 'Random' or 'Kymatio'
-  learnable: True # True if learnable
+  init_params: 'Kymatio' # 'Random' or 'Kymatio'
+  learnable: False # True if learnable
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']

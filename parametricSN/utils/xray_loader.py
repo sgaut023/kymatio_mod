@@ -30,23 +30,11 @@ from torchvision import datasets, transforms
 from torch.utils.data import Subset
 from numpy.random import RandomState
 from parametricSN.utils.cifar_loader import SmallSampleController
+from parametricSN.utils.cifar_loader import ImpossibleSampleNumException
+from parametricSN.utils.cifar_loader import IncompatibleBatchSizeException
+from parametricSN.utils.cifar_loader import IncompatibleClassNumberException
+from parametricSN.utils.cifar_loader import IndicesNotSetupException
 
-
-class ImpossibleSampleNumException(Exception):
-    """Error thrown when an impossible class balancedsample number is requested"""
-    pass
-
-class IncompatibleBatchSizeException(Exception):
-    """Error thrown when an impossible class balancedsample number is requested"""
-    pass
-
-class IncompatibleClassNumberException(Exception):
-    """Error thrown when train and validation datasets dont have a compatible number of classes"""
-    pass
-
-class IndicesNotSetupException(Exception):
-    """Error thrown when an impossible class balancedsample number is requested"""
-    pass
 
 def xray_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""

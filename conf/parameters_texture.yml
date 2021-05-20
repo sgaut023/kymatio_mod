@@ -6,7 +6,7 @@ general:
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'Texture dataset'
+  experiment_name: 'KTH2'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
@@ -17,28 +17,28 @@ dataset:
   test_sample_num: 3564
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'KTH'
-  height:  128  # ultrasound image dimension
+  height: 128  # ultrasound image dimension
   width:  128  # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  sample: 'c'
+  sample: 'd'
 
 # kymatio 
 scattering:
   J: 2
   max_order: 2
-  lr_scattering: 0.01
-  lr_orientation: 0.01
+  lr_scattering: 0.1
+  lr_orientation: 0.1
   init_params: 'Random' # 'Random' or 'Kymatio'
   learnable: True # True if learnable
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.01
+  lr: 0.1
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.01 #highest lr we can
+  max_lr: 0.05 #highest lr we can
   scheduler: 'StepLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
-  div_factor: 25 # so far, best results with 25 and maxlr = 0.05
+  div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
   alternating: False
