@@ -19,6 +19,7 @@ Classes:
     sn_MLP -- multilayer perceptron fitted for scattering input
 """
 
+from numpy.core.numeric import False_
 import torch 
 import torch.nn as nn
 
@@ -91,7 +92,8 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     if initilization == "Kymatio":
         params_filters = create_filters_params(J,L,requires_grad,2) #kymatio init
     elif initilization == "Random":
-        params_filters = create_filters_params_random( J*L,requires_grad,2,seed) #random init
+        num_filters = get_total_num_filters(J,L)
+        params_filters = create_filters_params_random( num_filters,requires_grad,2,seed) #random init
     else:
         raise InvalidInitializationException
 
@@ -99,7 +101,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
-    psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
+    psi = update_psi(J, psi, wavelets, initilization , device) #update psi to reflect the new conv filters
 
     return scattering, psi, wavelets, params_filters, n_coefficients
 
@@ -209,7 +211,7 @@ class sn_ScatteringBase(nn.Module):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.wavelets = morlets((self.scattering.M_padded, self.scattering.N_padded), self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, device) 
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, device) 
         else:
             pass
 
