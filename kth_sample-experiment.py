@@ -22,12 +22,14 @@ LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
+INIT = "Kymatio"
 EPOCHS = 500
 RUNS_PER_SEED = 1
-TOTALRUNS = 2 * RUNS_PER_SEED
+TOTALRUNS = 1 * RUNS_PER_SEED
 SCHEDULER = "StepLR"
 AUGMENT = "original-cifar"
 ALTERNATING = 0
+J = 3
 
 
 def runCommand(cmd):
@@ -53,17 +55,18 @@ if __name__ == '__main__':
     for sample in ['a', 'b', 'c', 'd']:
         for x in range(TOTALRUNS):
 
-            LEARNABLE = 0 if LEARNABLE == 1 else 1
-            if LEARNABLE ==1 :
-                INIT = "Random"
-            else:
-                INIT = "Kymatio"
+            #LEARNABLE = 0 if LEARNABLE == 1 else 1
+            #J = 2 if J== 3 else 3
+            # if LEARNABLE ==1 :
+            #     INIT = "Random"
+            # else:
+            #     INIT = "Kymatio"
 
             # if x % 2 == 0  and x != 0:
             #     SEED = int(time.time() * np.random.rand(1))
 
             command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
-            PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)
+            PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample,  DATA_ARG)
 
             commands.append(command)
 
@@ -87,3 +90,5 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
+    
+    

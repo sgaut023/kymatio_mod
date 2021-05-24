@@ -20,7 +20,7 @@ def construct_scattering(input, scattering, psi):
     if (input.shape[-1] != scattering.N or input.shape[-2] != scattering.M) and not scattering.pre_pad:
         raise RuntimeError('Tensor must be of spatial size (%i,%i).' % (scattering.M, scattering.N))
 
-    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering_padded) and scattering.pre_pad:
+    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering.N_padded) and scattering.pre_pad:
         raise RuntimeError('Padded tensor must be of spatial size (%i,%i).' % (scattering.M_padded, scattering.N_padded))
 
     if not scattering.out_type in ('array', 'list'):
@@ -55,7 +55,11 @@ def update_psi(J, psi, wavelets,  initialization , device):
         for i,d in enumerate(psi):
             for res in range(0, J-1):
                 if res in d.keys():
-                    d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+                    if res == 0:
+                        d[res]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+                    else:
+                        d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+    
     else:
         count = 0
         for i,d in enumerate(psi):
@@ -64,7 +68,7 @@ def update_psi(J, psi, wavelets,  initialization , device):
                     if res == 0:
                         d[res]=wavelets[count].unsqueeze(2).real.contiguous().to(device) 
                     else:
-                        d[res]= periodize_filter_fft(wavelets[count].real.contiguous().to(device) , res+1, device).unsqueeze(2)
+                        d[res]= periodize_filter_fft(wavelets[count].real.contiguous().to(device) , res, device).unsqueeze(2)
                     count +=1
     return psi
 
@@ -73,6 +77,44 @@ def get_total_num_filters(J, L):
     for j in range(2,J+1):
         num_filters += j *L
     return num_filters  
+
+def periodize_filter_fft_v1(x, res, device):
+    """
+        Parameters
+        ----------
+        x : numpy array
+            signal to periodize in Fourier
+        res :
+            resolution to which the signal is cropped.
+        Returns
+        -------
+        crop : torch array
+            It returns a crop version of the filter, assuming that
+             the convolutions will be done via compactly supported signals.
+    """
+
+    M = x.shape[0]
+    N = x.shape[1]
+
+    crop = torch.zeros((M // 2 ** res, N // 2 ** res), dtype = x.dtype).to(device)
+
+    mask = torch.ones(x.shape, dtype =torch.float32).to(device)
+    len_x = int(M * (1 - 2 ** (-res)))
+    start_x = int(M * 2 ** (-res - 1))
+    len_y = int(N * (1 - 2 ** (-res)))
+    start_y = int(N * 2 ** (-res - 1))
+    mask[start_x:start_x + len_x,:] = 0
+    mask[:, start_y:start_y + len_y] = 0
+    x = x*mask
+
+    for k in range(int(M / 2 ** res)):
+        for l in range(int(N / 2 ** res)):
+            for i in range(int(2 ** res)):
+                for j in range(int(2 ** res)):
+                    crop[k, l] += x[k + i * int(M / 2 ** res), l + j * int(N / 2 ** res)]
+
+    return crop
+
 
 def periodize_filter_fft(x, res, device):
     """
@@ -91,7 +133,7 @@ def periodize_filter_fft(x, res, device):
     """
 
     s1, s2 = x.shape
-    periodized = x.reshape(res, s1//res, res, s2//res).mean(dim=(0,2))
+    periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
 def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
@@ -109,7 +151,7 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(4), n_filters ))
+    sigmas = np.log(np.random.uniform(np.exp(2), np.exp(5), n_filters ))
     
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
