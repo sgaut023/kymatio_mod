@@ -1,12 +1,3 @@
-"""Cifar-10 100 samples kymatio initialization experiment script
-
-Experiment: learnable vs non-learnable scattering for cifar-10 100 samples with kymatio initialization
-
-example command:
-
-    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
-
-"""
 
 import os
 import math
@@ -17,28 +8,27 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 5
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"Cifar-10 1000 Samples Random Initialization\""
+mlflow_exp_name = "\"Xray all orders 1000 Samples\""
 
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
+PARAMS_FILE = "parameters_xray.yml"
 OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.06
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-LEARNABLE = 1
-EPOCHS = 5000
+LEARNABLE = 0
 INIT = "Random"
-RUNS_PER_SEED = 10
-TOTALRUNS = 2 * RUNS_PER_SEED
-SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 1000
-AUGMENT = "autoaugment"
+EPOCHS = 500
+RUNS_PER_SEED = 3
+TOTALRUNS = 2 * RUNS_PER_SEED
+SCHEDULER = "StepLR"
+AUGMENT = "original-cifar"
 ALTERNATING = 0
 
 
@@ -62,18 +52,39 @@ if __name__ == '__main__':
         DATA_ARG = ""
 
     commands = []
-
     for x in range(TOTALRUNS):
 
         LEARNABLE = 0 if LEARNABLE == 1 else 1
+        # if LEARNABLE ==1 :
+        #     INIT = "Random"
+        # else:
+        #     INIT = "Kymatio"
 
         if x % 2 == 0  and x != 0:
             SEED = int(time.time() * np.random.rand(1))
 
-        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
-        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} -dtsn {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, TRAIN_SAMPLE_NUM, DATA_ARG)
 
         commands.append(command)
+    
+    INIT = "Kymatio"
+    for x in range(TOTALRUNS):
+
+        LEARNABLE = 0 if LEARNABLE == 1 else 1
+        # if LEARNABLE ==1 :
+        #     INIT = "Random"
+        # else:
+        #     INIT = "Kymatio"
+
+        if x % 2 == 0  and x != 0:
+            SEED = int(time.time() * np.random.rand(1))
+
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} -dtsn {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, TRAIN_SAMPLE_NUM, DATA_ARG)
+
+        commands.append(command)
+
 
     for cmd in commands:
         print(cmd)
@@ -86,6 +97,7 @@ if __name__ == '__main__':
         startTime = time.time()
 
         for process in batch:
+            print("From Main: {}".format(process._args))
             process.start()
             time.sleep(5)
 
@@ -94,9 +106,5 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
-
-
-
-
-
-
+    
+    

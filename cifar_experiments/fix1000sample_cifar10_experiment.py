@@ -63,15 +63,47 @@ if __name__ == '__main__':
 
     commands = []
 
-    for x in range(TOTALRUNS):
+    # for x in range(TOTALRUNS):
 
-        LEARNABLE = 0 if LEARNABLE == 1 else 1
+    #     LEARNABLE = 0 if LEARNABLE == 1 else 1
 
-        if x % 2 == 0  and x != 0:
-            SEED = int(time.time() * np.random.rand(1))
+    #     if x % 2 == 0  and x != 0:
+    #         SEED = int(time.time() * np.random.rand(1))
 
-        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
-        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+    #     command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
+    #     PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+
+    #     commands.append(command)
+
+    INIT = "Kymatio"
+    LEARNABLE = 1
+    for SEED in [106283845,157508927,501291365]:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+
+        commands.append(command)
+
+    INIT = "Random"
+    LEARNABLE = 1
+    for SEED in [1494236692]:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+
+        commands.append(command)
+
+    INIT = "Kymatio"
+    LEARNABLE = 0
+    for SEED in []:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+
+        commands.append(command)
+
+    INIT = "Random"
+    LEARNABLE = 0
+    for SEED in []:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
 
         commands.append(command)
 
