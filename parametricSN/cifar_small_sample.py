@@ -22,17 +22,13 @@ import argparse
 import torch
 
 import torch.nn.functional as F
-import torch.nn as nn
 import kymatio.datasets as scattering_datasets
-import matplotlib.pyplot as plt
 import numpy as np
 
-from torchvision import datasets, transforms
 from numpy.random import RandomState
 from parametricSN.utils.context import get_context
 from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
 from parametricSN.utils.log_mlflow import log_mlflow
-from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from parametricSN.utils.cifar_loader import cifar_getDataloaders
 from parametricSN.utils.kth_loader import kth_getDataloaders
 from parametricSN.utils.xray_loader import xray_getDataloaders
@@ -79,7 +75,6 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
 
 def optimizerFactory(hybridModel,params):
     """Factory for different optimizers"""
-    print("\n\nAlternating: {}\n\n".format(params['optim']['alternating']))
     if params['optim']['alternating']:
         return Optimizer(
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
@@ -212,7 +207,8 @@ def override_params(args,params):
                 params[prefix][key] = v
                 print("    ",k,v)
             except KeyError:
-                print("Invalid parameter {} skipped".format(prefix))
+                # print("Invalid parameter {} skipped".format(prefix))
+                pass
 
     return params
 
@@ -257,7 +253,7 @@ def run_train(args):
     #use for cnn?
     # model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
 
-    hybridModel = sn_HybridModel(scatteringBase=scatteringBase,top=top,use_cuda=use_cuda)
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top, use_cuda=use_cuda)
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
@@ -276,7 +272,9 @@ def run_train(args):
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
     params['model']['trainable_parameters'] = "to be fixed"
-    # params['model']['trainable_parameters'] = '%.2fM' % (sum(p.numel() for p in optimizer.param_groups[0]["params"]) / 1000000.0)
+    params['model']['trainable_parameters'] = '%.2fM' % (hybridModel.countLearnableParams() / 1000000.0)
+
+    print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
     for epoch in  range(0, params['model']['epoch']):
 
@@ -356,7 +354,7 @@ def main():
 
     subparser = subparsers.add_parser("run-train")
     subparser.set_defaults(callback=run_train)
-    #processor
+    #general
     subparser.add_argument("--general-cores", "-gc", type=int)
     subparser.add_argument("--general-seed", "-gseed", type=int)
     #mlflow 
@@ -407,9 +405,7 @@ def main():
 
     for key in ['optim_alternating','optim_three_phase','scattering_learnable']:
         if args.__dict__[key] != None:
-            print("Before:",key,args.__dict__[key])
-            args.__dict__[key] = bool(args.__dict__[key])
-            print("After:",key,args.__dict__[key])
+            args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 
     args.callback(args)
 
