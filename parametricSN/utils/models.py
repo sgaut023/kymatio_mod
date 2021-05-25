@@ -79,7 +79,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     scattering = Scattering2D(J=J, shape=(M, N))
 
     L = scattering.L
-    n_coefficients=  L*L*J*(J-1)//2 #1 + L*J  +
+    n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
     K = n_coefficients*3
 
     if use_cuda:
@@ -264,18 +264,18 @@ class sn_LinearLayer(nn.Module):
             self.cuda()
 
         if standard:
-            self.fc1 = nn.Linear(3*32*32, 256)
-            self.fc2 = nn.Linear(256, num_classes)
+            self.fc1 = nn.Linear(3*32*32,num_classes)
+            #self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
-            self.fc2 = nn.Linear(1024, num_classes)
+            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+           #self.fc2 = nn.Linear(1024, num_classes)
 
 
     def forward(self, x):
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
-        x = self.fc2(x)
+        #x = self.fc2(x)
         return x
 
 def conv3x3(in_planes, out_planes, stride=1):

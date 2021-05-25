@@ -6,7 +6,7 @@ general:
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'xray'
+  experiment_name: 'xray-neverwinter'
 
 dataset:
   name: 'x-ray' # choices=['cifar', 'kth', 'x-ray']
@@ -17,14 +17,14 @@ dataset:
   test_sample_num: 400
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'chest_xrays_preprocess'
-  height:  32   # ultrasound image dimension
-  width:  32   # ultrasound image dimension
+  height:  128   # ultrasound image dimension
+  width:  128   # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
 
 # kymatio 
 scattering:
-  J: 2
+  J: 4
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
@@ -33,7 +33,7 @@ scattering:
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.01
+  lr: 0.1
   weight_decay: 0.0005
   momentum: 0.9
   max_lr: 0.07 #highest lr we can
@@ -45,9 +45,9 @@ optim:
   T_max: 
 
 model:
-  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # widthd factor for resnet
-  epoch: 1000
+  epoch: 100
   step_test: 25
   
 

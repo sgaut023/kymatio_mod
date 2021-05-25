@@ -6,13 +6,13 @@ general:
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'KTH2'
+  experiment_name: 'KTH2- all orders'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 11
   train_batch_size: 128
-  test_batch_size: 592
+  test_batch_size: 128
   train_sample_num: 1188  #total train samples
   test_sample_num: 3564
   data_root: '/NOBACKUP/gauthiers/'
@@ -24,11 +24,11 @@ dataset:
 
 # kymatio 
 scattering:
-  J: 2
+  J: 4
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Random' # 'Random' or 'Kymatio'
+  init_params: 'Random' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
 
 optim: 
@@ -41,11 +41,11 @@ optim:
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
-  alternating: False
+  alternating: True
   T_max: 
 
 model:
-  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
   epoch: 500
   step_test: 25
