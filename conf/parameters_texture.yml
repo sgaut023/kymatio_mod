@@ -28,9 +28,9 @@ scattering:
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Random' # 'Kymatio' or 'Random'
+  init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
-  second_order: False
+  second_order: True
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
@@ -48,7 +48,7 @@ optim:
 model:
   name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 500
+  epoch: 200
   step_test: 25
   
 
