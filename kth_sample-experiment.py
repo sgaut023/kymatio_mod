@@ -53,16 +53,16 @@ if __name__ == '__main__':
 
     commands = []
     for sample in ['d', 'c', 'b', 'a']:
+        SEED = int(time.time() * np.random.rand(1))
         for x in range(TOTALRUNS):
 
             LEARNABLE = 0 if LEARNABLE == 1 else 1
-            if x % 2 == 0  and x != 0:
-                SEED = int(time.time() * np.random.rand(1))
+            # if x % 1 == 0  and x != 0:
+            #     SEED = int(time.time() * np.random.rand(1))
             # if LEARNABLE  ==1:
             #     INIT = "Random"
             # else:
             #     INIT = "Kymatio"
-
 
             command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
             PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)
@@ -71,16 +71,16 @@ if __name__ == '__main__':
     
     INIT = "Random"
     for sample in ['d', 'c', 'b', 'a']:
+        SEED = int(time.time() * np.random.rand(1))
         for x in range(TOTALRUNS):
 
             LEARNABLE = 0 if LEARNABLE == 1 else 1
-            if x % 2 == 0  and x != 0:
-                SEED = int(time.time() * np.random.rand(1))
+            # if x % 2 == 0  and x != 0:
+            #     SEED = int(time.time() * np.random.rand(1))
             # if LEARNABLE  ==1:
             #     INIT = "Random"
             # else:
             #     INIT = "Kymatio"
-
 
             command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
             PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)

@@ -43,7 +43,7 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                     optimizer, params['optim']['scheduler'], 
                     steps_per_epoch, optimizer.epoch_alternate[0], 
                     div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 2
+                    T_max = params['optim']['T_max'], num_step = 3
                 )
 
     if params['optim']['scheduler'] =='OneCycleLR':
@@ -235,6 +235,7 @@ def run_train(args):
         J=params['scattering']['J'],
         N=params['dataset']['height'],
         M=params['dataset']['width'],
+        second_order=params['scattering']['second_order'],
         initialization=params['scattering']['init_params'],
         seed=params['general']['seed'],
         learnable=params['scattering']['learnable'],
@@ -382,6 +383,7 @@ def main():
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
     subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)

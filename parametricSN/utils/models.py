@@ -59,7 +59,7 @@ def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
         raise InvalidArchitectureError()
 
-def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order, initilization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns its for modification. Next,
@@ -79,7 +79,11 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     scattering = Scattering2D(J=J, shape=(M, N))
 
     L = scattering.L
-    n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
+    if second_order:
+        n_coefficients=  L*L*J*(J-1)//2 #+ 1 + L*J  
+    else: 
+        n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
+    
     K = n_coefficients*3
 
     if use_cuda:
@@ -176,12 +180,13 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+    def __init__(self,J,N,M,second_order, initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
         """Creates scattering filters and adds them to the nn.parameters if learnable"""
         super(sn_ScatteringBase,self).__init__()
         self.J = J
         self.N = N
         self.M = M
+        self.second_order = second_order
         self.learnable = learnable
         self.use_cuda = use_cuda 
         self.initialization = initialization
@@ -191,7 +196,7 @@ class sn_ScatteringBase(nn.Module):
         self.N_coefficient = self.N/(2**self.J)
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
-            J,N,M,initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
+            J,N,M,second_order, initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
         )
         
         self.filters_plots_before = self.getFilterViz()
@@ -285,7 +290,6 @@ class sn_MLP(nn.Module):
 
 
 
-
 class sn_LinearLayer(nn.Module):
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
@@ -355,10 +359,11 @@ class BasicBlock(nn.Module):
 
 
 class sn_CNN(nn.Module):
-    def __init__(self, in_channels , k=8, n=4, num_classes=10,standard=False):
+    def __init__(self, in_channels , k=8, n=4, num_classes=10, standard=False):
         super(sn_CNN, self).__init__()
         self.inplanes = 16 * k
         self.ichannels = 16 * k
+        self.in_channels = in_channels
         in_channels = in_channels * 3
         if standard:
 
@@ -404,7 +409,8 @@ class sn_CNN(nn.Module):
 
     def forward(self, x):
         if not self.standard:
-            x = x.view(x.size(0), self.K, x.size(3), x.size(4))
+            x = x[:,:, -self.in_channels:,:,:]
+            x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
 
         x = self.init_conv(x)
 
