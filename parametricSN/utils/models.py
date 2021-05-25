@@ -109,6 +109,10 @@ class sn_Identity(nn.Module):
         super().__init__()
     def forward(self, x):
         return x
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        return 0
     
 
 class sn_HybridModel(nn.Module):
@@ -139,6 +143,13 @@ class sn_HybridModel(nn.Module):
         self.scatteringBase.eval()
         self.top.eval()
 
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        return self.scatteringBase.countLearnableParams() \
+            + self.top.countLearnableParams()
+
+    
+
 
 class sn_ScatteringBase(nn.Module):
     """A learnable scattering nn.module 
@@ -159,7 +170,7 @@ class sn_ScatteringBase(nn.Module):
         filter_viz = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(self.psi, self.J, 8, mode=mode) 
-            filter_viz [mode]  = f  
+            filter_viz[mode] = f  
 
         return filter_viz
 
@@ -220,38 +231,57 @@ class sn_ScatteringBase(nn.Module):
             self.updateFilters()
         return construct_scattering(ip, self.scattering, self.psi)
 
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        if not self.learnable:
+            return 0
+
+        count = 0
+        for t in self.params_filters:
+            count += t.numel()
+        return count
+
 
 
 class sn_MLP(nn.Module):
-  '''
+    '''
     Multilayer Perceptron.
-  '''
-  def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
-    super(sn_MLP,self).__init__()
-    if use_cuda:
-        self.cuda()
+    '''
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
+        super(sn_MLP,self).__init__()
+        if use_cuda:
+            self.cuda()
 
-    if standard:
-        fc1 = nn.Linear(3*32*32, 512)
-    else:
-        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
-    
-    self.layers = nn.Sequential(
-      fc1,
-      nn.ReLU(),
-      nn.Linear(512, 256),
-      nn.ReLU(),
-      nn.Linear(256, 128),
-      nn.ReLU(),
-      nn.Linear(128, 64),
-      nn.ReLU(),
-      nn.Linear(64, num_classes)
-    )
+        if standard:
+            fc1 = nn.Linear(3*32*32, 512)
+        else:
+            fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
 
-  def forward(self, x):
-    '''Forward pass'''
-    x = x.view(x.shape[0], -1)
-    return self.layers(x)
+        self.layers = nn.Sequential(
+            fc1,
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_classes)
+        )
+
+    def forward(self, x):
+        '''Forward pass'''
+        x = x.view(x.shape[0], -1)
+        return self.layers(x)
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        count = 0
+        for t in self.parameters():
+            count += t.numel()
+        return count
+
+
 
 
 class sn_LinearLayer(nn.Module):
@@ -264,15 +294,25 @@ class sn_LinearLayer(nn.Module):
             self.fc1 = nn.Linear(3*32*32, 256)
             self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
-            self.fc2 = nn.Linear(1024, num_classes)
+            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
+            # self.fc2 = nn.Linear(1024, num_classes)
 
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.fc1(x)
-        x = self.fc2(x)
+        # x = self.fc2(x)
         return x
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+
+        count = 0
+        for t in self.parameters():
+            count += t.numel()
+        return count
+
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
@@ -373,4 +413,11 @@ class sn_CNN(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        count = 0
+        for t in self.parameters():
+            count += t.numel()
+        return count
  
