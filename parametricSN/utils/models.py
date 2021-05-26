@@ -194,12 +194,14 @@ class sn_ScatteringBase(nn.Module):
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
+        
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
             J,N,M,second_order, initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
         )
         
         self.filters_plots_before = self.getFilterViz()
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=False)
 
         self.scatteringTrain = False
 
@@ -236,7 +238,10 @@ class sn_ScatteringBase(nn.Module):
         """ apply the scattering transform to the input image """
         if self.scatteringTrain:#update filters if training
             self.updateFilters()
-        return construct_scattering(ip, self.scattering, self.psi)
+        x= construct_scattering(ip, self.scattering, self.psi)
+        x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
+        x = self.bn0(x)
+        return x
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
@@ -307,7 +312,7 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        x = x[:,:, -self.n_coefficients:,:,:]
+        #x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         #x = self.fc2(x)
