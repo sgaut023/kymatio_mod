@@ -28,8 +28,7 @@ RUNS_PER_SEED = 1
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "StepLR"
 AUGMENT = "original-cifar"
-ALTERNATING = 1
-
+ALTERNATING = 0
 
 
 def runCommand(cmd):
