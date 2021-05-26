@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
 
 dataset:
@@ -15,7 +15,7 @@ dataset:
   test_batch_size: 512
   train_sample_num: 100  #total train samples
   test_sample_num: 10000
-  data_root: '/home/gauthiers/kymatio_datasets/'
+  data_root: #'/home/gauthiers/kymatio_datasets/'
   data_folder: 'CIFAR'
   height:  32   # ultrasound image dimension
   width:  32   # ultrasound image dimension
