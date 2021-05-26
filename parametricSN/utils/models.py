@@ -201,8 +201,7 @@ class sn_ScatteringBase(nn.Module):
         )
         
         self.filters_plots_before = self.getFilterViz()
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=False)
-
+        self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=learnable))
         self.scatteringTrain = False
 
     def train(self,mode=True):
@@ -222,6 +221,8 @@ class sn_ScatteringBase(nn.Module):
             yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
             yield {'params': [self.params_filters[1], self.params_filters[2],
                 self.params_filters[3]],'lr': self.lr_scattering}
+            for x in self.bn0.parameters():
+                yield {'params': x}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -239,6 +240,7 @@ class sn_ScatteringBase(nn.Module):
         if self.scatteringTrain:#update filters if training
             self.updateFilters()
         x= construct_scattering(ip, self.scattering, self.psi)
+        x = x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
         x = self.bn0(x)
         return x
