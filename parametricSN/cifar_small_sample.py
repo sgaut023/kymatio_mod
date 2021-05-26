@@ -64,7 +64,8 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
     elif params['optim']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8000, gamma=0.2)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/3), 
+                                                    gamma=0.5)
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
     else:
@@ -234,6 +235,7 @@ def run_train(args):
         J=params['scattering']['J'],
         N=params['dataset']['height'],
         M=params['dataset']['width'],
+        second_order=params['scattering']['second_order'],
         initialization=params['scattering']['init_params'],
         seed=params['general']['seed'],
         learnable=params['scattering']['learnable'],
@@ -357,6 +359,7 @@ def main():
     #general
     subparser.add_argument("--general-cores", "-gc", type=int)
     subparser.add_argument("--general-seed", "-gseed", type=int)
+    subparser.add_argument("--general-save-metric", "-gsm", type=int)
     #mlflow 
     subparser.add_argument("--mlflow-tracking-uri", "-turi", type=str)
     subparser.add_argument("--mlflow-experiment-name", "-en", type=str)
@@ -374,12 +377,13 @@ def main():
     subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
-    subparser.add_argument("--scattering-j", "-sj", type=int)
+    subparser.add_argument("--scattering-J", "-sj", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
     subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)

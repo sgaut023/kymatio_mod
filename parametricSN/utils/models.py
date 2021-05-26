@@ -19,6 +19,7 @@ Classes:
     sn_MLP -- multilayer perceptron fitted for scattering input
 """
 
+from numpy.core.numeric import False_
 import torch 
 import torch.nn as nn
 
@@ -58,7 +59,7 @@ def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
         raise InvalidArchitectureError()
 
-def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order, initilization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns its for modification. Next,
@@ -78,7 +79,11 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     scattering = Scattering2D(J=J, shape=(M, N))
 
     L = scattering.L
-    n_coefficients= 1 + L*J + L*L*J*(J-1)//2
+    if second_order:
+        n_coefficients=  L*L*J*(J-1)//2 #+ 1 + L*J  
+    else: 
+        n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
+    
     K = n_coefficients*3
 
     if use_cuda:
@@ -91,7 +96,8 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     if initilization == "Kymatio":
         params_filters = create_filters_params(J,L,requires_grad,2) #kymatio init
     elif initilization == "Random":
-        params_filters = create_filters_params_random( J*L,requires_grad,2,seed) #random init
+        num_filters = get_total_num_filters(J,L)
+        params_filters = create_filters_params_random( num_filters,requires_grad,2,seed) #random init
     else:
         raise InvalidInitializationException
 
@@ -99,7 +105,7 @@ def create_scatteringExclusive(J,N,M,initilization,seed=0,requires_grad=True,use
     wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
-    psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
+    psi = update_psi(J, psi, wavelets, initilization , device) #update psi to reflect the new conv filters
 
     return scattering, psi, wavelets, params_filters, n_coefficients
 
@@ -174,12 +180,13 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+    def __init__(self,J,N,M,second_order, initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
         """Creates scattering filters and adds them to the nn.parameters if learnable"""
         super(sn_ScatteringBase,self).__init__()
         self.J = J
         self.N = N
         self.M = M
+        self.second_order = second_order
         self.learnable = learnable
         self.use_cuda = use_cuda 
         self.initialization = initialization
@@ -189,7 +196,7 @@ class sn_ScatteringBase(nn.Module):
         self.N_coefficient = self.N/(2**self.J)
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
-            J,N,M,initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
+            J,N,M,second_order, initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
         )
         
         self.filters_plots_before = self.getFilterViz()
@@ -220,7 +227,7 @@ class sn_ScatteringBase(nn.Module):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.wavelets = morlets((self.scattering.M_padded, self.scattering.N_padded), self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, device) 
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, device) 
         else:
             pass
 
@@ -283,16 +290,16 @@ class sn_MLP(nn.Module):
 
 
 
-
 class sn_LinearLayer(nn.Module):
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
+        self.n_coefficients = n_coefficients
         if use_cuda:
             self.cuda()
 
         if standard:
-            self.fc1 = nn.Linear(3*32*32, 256)
-            self.fc2 = nn.Linear(256, num_classes)
+            self.fc1 = nn.Linear(3*32*32,num_classes)
+            #self.fc2 = nn.Linear(256, num_classes)
         else:
             self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
             # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
@@ -300,7 +307,8 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        x = x.view(x.shape[0], -1)
+        x = x[:,:, -self.n_coefficients:,:,:]
+        x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         # x = self.fc2(x)
         return x
@@ -351,10 +359,11 @@ class BasicBlock(nn.Module):
 
 
 class sn_CNN(nn.Module):
-    def __init__(self, in_channels , k=8, n=4, num_classes=10,standard=False):
+    def __init__(self, in_channels , k=8, n=4, num_classes=10, standard=False):
         super(sn_CNN, self).__init__()
         self.inplanes = 16 * k
         self.ichannels = 16 * k
+        self.in_channels = in_channels
         in_channels = in_channels * 3
         if standard:
 
@@ -400,7 +409,8 @@ class sn_CNN(nn.Module):
 
     def forward(self, x):
         if not self.standard:
-            x = x.view(x.size(0), self.K, x.size(3), x.size(4))
+            x = x[:,:, -self.in_channels:,:,:]
+            x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
 
         x = self.init_conv(x)
 

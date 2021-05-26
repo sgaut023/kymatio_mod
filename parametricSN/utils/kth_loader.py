@@ -14,6 +14,8 @@ import torch
 import time
 import os
 
+from torchvision.transforms.transforms import Resize
+
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
 
@@ -31,12 +33,17 @@ def kth_augmentationFactory(augmentation, height, width):
     elif augmentation == 'original-cifar':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
+            transforms.Resize((200,200)),
+            # transforms.RandomAffine(degrees=40,
+            #                     translate=(0.25, 0.5),
+            #                     scale=(1.2, 2.0)), 
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
+            transforms.Resize((200,200)),
             transforms.CenterCrop((height, width))
         ]
     elif augmentation == 'glico':

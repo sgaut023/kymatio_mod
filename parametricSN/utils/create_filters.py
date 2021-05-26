@@ -20,7 +20,7 @@ def construct_scattering(input, scattering, psi):
     if (input.shape[-1] != scattering.N or input.shape[-2] != scattering.M) and not scattering.pre_pad:
         raise RuntimeError('Tensor must be of spatial size (%i,%i).' % (scattering.M, scattering.N))
 
-    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering_padded) and scattering.pre_pad:
+    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering.N_padded) and scattering.pre_pad:
         raise RuntimeError('Padded tensor must be of spatial size (%i,%i).' % (scattering.M_padded, scattering.N_padded))
 
     if not scattering.out_type in ('array', 'list'):
@@ -30,6 +30,7 @@ def construct_scattering(input, scattering, psi):
     signal_shape = input.shape[-2:]
 
     input = input.reshape((-1,) + signal_shape)
+
 
     S = scattering2d(input, scattering.pad, scattering.unpad, scattering.backend, scattering.J,
                         scattering.L, scattering.phi, psi, scattering.max_order, scattering.out_type)
@@ -46,18 +47,38 @@ def construct_scattering(input, scattering, psi):
 
     return S
 
-def update_psi(J, psi, wavelets,  device):
+def update_psi(J, psi, wavelets,  initialization , device):
     if J ==2:
         for i,d in enumerate(psi):
-                    d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
-    else:
+                d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    elif initialization  == 'Kymatio':
         for i,d in enumerate(psi):
-            for res in range(0, J-2):
+            for res in range(0, J-1):
                 if res in d.keys():
-                    d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device)
+                    if res == 0:
+                        d[res]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+                    else:
+                        d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+    
+    else:
+        count = 0
+        for i,d in enumerate(psi):
+            for res in range(0, J-1):
+                if res in d.keys():
+                    if res == 0:
+                        d[res]=wavelets[count].unsqueeze(2).real.contiguous().to(device) 
+                    else:
+                        d[res]= periodize_filter_fft(wavelets[count].real.contiguous().to(device) , res, device).unsqueeze(2)
+                    count +=1
     return psi
 
-def periodize_filter_fft(x, res, device):
+def get_total_num_filters(J, L):
+    num_filters = 0
+    for j in range(2,J+1):
+        num_filters += j *L
+    return num_filters  
+
+def periodize_filter_fft_v1(x, res, device):
     """
         Parameters
         ----------
@@ -65,7 +86,6 @@ def periodize_filter_fft(x, res, device):
             signal to periodize in Fourier
         res :
             resolution to which the signal is cropped.
-
         Returns
         -------
         crop : torch array
@@ -95,13 +115,34 @@ def periodize_filter_fft(x, res, device):
 
     return crop
 
+
+def periodize_filter_fft(x, res, device):
+    """
+        Parameters
+        ----------
+        x : numpy array
+            signal to periodize in Fourier
+        res :
+            resolution to which the signal is cropped.
+
+        Returns
+        -------
+        crop : torch array
+            It returns a crop version of the filter, assuming that
+             the convolutions will be done via compactly supported signals.
+    """
+
+    s1, s2 = x.shape
+    periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
+    return periodized 
+
 def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     """
     a 'random' initialization
     """
     #n_filters = J*L
     np.random.seed(seed)
-    sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
+    #sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
     # or take complex exponential/ cos & sin of uniform between 0 and 2pi).
@@ -109,7 +150,8 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
     orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
-    xis = np.random.uniform(1, 2, n_filters )
+    xis = np.random.uniform(0.5, 1, n_filters )
+    sigmas = np.log(np.random.uniform(np.exp(2), np.exp(5), n_filters ))
     
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
@@ -142,6 +184,8 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
             #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
             R_inv = np.array([[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]], np.float32)
             orientations.append(R_inv)
+
+            
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
     slants = torch.FloatTensor(slants)
@@ -153,6 +197,8 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
             param.requires_grad = True
     return  params
 
+
+
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):
     n_filters, n_dim = wave_vectors.shape
     assert gaussian_bases.shape == (n_filters, n_dim, n_dim)
@@ -163,8 +209,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
         grid = torch.stack(torch.meshgrid(*ranges), 0)
     else:
         shape = grid_or_shape.shape
-        grid = grid
-        _or_shape
+        grid = grid_or_shape
     waves = torch.exp(1.0j * torch.matmul(grid.T, wave_vectors.T).T)
     gaussian_directions = torch.matmul(grid.T, gaussian_bases.T.reshape(n_dim, n_dim * n_filters)).T
     gaussian_directions = gaussian_directions.reshape((n_dim, n_filters) + shape)

@@ -12,7 +12,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["run-train"]
+            "args": ["run-train", "-pf", "parameters_texture.yml"]
+            //"args": ["--data-root", "/NOBACKUP/gauthiers/"]
         }
     ]
 }
