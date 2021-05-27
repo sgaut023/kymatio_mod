@@ -8,17 +8,17 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"KTH second order Samples Kymatio Initialization\""
+mlflow_exp_name = "\"KTH all orders + normalization\""
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.1
-LRO = 0.1
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
