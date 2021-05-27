@@ -51,14 +51,14 @@ def update_psi(J, psi, wavelets,  initialization , device):
     if J ==2:
         for i,d in enumerate(psi):
                 d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
-    elif initialization  == 'Kymatio':
-        for i,d in enumerate(psi):
-            for res in range(0, J-1):
-                if res in d.keys():
-                    if res == 0:
-                        d[res]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
-                    else:
-                        d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+    # elif initialization  == 'Kymatio':
+    #     for i,d in enumerate(psi):
+    #         for res in range(0, J-1):
+    #             if res in d.keys():
+    #                 if res == 0:
+    #                     d[res]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
+    #                 else:
+    #                     d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
     
     else:
         count = 0
@@ -177,13 +177,20 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
 
     for j in range(J):
         for theta in range(L):
-            sigmas.append(0.8 * 2**j)
-            theta = ((int(L-L/2-1)-theta) * np.pi / L)
-            xis.append(3.0 / 4.0 * np.pi /2**j)
-            slants.append(4.0/L)
-            #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
-            R_inv = np.array([[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]], np.float32)
-            orientations.append(R_inv)
+            for res in range(min(j + 1, max(J - 1, 1))):
+                sigma = 0.8 * 2**j
+                sigmas.append(0.8 * 2**j)
+                t = ((int(L-L/2-1)-theta) * np.pi / L)
+                xis.append(3.0 / 4.0 * np.pi /2**j)
+                slant = 4.0/L
+                slants.append(slant)
+
+                #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
+                #R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32)
+                D = np.array([[1, 0], [0, slant * slant]])
+                R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
+                #orientations.append( (np.dot(R, np.dot(D, R_inv)) / ( 2 * sigma * sigma)))
+                orientations.append(R_inv)    
 
             
     xis = torch.FloatTensor(xis)
@@ -196,7 +203,6 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
         for param in params:
             param.requires_grad = True
     return  params
-
 
 
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):

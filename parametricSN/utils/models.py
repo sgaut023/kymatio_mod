@@ -201,7 +201,7 @@ class sn_ScatteringBase(nn.Module):
         )
         
         self.filters_plots_before = self.getFilterViz()
-        self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=learnable))
+        self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
         self.scatteringTrain = False
 
     def train(self,mode=True):
