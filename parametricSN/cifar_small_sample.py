@@ -74,7 +74,6 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
     return scheduler
 
 
-
 def optimizerFactory(hybridModel,params):
     """Factory for different optimizers"""
     if params['optim']['alternating']:
@@ -84,7 +83,6 @@ def optimizerFactory(hybridModel,params):
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
                     epoch=params['model']['epoch'], num_phase=2
                 )
-
 
     if params['optim']['name'] == 'adam':
         return torch.optim.Adam(
@@ -148,7 +146,7 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
             output = model(data)
-            test_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
+            test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
@@ -183,15 +181,17 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
 
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
-        train_loss += F.cross_entropy(output, target, size_average=False).item() # sum up batch loss
+        train_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
     
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
 
     
-    print('Train Epoch: {}\t Average Loss: {:.6f}, Accuracy: {}/{} ({:.2f}%): '.format(
-                epoch, train_loss, correct , len(train_loader.dataset),
-                train_accuracy))
+    print('[Model -- {}] Train Epoch: {:>6} Average Loss: {:.6f}, Accuracy: {}/{} ({:.2f}%)'.format(
+            model, epoch, train_loss, correct, 
+            len(train_loader.dataset),train_accuracy
+            )
+        )
 
     return train_loss, train_accuracy
 
@@ -199,7 +199,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
 def override_params(args,params):
     """override passed params dict with CLI arguments"""
 
-    print("Overriding parameters:")
+    # print("Overriding parameters:")
     for k,v in args.__dict__.items():
         if v != None and k != "param_file":
             tempSplit = k.split('_')
@@ -207,7 +207,7 @@ def override_params(args,params):
             key = "_".join(tempSplit[1:])
             try:
                 params[prefix][key] = v
-                print("    ",k,v)
+                # print("    ",k,v)
             except KeyError:
                 # print("Invalid parameter {} skipped".format(prefix))
                 pass
@@ -246,6 +246,7 @@ def run_train(args):
         learnable=params['scattering']['learnable'],
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
+        device = device,
         use_cuda=use_cuda
     )
 
