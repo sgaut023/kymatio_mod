@@ -45,7 +45,7 @@ optim:
   T_max: 
 
 model:
-  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
   epoch: 5
   step_test: 25

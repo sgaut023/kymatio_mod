@@ -3,7 +3,6 @@
 import os
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
-
-os.system("{} cifar10-1000sample-experiment.py".format(PYTHON))
-os.system("{} cifar10-500sample-experiment.py".format(PYTHON))
-os.system("{} cifar10-100sample-experiment.py".format(PYTHON))
+os.system("{} xray_experiments/100sample_xray_experiment.py".format(PYTHON))
+os.system("{} xray_experiments/500sample_xray_experiment.py".format(PYTHON))
+os.system("{} xray_experiments/1000sample_xray_experiment.py".format(PYTHON))

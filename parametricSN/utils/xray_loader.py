@@ -17,32 +17,23 @@ Classes:
 """
 
 
-
 import torch
-import gc
-import time
 import os
 
-import numpy as np
 
 from parametricSN.utils.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
-from torch.utils.data import Subset
-from numpy.random import RandomState
 from parametricSN.utils.cifar_loader import SmallSampleController
-from parametricSN.utils.cifar_loader import ImpossibleSampleNumException
-from parametricSN.utils.cifar_loader import IncompatibleBatchSizeException
-from parametricSN.utils.cifar_loader import IncompatibleClassNumberException
-from parametricSN.utils.cifar_loader import IndicesNotSetupException
 
 
 def xray_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""
+    downsample = (128,128)
 
     if augmentation == 'autoaugment':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
-            transforms.Resize((224,224)),
+            transforms.Resize(downsample),
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
@@ -51,14 +42,14 @@ def xray_augmentationFactory(augmentation, height, width):
     elif augmentation == 'original-cifar':
         print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
-            transforms.Resize((224,224)),
+            transforms.Resize(downsample),
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
-            transforms.Resize((224,224)),
+            transforms.Resize(downsample),
             transforms.CenterCrop((height, width)),
         ]
 

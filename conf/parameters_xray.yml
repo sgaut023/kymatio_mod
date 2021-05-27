@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'xray-neverwinter'
 
 dataset:
@@ -15,10 +15,10 @@ dataset:
   test_batch_size: 512
   train_sample_num: 1000  #total train samples
   test_sample_num: 400
-  data_root: '/NOBACKUP/gauthiers/'
+  data_root: '/media/benjamin/Samsung_T5/data/' #'/NOBACKUP/gauthiers/'
   data_folder: 'chest_xrays_preprocess'
-  height:  128   # ultrasound image dimension
-  width:  128   # ultrasound image dimension
+  height:  96   # ultrasound image dimension
+  width:  96   # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
 
