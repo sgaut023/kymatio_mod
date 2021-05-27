@@ -274,7 +274,7 @@ def run_train(args):
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
     params['model']['trainable_parameters'] = "to be fixed"
-    params['model']['trainable_parameters'] = '%.2fM' % (hybridModel.countLearnableParams() / 1000000.0)
+    params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
 
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
@@ -407,7 +407,7 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable']:
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable','scattering_second_order']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

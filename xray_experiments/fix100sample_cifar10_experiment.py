@@ -38,7 +38,7 @@ INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
+TRAIN_SAMPLE_NUM = 100
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 
@@ -64,17 +64,37 @@ if __name__ == '__main__':
 
     commands = []
 
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [235992187,306511717,320845575,444050326,497316683,788057338,831046333,863982375,874034868,916884331]:
+    INIT = "Kymatio"
+    LEARNABLE = 1
+    for SEED in [444050326]:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
 
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
-            LEARNABLE, INIT = aa
+        commands.append(command)
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+    INIT = "Random"
+    LEARNABLE = 1
+    for SEED in [497316683,444050326]:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
 
-            commands.append(command)
+        commands.append(command)
+
+    INIT = "Kymatio"
+    LEARNABLE = 0
+    for SEED in []:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+
+        commands.append(command)
+
+    INIT = "Random"
+    LEARNABLE = 0
+    for SEED in []:
+        command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
+        PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+
+        commands.append(command)
     
 
     for cmd in commands:

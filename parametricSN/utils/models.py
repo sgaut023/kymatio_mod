@@ -204,6 +204,8 @@ class sn_ScatteringBase(nn.Module):
         self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
         self.scatteringTrain = False
 
+
+
     def train(self,mode=True):
         super().train(mode=mode)
         self.scatteringTrain = True
@@ -239,6 +241,7 @@ class sn_ScatteringBase(nn.Module):
         """ apply the scattering transform to the input image """
         if self.scatteringTrain:#update filters if training
             self.updateFilters()
+            
         x= construct_scattering(ip, self.scattering, self.psi)
         x =  x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
@@ -251,8 +254,14 @@ class sn_ScatteringBase(nn.Module):
             return 0
 
         count = 0
-        for t in self.params_filters:
-            count += t.numel()
+        for t in self.parameters():
+            if type(t["params"]) == list:
+                for tens in t["params"]: 
+                    count += tens.numel()
+            else:
+                count += t["params"].numel()
+
+        print("Scattering learnable parameters: {}".format(count))
         return count
 
 
@@ -314,7 +323,7 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        #x = x[:,:, -self.n_coefficients:,:,:]
+        # x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         #x = self.fc2(x)
