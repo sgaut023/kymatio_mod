@@ -240,7 +240,7 @@ class sn_ScatteringBase(nn.Module):
         if self.scatteringTrain:#update filters if training
             self.updateFilters()
         x= construct_scattering(ip, self.scattering, self.psi)
-        x = x = x[:,:, -self.n_coefficients:,:,:]
+        x =  x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
         x = self.bn0(x)
         return x
