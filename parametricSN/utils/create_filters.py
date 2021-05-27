@@ -152,6 +152,8 @@ def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
     sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
+    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(3), n_filters))
+
     
     xis = torch.FloatTensor(xis)
     sigmas = torch.FloatTensor(sigmas)
