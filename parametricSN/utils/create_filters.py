@@ -208,9 +208,14 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
 
 
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):
+    """Helper funciton for morlets
+
+    --long description TODO pour laurent
+    """
     n_filters, n_dim = wave_vectors.shape
     assert gaussian_bases.shape == (n_filters, n_dim, n_dim)
     device = wave_vectors.device
+
     if isinstance(grid_or_shape, tuple):
         shape = grid_or_shape
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
@@ -218,6 +223,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
     else:
         shape = grid_or_shape.shape
         grid = grid_or_shape
+
     waves = torch.exp(1.0j * torch.matmul(grid.T, wave_vectors.T).T)
     gaussian_directions = torch.matmul(grid.T, gaussian_bases.T.reshape(n_dim, n_dim * n_filters)).T
     gaussian_directions = gaussian_directions.reshape((n_dim, n_filters) + shape)
@@ -225,6 +231,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
     gaussians = torch.exp(-0.5 * radii ** 2)
     signal_dims = list(range(1, n_dim + 1))
     gabors = gaussians * waves
+
     if morlet:
         gaussian_sums = gaussians.sum(dim=signal_dims, keepdim=True)
         gabor_sums = gabors.sum(dim=signal_dims, keepdim=True).real
@@ -236,9 +243,14 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
         filters = torch.fft.ifftshift(filters, dim=signal_dims)
     if fft:
         filters = torch.fft.fftn(filters, dim=signal_dims)
+
     return filters
 
 def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morlet=True, ifftshift=True, fft=True):
+    """Creates morlet wavelet filters from input
+
+    --long description TODO pour laurent
+    """
     n_filters, ndim = orientations.shape
     if device is None:
         device = orientations.device
@@ -254,6 +266,7 @@ def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morle
     norm_factors = (2 * 3.1415 * sigmas * sigmas / slants).unsqueeze(1)
     norm_factors = norm_factors.expand([n_filters,grid_or_shape[0]]).unsqueeze(2).repeat(1,1,grid_or_shape[1])
     wavelets = wavelets / norm_factors
+
     return wavelets
 
 

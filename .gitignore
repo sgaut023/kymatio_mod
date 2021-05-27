@@ -4,6 +4,7 @@
 #find . -name *.pth -delete
 *.pth
 runs_ben/*
+mlruns/*
 
 
 #custom Shanel

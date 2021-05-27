@@ -20,6 +20,7 @@ sys.path.append(str(Path.cwd()))
 import time
 import argparse
 import torch
+import random
 
 import torch.nn.functional as F
 import kymatio.datasets as scattering_datasets
@@ -231,6 +232,10 @@ def run_train(args):
     train_loader, test_loader, params['general']['seed'] = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
     
 
+    torch.manual_seed(params['general']['seed'])
+    random.seed(params['general']['seed'])
+    np.random.seed(params['general']['seed'])
+
     scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
         J=params['scattering']['J'],
         N=params['dataset']['height'],
@@ -244,6 +249,10 @@ def run_train(args):
         use_cuda=use_cuda
     )
 
+    torch.manual_seed(params['general']['seed'])
+    random.seed(params['general']['seed'])
+    np.random.seed(params['general']['seed'])
+
     top = modelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
         architecture=params['model']['name'],
@@ -251,6 +260,8 @@ def run_train(args):
         width= params['model']['width'], 
         use_cuda=use_cuda
     )
+
+
 
     #use for cnn?
     # model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)

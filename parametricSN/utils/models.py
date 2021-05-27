@@ -59,7 +59,7 @@ def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
         raise InvalidArchitectureError()
 
-def create_scatteringExclusive(J,N,M,second_order, initilization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns its for modification. Next,
@@ -74,8 +74,6 @@ def create_scatteringExclusive(J,N,M,second_order, initilization,seed=0,requires
     learnable -- boolean saying if we want to learn params
     initilization -- the type of init: ['kymatio' or 'random']
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     scattering = Scattering2D(J=J, shape=(M, N))
 
     L = scattering.L
@@ -101,13 +99,16 @@ def create_scatteringExclusive(J,N,M,second_order, initilization,seed=0,requires
     else:
         raise InvalidInitializationException
 
+    shape = (scattering.M_padded, scattering.N_padded,)
+    ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
+    grid = torch.stack(torch.meshgrid(*ranges), 0)
 
-    wavelets  = morlets((scattering.M_padded, scattering.N_padded,), params_filters[0], params_filters[1], 
+    wavelets  = morlets(grid, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
     psi = update_psi(J, psi, wavelets, initilization , device) #update psi to reflect the new conv filters
 
-    return scattering, psi, wavelets, params_filters, n_coefficients
+    return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
 class sn_Identity(nn.Module):
     """Identity nn.Module for identity"""
@@ -180,7 +181,7 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,second_order, initialization,seed,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+    def __init__(self,J,N,M,second_order, initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
         """Creates scattering filters and adds them to the nn.parameters if learnable"""
         super(sn_ScatteringBase,self).__init__()
         self.J = J
@@ -196,9 +197,12 @@ class sn_ScatteringBase(nn.Module):
         self.N_coefficient = self.N/(2**self.J)
         
 
-        self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
-            J,N,M,second_order, initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
+        self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
+            J,N,M,second_order, initilization=self.initialization,seed=seed,
+            requires_grad=learnable,use_cuda=self.use_cuda,device=device
         )
+
+        
         
         self.filters_plots_before = self.getFilterViz()
         self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
@@ -230,7 +234,7 @@ class sn_ScatteringBase(nn.Module):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
         if self.learnable:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.wavelets = morlets((self.scattering.M_padded, self.scattering.N_padded), self.params_filters[0], 
+            self.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
             self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, device) 
         else:
