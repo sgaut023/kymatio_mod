@@ -194,17 +194,16 @@ class sn_ScatteringBase(nn.Module):
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
+        
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients = create_scatteringExclusive(
             J,N,M,second_order, initilization=self.initialization,seed=seed,requires_grad=learnable,use_cuda=self.use_cuda
         )
         
         self.filters_plots_before = self.getFilterViz()
-
+        self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
         self.scatteringTrain = False
 
-        
-        self.bn = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
 
 
     def train(self,mode=True):
@@ -224,8 +223,8 @@ class sn_ScatteringBase(nn.Module):
             yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
             yield {'params': [self.params_filters[1], self.params_filters[2],
                 self.params_filters[3]],'lr': self.lr_scattering}
-            for x in self.bn.parameters():
-                yield {'params':x}
+            for x in self.bn0.parameters():
+                yield {'params': x}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -242,10 +241,12 @@ class sn_ScatteringBase(nn.Module):
         """ apply the scattering transform to the input image """
         if self.scatteringTrain:#update filters if training
             self.updateFilters()
-
-        x = construct_scattering(ip, self.scattering, self.psi)
+            
+        x= construct_scattering(ip, self.scattering, self.psi)
+        x =  x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
-        return self.bn(x)
+        x = self.bn0(x)
+        return x
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
@@ -325,7 +326,7 @@ class sn_LinearLayer(nn.Module):
         # x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
-        # x = self.fc2(x)
+        #x = self.fc2(x)
         return x
 
     def countLearnableParams(self):

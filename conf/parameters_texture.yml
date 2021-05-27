@@ -26,15 +26,15 @@ dataset:
 scattering:
   J: 4
   max_order: 2
-  lr_scattering: 0.1
-  lr_orientation: 0.1
+  lr_scattering: 0.01
+  lr_orientation: 0.01
   init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
-  second_order: True
+  second_order: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.1
+  lr: 0.01
   weight_decay: 0.0005
   momentum: 0.9
   max_lr: 0.05 #highest lr we can
@@ -42,13 +42,13 @@ optim:
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
-  alternating: True
+  alternating: False
   T_max: 
 
 model:
-  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 200
+  epoch: 100
   step_test: 25
   
 

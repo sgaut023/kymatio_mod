@@ -43,7 +43,7 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                     optimizer, params['optim']['scheduler'], 
                     steps_per_epoch, optimizer.epoch_alternate[0], 
                     div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 3
+                    T_max = params['optim']['T_max'], num_step = 2
                 )
 
     if params['optim']['scheduler'] =='OneCycleLR':
@@ -64,7 +64,7 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
     elif params['optim']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/3), 
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
                                                     gamma=0.5)
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
