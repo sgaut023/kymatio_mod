@@ -19,7 +19,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 10
+PROCESS_BATCH_SIZE = 1
 
 mlflow_exp_name = "\"Cifar-10 100 Samples Kymatio Initialization\""
 
@@ -35,10 +35,11 @@ SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
 EPOCHS = 10000
 INIT = "Kymatio"
-RUNS_PER_SEED = 10
+RUNS_PER_SEED = 1
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 500
+TRAIN_BATCH_SIZE = 512
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 
@@ -65,13 +66,12 @@ if __name__ == '__main__':
     commands = []
 
     for x in range(RUNS_PER_SEED):
-
         SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+        for aa in [(1,"Kymatio")]:#,(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
 
             commands.append(command)
     
