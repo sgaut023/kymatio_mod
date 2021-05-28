@@ -31,7 +31,8 @@ def get_filters_visualization(psi, J,L, mode ='fourier'):
                 else:
                     raise NotImplemented(f"Model {params['name']} not implemented")
                 
-                axarr[i,j].imshow(x)
+                a=np.abs(x).max()
+                axarr[i,j].imshow(x, vmin=-a, vmax=a)
                 axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}, S:{scale} ")
                 axarr[i,j].axis('off')
                 count = count +1

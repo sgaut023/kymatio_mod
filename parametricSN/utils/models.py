@@ -104,7 +104,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     # params_filters = [p.to(device) for p in params_filters]
     shape = (scattering.M_padded, scattering.N_padded,)
     ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
-    grid = torch.stack(torch.meshgrid(*ranges, requires_grad=True), 0).to(device)
+    grid = torch.stack(torch.meshgrid(*ranges), 0).to(device)
     params_filters =  [ param.to(device) for param in params_filters]
 
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 

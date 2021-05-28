@@ -146,14 +146,16 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
             output = model(data)
+            output = F.softmax(output, dim=1)
             test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
     accuracy = 100. * correct / len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),accuracy ))
+    print('\n[Model -- {}] Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+        model, test_loss, correct, len(test_loader.dataset),accuracy ))
+    
 
     return accuracy, test_loss
 
@@ -168,6 +170,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         data, target = data.to(device), target.to(device, dtype=torch.long)
         optimizer.zero_grad()
         output = model(data)
+        output = F.softmax(output, dim=1)
         loss = F.cross_entropy(output, target)
         loss.backward()
 
@@ -223,7 +226,6 @@ def run_train(args):
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    print('device', device)
 
     if params['dataset']['data_root'] != None:
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
