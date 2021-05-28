@@ -48,28 +48,26 @@ def construct_scattering(input, scattering, psi):
     return S
 
 def update_psi(J, psi, wavelets,  initialization , device):
-    if J ==2:
-        for i,d in enumerate(psi):
-                d[0]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
-    # elif initialization  == 'Kymatio':
-    #     for i,d in enumerate(psi):
-    #         for res in range(0, J-1):
-    #             if res in d.keys():
-    #                 if res == 0:
-    #                     d[res]=wavelets[i].unsqueeze(2).real.contiguous().to(device) 
-    #                 else:
-    #                     d[res]= periodize_filter_fft(wavelets[i].real.contiguous().to(device) , res, device).unsqueeze(2)
+    wavelets = wavelets.real.contiguous().unsqueeze(3)
     
+    if J == 2:
+        for i,d in enumerate(psi):
+                d[0] = wavelets[i]
+
     else:
         count = 0
         for i,d in enumerate(psi):
             for res in range(0, J-1):
-                if res in d.keys():
+                try:
+                    d[res]
                     if res == 0:
-                        d[res]=wavelets[count].unsqueeze(2).real.contiguous().to(device) 
+                        d[res] = wavelets[count]
                     else:
-                        d[res]= periodize_filter_fft(wavelets[count].real.contiguous().to(device) , res, device).unsqueeze(2)
+                        d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
                     count +=1
+                except KeyError:
+                    pass
+                
     return psi
 
 def get_total_num_filters(J, L):
@@ -115,7 +113,6 @@ def periodize_filter_fft_v1(x, res, device):
 
     return crop
 
-
 def periodize_filter_fft(x, res, device):
     """
         Parameters
@@ -136,37 +133,36 @@ def periodize_filter_fft(x, res, device):
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
-def create_filters_params_random(n_filters , is_scattering_dif, ndim, seed=0):
+def create_filters_params_random(n_filters, is_scattering_dif, device):
     """
     a 'random' initialization
     """
     #n_filters = J*L
-    np.random.seed(seed)
     #sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
     # or take complex exponential/ cos & sin of uniform between 0 and 2pi).
-    orientations = np.random.normal(0,1,(n_filters,ndim)) 
+    orientations = np.random.normal(0,1,(n_filters,2)) 
     norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
     orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
+    # sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters))
     sigmas = np.log(np.random.uniform(np.exp(1), np.exp(3), n_filters))
-
     
-    xis = torch.FloatTensor(xis)
-    sigmas = torch.FloatTensor(sigmas)
-    slants = torch.FloatTensor(slants)
-    orientations = torch.FloatTensor(orientations) 
+    xis = torch.tensor(xis, dtype=torch.float32, device=device)
+    sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
+    slants = torch.tensor(slants, dtype=torch.float32, device=device)
+    orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
     params = [orientations, xis, sigmas, slants]
 
     if is_scattering_dif:
         for param in params:
             param.requires_grad = True
+
     return  params
 
-def create_filters_params(J, L, is_scattering_dif, ndim =2):
+def create_filters_params(J, L, is_scattering_dif, device):
     '''
         Create reusable filters parameters: orientations, xis, sigmas, sigmas
 
@@ -195,10 +191,10 @@ def create_filters_params(J, L, is_scattering_dif, ndim =2):
                 orientations.append(R_inv)    
 
             
-    xis = torch.FloatTensor(xis)
-    sigmas = torch.FloatTensor(sigmas)
-    slants = torch.FloatTensor(slants)
-    orientations = torch.FloatTensor(orientations)   
+    xis = torch.tensor(xis, dtype=torch.float32, device=device)
+    sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
+    slants = torch.tensor(slants, dtype=torch.float32, device=device)
+    orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
 
     params = [orientations[:, 0], xis, sigmas, slants]
     if is_scattering_dif:
@@ -221,7 +217,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
     else:
-        shape = (grid_or_shape.shape[1], grid_or_shape.shape[1])
+        shape = grid_or_shape.shape[1:]
         grid = grid_or_shape
 
     waves = torch.exp(1.0j * torch.matmul(grid.T, wave_vectors.T).T)
@@ -251,21 +247,29 @@ def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morle
 
     --long description TODO pour laurent
     """
-    n_filters, ndim = orientations.shape
     if device is None:
         device = orientations.device
-        print('if device is none')
+
+    n_filters, ndim = orientations.shape
     orientations = orientations / (torch.norm(orientations, dim=1, keepdim=True) + 1e-19)
     wave_vectors = orientations * xis[:, np.newaxis]
+
     _, _, gauss_directions = torch.linalg.svd(orientations[:, np.newaxis])
     gauss_directions = gauss_directions / sigmas[:, np.newaxis, np.newaxis]
-    indicator = torch.arange(ndim, device=device) < 1
+    indicator = torch.arange(ndim,device=device) < 1
     slant_modifications = (1.0 * indicator + slants[:, np.newaxis] * ~indicator)
     gauss_directions = gauss_directions * slant_modifications[:, :, np.newaxis]
+
     wavelets = raw_morlets(grid_or_shape, wave_vectors, gauss_directions, morlet=morlet, 
                           ifftshift=ifftshift, fft=fft)
+
     norm_factors = (2 * 3.1415 * sigmas * sigmas / slants).unsqueeze(1)
-    norm_factors = norm_factors.expand([n_filters,grid_or_shape.shape[-2]]).unsqueeze(2).repeat(1,1,grid_or_shape.shape[-1])
+
+    if type(grid_or_shape) == tuple:
+        norm_factors = norm_factors.expand([n_filters,grid_or_shape[0]]).unsqueeze(2).repeat(1,1,grid_or_shape[1])
+    else:
+        norm_factors = norm_factors.expand([n_filters,grid_or_shape.shape[1]]).unsqueeze(2).repeat(1,1,grid_or_shape.shape[2])
+
     wavelets = wavelets / norm_factors
 
     return wavelets

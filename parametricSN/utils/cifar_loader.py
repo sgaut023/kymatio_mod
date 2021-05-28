@@ -51,7 +51,7 @@ def cifar_augmentationFactory(augmentation):
     """Factory for different augmentation choices"""
 
     if augmentation == 'autoaugment':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+        # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
@@ -59,13 +59,13 @@ def cifar_augmentationFactory(augmentation):
             Cutout()
         ]
     elif augmentation == 'original-cifar':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+        # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
-        print("\n[get_dataset(params, use_cuda)] No data augmentation")
+        # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = []
 
     elif augmentation == 'glico':
@@ -314,8 +314,8 @@ class SmallSampleController:
         seed = self.sample(workers=workers,valMultiplier=valMultiplier,seed=seed)
         self.load(device)
         trainDL,valDL = self.getDatasets()
-        print("Generated new permutation of the dataset with seed:{}, train sample num: {}, test sample num: {}".format(
-                seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
+        # print("Generated new permutation of the dataset with seed:{}, train sample num: {}, test sample num: {}".format(
+        #         seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
 
         return trainDL,valDL,seed
 

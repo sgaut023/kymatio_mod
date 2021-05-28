@@ -21,6 +21,8 @@ Classes:
 
 from numpy.core.numeric import False_
 import torch 
+import time
+
 import torch.nn as nn
 
 from kymatio import Scattering2D
@@ -74,7 +76,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     learnable -- boolean saying if we want to learn params
     initilization -- the type of init: ['kymatio' or 'random']
     """
-    scattering = Scattering2D(J=J, shape=(M, N))
+    scattering = Scattering2D(J=J, shape=(M, N), frontend='torch')
 
     L = scattering.L
     if second_order:
@@ -92,14 +94,14 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     params_filters = []
 
     if initilization == "Kymatio":
-        params_filters = create_filters_params(J,L,requires_grad,2) #kymatio init
+        params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
     elif initilization == "Random":
         num_filters = get_total_num_filters(J,L)
-        params_filters = create_filters_params_random( num_filters,requires_grad,2,seed) #random init
+        params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
     else:
         raise InvalidInitializationException
 
-
+    # params_filters = [p.to(device) for p in params_filters]
     shape = (scattering.M_padded, scattering.N_padded,)
     ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
     grid = torch.stack(torch.meshgrid(*ranges, requires_grad=True), 0).to(device)
@@ -126,6 +128,10 @@ class sn_Identity(nn.Module):
 
 class sn_HybridModel(nn.Module):
     """An nn.Module incorporating scattering an a learnable network"""
+
+    def __str__(self):
+        return str(self.scatteringBase)
+
     def __init__(self,scatteringBase,top,use_cuda=True):
         super(sn_HybridModel,self).__init__()
         if use_cuda:
@@ -157,6 +163,15 @@ class sn_HybridModel(nn.Module):
         return self.scatteringBase.countLearnableParams() \
             + self.top.countLearnableParams()
 
+    def showParams(self):
+        """prints shape of all parameters and is_leaf"""
+        for x in self.parameters():
+            if type(x['params']) == list:
+                for tens in x['params']:
+                    print(tens.shape,tens.is_leaf)
+            else:
+                print(x['params'].shape,x['params'].is_leaf)
+
     
 
 
@@ -173,6 +188,11 @@ class sn_ScatteringBase(nn.Module):
     seed -- the random seed used to initialize the parameters
 
     """
+
+    def __str__(self):
+        tempL = " L" if self.learnable else "NL"
+        tempI = "K" if self.initialization == "Kymatio" else "R"
+        return f"{tempI} {tempL}"
 
     def getFilterViz(self):
         """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
@@ -192,25 +212,21 @@ class sn_ScatteringBase(nn.Module):
         self.second_order = second_order
         self.learnable = learnable
         self.use_cuda = use_cuda 
+        self.device = device
         self.initialization = initialization
         self.lr_scattering = lr_scattering
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
-        
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
             J,N,M,second_order, initilization=self.initialization,seed=seed,
-            requires_grad=learnable,use_cuda=self.use_cuda,device=device
+            requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
-        
-        
         self.filters_plots_before = self.getFilterViz()
         self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
         self.scatteringTrain = False
-
-
 
     def train(self,mode=True):
         super().train(mode=mode)
@@ -221,7 +237,6 @@ class sn_ScatteringBase(nn.Module):
         if self.scatteringTrain:
             self.updateFilters()
         self.scatteringTrain = False
-
 
     def parameters(self):
         """ override parameters to include learning rates """
@@ -235,23 +250,19 @@ class sn_ScatteringBase(nn.Module):
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
         if self.learnable:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            # self.wavelets = morlets((self.scattering.M_padded, self.scattering.N_padded)), self.params_filters[0], 
-            #                         self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
-            self.wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, device) 
+            self.wavelets = morlets(self.grid, self.params_filters[0], self.params_filters[1], 
+                                    self.params_filters[2], self.params_filters[3], device=self.device)
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, self.device) 
         else:
             pass
 
-
     def forward(self, ip):
         """ apply the scattering transform to the input image """
-        if self.scatteringTrain:#update filters if training
+        if self.scatteringTrain: #update filters if training
             self.updateFilters()
             
-        x= construct_scattering(ip, self.scattering, self.psi)
-        x =  x[:,:, -self.n_coefficients:,:,:]
+        x = construct_scattering(ip, self.scattering, self.psi)
+        x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
         x = self.bn0(x)
         return x

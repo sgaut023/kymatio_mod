@@ -23,7 +23,7 @@ def kth_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""
 
     if augmentation == 'autoaugment':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
+        # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
@@ -31,7 +31,7 @@ def kth_augmentationFactory(augmentation, height, width):
             Cutout()
         ]
     elif augmentation == 'original-cifar':
-        print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
+        # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.Resize((200,200)),
             # transforms.RandomAffine(degrees=40,
@@ -41,7 +41,7 @@ def kth_augmentationFactory(augmentation, height, width):
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
-        print("\n[get_dataset(params, use_cuda)] No data augmentation")
+        # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
             transforms.Resize((200,200)),
             transforms.CenterCrop((height, width))
