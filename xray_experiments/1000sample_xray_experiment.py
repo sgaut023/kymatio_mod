@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Xray 1000 Samples\""
+mlflow_exp_name = "\"Xray 1000 Samples batch norm affine\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
         for process in batch:
             process.start()
-            time.sleep(5)
+            time.sleep(10)
 
         for process in batch:
             process.join()
