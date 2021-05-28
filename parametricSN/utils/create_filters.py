@@ -221,7 +221,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
     else:
-        shape = grid_or_shape.shape
+        shape = (grid_or_shape.shape[1], grid_or_shape.shape[1])
         grid = grid_or_shape
 
     waves = torch.exp(1.0j * torch.matmul(grid.T, wave_vectors.T).T)
@@ -254,17 +254,18 @@ def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morle
     n_filters, ndim = orientations.shape
     if device is None:
         device = orientations.device
+        print('if device is none')
     orientations = orientations / (torch.norm(orientations, dim=1, keepdim=True) + 1e-19)
     wave_vectors = orientations * xis[:, np.newaxis]
     _, _, gauss_directions = torch.linalg.svd(orientations[:, np.newaxis])
     gauss_directions = gauss_directions / sigmas[:, np.newaxis, np.newaxis]
-    indicator = torch.arange(ndim) < 1
-    slant_modifications = (1.0 * indicator + slants[:, np.newaxis] * ~indicator).to(gauss_directions.device)
+    indicator = torch.arange(ndim, device=device) < 1
+    slant_modifications = (1.0 * indicator + slants[:, np.newaxis] * ~indicator)
     gauss_directions = gauss_directions * slant_modifications[:, :, np.newaxis]
     wavelets = raw_morlets(grid_or_shape, wave_vectors, gauss_directions, morlet=morlet, 
                           ifftshift=ifftshift, fft=fft)
     norm_factors = (2 * 3.1415 * sigmas * sigmas / slants).unsqueeze(1)
-    norm_factors = norm_factors.expand([n_filters,grid_or_shape[0]]).unsqueeze(2).repeat(1,1,grid_or_shape[1])
+    norm_factors = norm_factors.expand([n_filters,grid_or_shape.shape[-2]]).unsqueeze(2).repeat(1,1,grid_or_shape.shape[-1])
     wavelets = wavelets / norm_factors
 
     return wavelets

@@ -99,11 +99,13 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     else:
         raise InvalidInitializationException
 
+
     shape = (scattering.M_padded, scattering.N_padded,)
     ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
-    grid = torch.stack(torch.meshgrid(*ranges), 0)
+    grid = torch.stack(torch.meshgrid(*ranges, requires_grad=True), 0).to(device)
+    params_filters =  [ param.to(device) for param in params_filters]
 
-    wavelets  = morlets(grid, params_filters[0], params_filters[1], 
+    wavelets  = morlets(shape, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
     psi = update_psi(J, psi, wavelets, initilization , device) #update psi to reflect the new conv filters
@@ -234,6 +236,8 @@ class sn_ScatteringBase(nn.Module):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
         if self.learnable:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            # self.wavelets = morlets((self.scattering.M_padded, self.scattering.N_padded)), self.params_filters[0], 
+            #                         self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
             self.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], self.params_filters[3], device=device)
             self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, device) 

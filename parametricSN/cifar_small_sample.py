@@ -223,6 +223,7 @@ def run_train(args):
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+    print('device', device)
 
     if params['dataset']['data_root'] != None:
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
@@ -246,7 +247,9 @@ def run_train(args):
         learnable=params['scattering']['learnable'],
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
-        use_cuda=use_cuda
+        use_cuda=use_cuda,
+        device= device
+
     )
 
     torch.manual_seed(params['general']['seed'])
