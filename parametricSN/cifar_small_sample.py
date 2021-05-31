@@ -82,7 +82,7 @@ def optimizerFactory(hybridModel,params):
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
-                    epoch=params['model']['epoch'], num_phase=2
+                    epoch=params['model']['epoch'], num_phase=params['optim']['phase_num']
                 )
 
     if params['optim']['name'] == 'adam':

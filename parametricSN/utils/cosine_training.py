@@ -15,7 +15,7 @@ def test(model, device, test_loader):
             #test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
             target_one_hot = F.one_hot(target)
             cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
-            test_loss = (1- cos(target_one_hot, output)).mean().item()
+            test_loss += (1- cos(target_one_hot, output)).mean().item()
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
