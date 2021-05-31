@@ -49,5 +49,6 @@ model:
   width: 8   # width factor for resnet
   epoch: 5
   step_test: 25
+  loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   
 

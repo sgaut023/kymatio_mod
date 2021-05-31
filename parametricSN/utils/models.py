@@ -291,6 +291,7 @@ class sn_MLP(nn.Module):
     '''
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_MLP,self).__init__()
+        selfnum_classes =num_classes
         if use_cuda:
             self.cuda()
 
@@ -329,6 +330,7 @@ class sn_LinearLayer(nn.Module):
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
+        self.num_classes = num_classes
         if use_cuda:
             self.cuda()
 
@@ -399,6 +401,7 @@ class sn_CNN(nn.Module):
         self.inplanes = 16 * k
         self.ichannels = 16 * k
         self.in_channels = in_channels
+        self.num_classes =num_classes
         in_channels = in_channels * 3
         if standard:
 
