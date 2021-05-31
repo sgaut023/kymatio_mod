@@ -37,7 +37,7 @@ optim:
   lr: 0.01
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.05 #highest lr we can
+  max_lr: 0.01 #highest lr we can
   scheduler: 'StepLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
@@ -48,8 +48,9 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 100
+  epoch: 5
   step_test: 25
+  loss: 'cosine' # choices=['cross-entropy', 'cosine']
   
 
 

@@ -33,6 +33,7 @@ from parametricSN.utils.log_mlflow import log_mlflow
 from parametricSN.utils.cifar_loader import cifar_getDataloaders
 from parametricSN.utils.kth_loader import kth_getDataloaders
 from parametricSN.utils.xray_loader import xray_getDataloaders
+from parametricSN.utils import cosine_training, cross_entropy_training
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
@@ -81,7 +82,7 @@ def optimizerFactory(hybridModel,params):
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
-                    epoch=params['model']['epoch'], num_phase=2
+                    epoch=params['model']['epoch'], num_phase=params['optim']['phase_num']
                 )
 
     if params['optim']['name'] == 'adam':
@@ -136,65 +137,6 @@ def datasetFactory(params,dataDir,use_cuda):
 
 
 
-def test(model, device, test_loader):
-    """test method"""
-
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device, dtype=torch.long)  
-            output = model(data)
-            test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
-            pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),accuracy ))
-
-    return accuracy, test_loss
-
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True):
-    """training method"""
-
-    model.train()
-    correct = 0
-    train_loss = 0
-
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device, dtype=torch.long)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.cross_entropy(output, target)
-        loss.backward()
-
-        if alternating:
-            optimizer.step(epoch)
-        else:
-            optimizer.step()
-
-        if scheduler != None:
-            scheduler.step()
-
-        pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
-        correct += pred.eq(target.view_as(pred)).sum().item()
-        train_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
-    
-    train_loss /= len(train_loader.dataset)
-    train_accuracy = 100. * correct / len(train_loader.dataset)
-
-    
-    print('[Model -- {}] Train Epoch: {:>6} Average Loss: {:.6f}, Accuracy: {}/{} ({:.2f}%)'.format(
-            model, epoch, train_loss, correct, 
-            len(train_loader.dataset),train_accuracy
-            )
-        )
-
-    return train_loss, train_accuracy
-
 
 def override_params(args,params):
     """override passed params dict with CLI arguments"""
@@ -213,6 +155,20 @@ def override_params(args,params):
                 pass
 
     return params
+
+def get_train_test_functions(loss_name):
+            
+    if loss_name == 'cross-entropy':
+        train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
+        test = lambda *args : cross_entropy_training.test(*args)
+    
+    elif loss_name == 'cosine':
+        train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
+        test = lambda *args : cosine_training.test(*args)
+    else:
+        raise NotImplemented(f"Loss {loss_name} not implemented")
+    
+    return train, test
 
 
 def run_train(args):
@@ -310,6 +266,7 @@ def run_train(args):
                 lrs_orientation.append(optimizer.param_groups[1]['lr'])
                 lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
+        train, test = get_train_test_functions(params['model']['loss'])
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, epoch+1, alternating=params['optim']['alternating'])
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
@@ -322,10 +279,8 @@ def run_train(args):
 
 
 
+
     #MLFLOW logging below
-
-
-
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
@@ -359,7 +314,6 @@ def run_train(args):
         start_time, filters_plots_before, filters_plots_after, 
         [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr
     )
-
 
 
 def main():
@@ -413,6 +367,7 @@ def main():
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
+    subparser.add_argument("--model-loss", "-loss", type=str, choices=['cosine', 'cross-entropy'])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
