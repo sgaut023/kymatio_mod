@@ -103,9 +103,10 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     # params_filters = [p.to(device) for p in params_filters]
     shape = (scattering.M_padded, scattering.N_padded,)
     ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
-    grid = torch.stack(torch.meshgrid(*ranges), 0)
+    grid = torch.stack(torch.meshgrid(*ranges), 0).to(device)
+    params_filters =  [ param.to(device) for param in params_filters]
 
-    wavelets  = morlets(grid, params_filters[0], params_filters[1], 
+    wavelets  = morlets(shape, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
     psi = update_psi(J, psi, wavelets, initilization , device) #update psi to reflect the new conv filters
@@ -285,6 +286,7 @@ class sn_MLP(nn.Module):
     '''
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_MLP,self).__init__()
+        selfnum_classes =num_classes
         if use_cuda:
             self.cuda()
 
@@ -324,6 +326,7 @@ class sn_LinearLayer(nn.Module):
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
+        self.num_classes = num_classes
         if use_cuda:
             self.cuda()
 
@@ -399,6 +402,7 @@ class sn_CNN(nn.Module):
         self.inplanes = 16 * k
         self.ichannels = 16 * k
         self.in_channels = in_channels
+        self.num_classes =num_classes
         in_channels = in_channels * 3
         if standard:
 
