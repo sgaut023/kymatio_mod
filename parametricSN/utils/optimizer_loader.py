@@ -84,11 +84,15 @@ class Optimizer():
 
             if self.phase % 2 == 0:
                 print("Switching to Model parameters")
+                
                 params = self.model.parameters()
                 self.define_optimizer(params)
                 self.scheduler.define_scheduler(epoch=int(nextPhaseEpochs),optimizer=self)
+                self.scatteringModel.eval()
+                self.model.train()
             else: 
                 print("Switching to Scattering parameters")
+
                 params = self.scatteringModel.parameters()
                 self.define_optimizer(params)
                 self.scheduler.define_scheduler(
@@ -98,14 +102,15 @@ class Optimizer():
                     s_three_phase=self.scattering_three_phase,
                     s_div_factor=self.scattering_div_factor
                 )
-
+                self.scatteringModel.train()
+                self.model.eval()
             
             self.scheduler.skipStep = True #skip the step to make this compatible with scheduler trianing loop behaviours
 
 class Scheduler():
     def __init__(self, optimizer, scheduler_name, steps_per_epoch, epochs, div_factor= 25, 
                  max_lr =0.05, T_max = None, num_step = 3, three_phase=False):
-                 
+
         self.optimizer = optimizer
         self.scheduler_name = scheduler_name
         self.max_lr = max_lr
