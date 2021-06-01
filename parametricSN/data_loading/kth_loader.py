@@ -16,7 +16,7 @@ import os
 
 from torchvision.transforms.transforms import Resize
 
-from parametricSN.utils.auto_augment import AutoAugment, Cutout
+from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
 
 def kth_augmentationFactory(augmentation, height, width):

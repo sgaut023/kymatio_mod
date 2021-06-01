@@ -27,12 +27,12 @@ import kymatio.datasets as scattering_datasets
 import numpy as np
 
 from numpy.random import RandomState
-from parametricSN.utils.context import get_context
-from parametricSN.utils.log_mlflow import visualize_loss, visualize_learning_rates, log_mlflow
-from parametricSN.utils.log_mlflow import log_mlflow
-from parametricSN.utils.cifar_loader import cifar_getDataloaders
-from parametricSN.utils.kth_loader import kth_getDataloaders
-from parametricSN.utils.xray_loader import xray_getDataloaders
+from parametricSN.utils.helpers import get_context
+from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow
+from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
+from parametricSN.data_loading.kth_loader import kth_getDataloaders
+from parametricSN.data_loading.xray_loader import xray_getDataloaders
+
 from parametricSN.utils import cosine_training, cross_entropy_training
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
@@ -43,9 +43,9 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
     if params['optim']['alternating']: 
         return Scheduler(
                     optimizer, params['optim']['scheduler'], 
-                    steps_per_epoch, optimizer.epoch_alternate[0], 
+                    steps_per_epoch, epochs=optimizer.epoch_alternate[0], 
                     div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 2
+                    T_max = params['optim']['T_max'], num_step = 2, three_phase=params['optim']['three_phase']
                 )
 
     if params['optim']['scheduler'] =='OneCycleLR':
@@ -82,7 +82,9 @@ def optimizerFactory(hybridModel,params):
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
                     optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
                     weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
-                    epoch=params['model']['epoch'], num_phase=params['optim']['phase_num']
+                    epoch=params['model']['epoch'], num_phase=params['optim']['phase_num'],
+                    phaseEnds=params['optim']['phase_ends'],scattering_max_lr=params['scattering']['max_lr'],
+                    scattering_div_factor=params['scattering']['div_factor'],scattering_three_phase = params['scattering']['three_phase']
                 )
 
     if params['optim']['name'] == 'adam':
@@ -134,7 +136,6 @@ def datasetFactory(params,dataDir,use_cuda):
                 )
     else:
         raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
-
 
 
 
@@ -241,9 +242,7 @@ def run_train(args):
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
-    params['model']['trainable_parameters'] = "to be fixed"
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
-
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
     for epoch in  range(0, params['model']['epoch']):
@@ -350,18 +349,23 @@ def main():
     subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
+    subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
+    subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
     subparser.add_argument("--optim-weight-decay", "-owd", type=float)
     subparser.add_argument("--optim-momentum", "-omo", type=float)
     subparser.add_argument("--optim-max-lr", "-omaxlr", type=float)
-    subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])
     subparser.add_argument("--optim-div-factor", "-odivf", type=int)
     subparser.add_argument("--optim-three-phase", "-otp", type=int, choices=[0,1])
+    subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])    
     subparser.add_argument("--optim-alternating", "-oalt", type=int, choices=[0,1])
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
+    subparser.add_argument("--optim-phase-ends", "-ope", nargs="+", default=None)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
+
     #model 
     subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer'])
     subparser.add_argument("--model-width", "-mw", type=int)
@@ -374,7 +378,8 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable','scattering_second_order']:
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
+                'scattering_second_order','scattering_three_phase']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

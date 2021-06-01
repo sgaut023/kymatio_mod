@@ -16,14 +16,13 @@ Classes:
     SmallSampleController -- class used to sample a small portion from an existing dataset
 """
 
-
 import torch
 import os
 
-
-from parametricSN.utils.auto_augment import AutoAugment, Cutout
+from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
+from parametricSN.data_loading.cifar_loader import SmallSampleController
 from torchvision import datasets, transforms
-from parametricSN.utils.cifar_loader import SmallSampleController
+
 
 
 def xray_augmentationFactory(augmentation, height, width):
