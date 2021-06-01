@@ -26,19 +26,19 @@ dataset:
 scattering:
   J: 4
   max_order: 2
-  lr_scattering: 0.01
-  lr_orientation: 0.01
+  lr_scattering: 0.1
+  lr_orientation: 0.1
   init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
   second_order: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.01
+  lr: 0.1
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.01 #highest lr we can
-  scheduler: 'StepLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  max_lr: 0.05 #highest lr we can
+  scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
@@ -48,7 +48,7 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 5
+  epoch: 20
   step_test: 25
   loss: 'cosine' # choices=['cross-entropy', 'cosine']
   
