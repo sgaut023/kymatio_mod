@@ -21,7 +21,6 @@ Classes:
 
 from numpy.core.numeric import False_
 import torch 
-import time
 
 import torch.nn as nn
 
@@ -224,7 +223,6 @@ class sn_ScatteringBase(nn.Module):
         )
 
         self.filters_plots_before = self.getFilterViz()
-        self.bn0 = nn.Sequential(nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True))
         self.scatteringTrain = False
 
     def train(self,mode=True):
@@ -243,8 +241,6 @@ class sn_ScatteringBase(nn.Module):
             yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
             yield {'params': [self.params_filters[1], self.params_filters[2],
                 self.params_filters[3]],'lr': self.lr_scattering}
-            for x in self.bn0.parameters():
-                yield {'params': x}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -263,7 +259,6 @@ class sn_ScatteringBase(nn.Module):
         x = construct_scattering(ip, self.scattering, self.psi)
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
-        x = self.bn0(x)
         return x
 
     def countLearnableParams(self):
@@ -299,6 +294,7 @@ class sn_MLP(nn.Module):
             fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
 
         self.layers = nn.Sequential(
+            nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True),
             fc1,
             nn.ReLU(),
             nn.Linear(512, 256),
@@ -339,12 +335,14 @@ class sn_LinearLayer(nn.Module):
             # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
             # self.fc2 = nn.Linear(1024, num_classes)
 
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
+
 
     def forward(self, x):
         # x = x[:,:, -self.n_coefficients:,:,:]
+        x = self.bn0(x)
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
-        #x = self.fc2(x)
         return x
 
     def countLearnableParams(self):
@@ -393,8 +391,11 @@ class BasicBlock(nn.Module):
 
 
 class sn_CNN(nn.Module):
-    def __init__(self, in_channels , k=8, n=4, num_classes=10, standard=False):
+    def __init__(self, in_channels, k=8, n=4, num_classes=10, standard=False):
         super(sn_CNN, self).__init__()
+
+        self.bn0 = nn.BatchNorm2d(in_channels*3,eps=1e-5,affine=True)
+
         self.inplanes = 16 * k
         self.ichannels = 16 * k
         self.in_channels = in_channels
@@ -443,9 +444,12 @@ class sn_CNN(nn.Module):
 
     def forward(self, x):
         if not self.standard:
-            x = x[:,:, -self.in_channels:,:,:]
-            x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
+            pass
+            # x = x[:,:, -self.in_channels:,:,:]\
+            # print(x.shape)
+            # x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
 
+        x = self.bn0(x)
         x = self.init_conv(x)
 
         if self.standard:

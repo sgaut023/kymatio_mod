@@ -2,6 +2,9 @@ import torch
 import numpy as np
 import math
 
+class InvalidPhaseEndException(Exception):
+    pass
+
 class Optimizer():
     '''
         Class that is responsible to manage the optimization of the scattering network
@@ -13,7 +16,12 @@ class Optimizer():
         When the pahse number is odd, we are training the scattering params.
     '''
     def __init__(self, model, scatteringModel, optimizer_name , lr, 
-                 weight_decay, momentum, epoch, num_phase=2):
+                 weight_decay, momentum, epoch, num_phase=2, phaseEnds=[],
+                 scattering_div_factor=None,scattering_three_phase=None,scattering_max_lr=None):
+        
+        self.scattering_div_factor = scattering_div_factor
+        self.scattering_three_phase = scattering_three_phase
+        self.scattering_max_lr = scattering_max_lr
 
         self.model = model
         self.scatteringModel = scatteringModel
@@ -21,12 +29,18 @@ class Optimizer():
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
-        epoch_phase = math.ceil(epoch/num_phase)  # the number of ecpohs per phase
+        self.totalEpoch = epoch
 
         # the number of epoch after which we alternate the training between the model and params scattering
         if self.scatteringModel.learnable:
-            self.epoch_alternate = np.arange(0, epoch, epoch_phase)[0:num_phase]
-            self.epoch_alternate = np.delete(self.epoch_alternate,0)
+            if phaseEnds == []:
+                epoch_phase = math.ceil(epoch/num_phase)
+                self.epoch_alternate = np.arange(0, epoch, epoch_phase)[0:num_phase]
+                self.epoch_alternate = np.delete(self.epoch_alternate,0)
+            else:
+                if int(phaseEnds[-1]) > epoch:
+                    raise InvalidPhaseEndException
+                self.epoch_alternate = np.array([int(x) for x in phaseEnds])
         else:
             self.epoch_alternate = np.array([epoch])
 
@@ -34,6 +48,7 @@ class Optimizer():
         self.define_optimizer(self.model.parameters())
         self.param_groups = self.optimizer.param_groups
         self.scheduler = None
+
 
     def define_optimizer(self, parameters):
         if  self.optimizer_name == 'adam':
@@ -61,18 +76,36 @@ class Optimizer():
         if epoch in self.epoch_alternate and self.scatteringModel.learnable:
             self.phase +=1 
             self.epoch_alternate = np.delete(self.epoch_alternate, np.where(self.epoch_alternate==epoch))
-            if self.phase %2 ==0:
-                params = self.model.parameters()
-            else: 
-                params = self.scatteringModel.parameters()
 
-            self.define_optimizer(params)
-            self.scheduler.define_scheduler()
+            if len(self.epoch_alternate) > 0:
+                nextPhaseEpochs = self.epoch_alternate[0] - epoch
+            else:
+                nextPhaseEpochs = self.totalEpoch - epoch
+
+            if self.phase % 2 == 0:
+                print("Switching to Model parameters")
+                params = self.model.parameters()
+                self.define_optimizer(params)
+                self.scheduler.define_scheduler(epoch=int(nextPhaseEpochs),optimizer=self)
+            else: 
+                print("Switching to Scattering parameters")
+                params = self.scatteringModel.parameters()
+                self.define_optimizer(params)
+                self.scheduler.define_scheduler(
+                    epoch=int(nextPhaseEpochs),
+                    optimizer=self,
+                    s_max_lr=self.scattering_max_lr,
+                    s_three_phase=self.scattering_three_phase,
+                    s_div_factor=self.scattering_div_factor
+                )
+
+            
             self.scheduler.skipStep = True #skip the step to make this compatible with scheduler trianing loop behaviours
 
 class Scheduler():
     def __init__(self, optimizer, scheduler_name, steps_per_epoch, epochs, div_factor= 25, 
-                 max_lr =0.05, T_max = None, num_step = 3):
+                 max_lr =0.05, T_max = None, num_step = 3, three_phase=False):
+                 
         self.optimizer = optimizer
         self.scheduler_name = scheduler_name
         self.max_lr = max_lr
@@ -83,10 +116,11 @@ class Scheduler():
         self.num_step = num_step
         self.scheduler = None
         self.skipStep = False
+        self.three_phase = three_phase
 
         # number of iteration to decrease the lr for step lr
         self.step_size = int((self.epochs * self.steps_per_epoch) /num_step)
-        self.define_scheduler()
+        self.define_scheduler(self.epochs,self.optimizer)
 
     def step(self):
         if self.skipStep:
@@ -95,13 +129,18 @@ class Scheduler():
             self.scheduler.step()
 
 
-    def define_scheduler(self):
+    def define_scheduler(self,epoch,optimizer,s_max_lr=None,s_three_phase=None,s_div_factor=None):
+        self.optimizer = optimizer
+
         if self.scheduler_name =='OneCycleLR':
-            self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer.optimizer, max_lr=self.max_lr, 
-                                                                 steps_per_epoch=self.steps_per_epoch, 
-                                                                 epochs=self.epochs+1, 
-                                                                 three_phase=False,
-                                                                 div_factor=self.div_factor)
+            self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                self.optimizer.optimizer, 
+                steps_per_epoch=self.steps_per_epoch, 
+                epochs=epoch+1, 
+                three_phase= s_three_phase if s_three_phase != None else self.three_phase,
+                max_lr = s_max_lr if s_max_lr != None else self.max_lr,
+                div_factor= s_div_factor if s_div_factor != None else self.div_factor
+            )
         elif self.scheduler_name =='CosineAnnealingLR':
             self.scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer.optimizer, T_max = self.T_max, eta_min = 1e-8)
         elif self.scheduler_name =='LambdaLR':

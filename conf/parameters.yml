@@ -43,6 +43,7 @@ optim:
   phase_num:
   alternating: True
   T_max: 
+  phase_ends:
 
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
