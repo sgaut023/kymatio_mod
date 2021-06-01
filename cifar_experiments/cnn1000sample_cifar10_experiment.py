@@ -1,12 +1,12 @@
-""" 1000 sample xray experiment script
+"""CNN Cifar-10 1000 sample experiment script
 
 This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
 
-Experiment: learnable vs non-learnable & Kymatio vs Random for xray 1000 samples 
+Experiment: learnable vs non-learnable scattering for cifar-10 1000 samples 
 
 example command:
 
-    python parametricSN/cifar_small_sample.py run-train -oname sgd -olr 0.1 -gseed 1371927268 -sl 1 -me 500 -omaxlr 0.06 -odivf 25 -sip Random -dtsn 100 -os OneCycleLR -daug original-cifar -oalt 0 -en "Xray 100 Samples" -pf parameters_xray.yml 
+    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
 
 """
 
@@ -19,10 +19,10 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"Xray 1000 Samples batch norm affine\""
-PARAMS_FILE = "parameters_xray.yml"
+mlflow_exp_name = "\"CNN Cifar-10 1000 samples batch norm affine\""
+
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
@@ -31,17 +31,25 @@ LRS = 0.1
 LRO = 0.1
 LRMAX = 0.06
 DF = 25
+THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 400
+EPOCHS = 3000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
-TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 128
-AUGMENT = "original-cifar"
-ALTERNATING = 0
+TRAIN_BATCH_SIZE = 256
+AUGMENT = "autoaugment"
+ALTERNATING = 1
+MODEL = "cnn"
+PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
+PHASE_ENDS = " ".join(["10","15"])
+
+
+SCATT_LRMAX = 0.2
+SCATT_DF = 25
+SCATT_THREE_PHASE = 1
 
 
 def runCommand(cmd):
@@ -65,15 +73,27 @@ if __name__ == '__main__':
 
     commands = []
 
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [737523103,207715039,491659600,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
-    for x in range(RUNS_PER_SEED):
-
-        SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+        # SEED = int(time.time() * np.random.rand(1))
+        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#,(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -pf {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,TRAIN_BATCH_SIZE,DATA_ARG)
+            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
+            )
+
+            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
+                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
+            )
+
+            args3 = "-smaxlr {} -sdivf {} -stp {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE
+            )
+
+            command = "{} {} run-train {} {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
 
             commands.append(command)
     
@@ -90,7 +110,7 @@ if __name__ == '__main__':
 
         for process in batch:
             process.start()
-            time.sleep(10)
+            time.sleep(5)
 
         for process in batch:
             process.join()

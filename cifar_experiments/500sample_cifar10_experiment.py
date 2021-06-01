@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 5
 
-mlflow_exp_name = "\"Cifar-10 500 Samples Kymatio Initialization\""
+mlflow_exp_name = "\"Cifar-10 500 Samples + batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -33,7 +33,7 @@ LRMAX = 0.06
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 10000
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
@@ -64,9 +64,11 @@ if __name__ == '__main__':
 
     commands = []
 
-    for x in range(RUNS_PER_SEED):
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [24577420, 105683751, 264047228, 402909654, 509162273,
+            675563395, 1086115141, 1105858243, 1207271474, 1374029576]:
 
-        SEED = int(time.time() * np.random.rand(1))
+        # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 

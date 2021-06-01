@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 10
+PROCESS_BATCH_SIZE = 5
 
-mlflow_exp_name = "\"Cifar-10 100 Samples Kymatio Initialization\""
+mlflow_exp_name = "\"Cifar-10 100 Samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -33,12 +33,13 @@ LRMAX = 0.06
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 10000
+EPOCHS = 5000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
+TRAIN_SAMPLE_NUM = 100
+TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 
@@ -64,14 +65,15 @@ if __name__ == '__main__':
 
     commands = []
 
-    for x in range(RUNS_PER_SEED):
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [235992187,306511717,320845575,444050326,497316683,788057338,831046333,863982375,874034868,916884331]:
 
-        SEED = int(time.time() * np.random.rand(1))
+        # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -oalt {} -en {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
 
             commands.append(command)
     
