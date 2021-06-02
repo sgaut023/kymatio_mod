@@ -84,15 +84,15 @@ class Optimizer():
 
             if self.phase % 2 == 0:
                 print("Switching to Model parameters")
-                
+                self.optimizer.zero_grad()
                 params = self.model.parameters()
                 self.define_optimizer(params)
                 self.scheduler.define_scheduler(epoch=int(nextPhaseEpochs),optimizer=self)
-                self.scatteringModel.eval()
+                # self.scatteringModel.train()
                 self.model.train()
             else: 
                 print("Switching to Scattering parameters")
-
+                self.optimizer.zero_grad()
                 params = self.scatteringModel.parameters()
                 self.define_optimizer(params)
                 self.scheduler.define_scheduler(

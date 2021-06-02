@@ -60,8 +60,12 @@ def kth_augmentationFactory(augmentation, height, width):
 
 def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
                        height, width, sample, seed=None, dataDir=".", 
-                       num_workers=4, use_cuda=True):
-    """Samples a specified class balanced number of samples form the kth dataset"""
+                       num_workers=4, use_cuda=True, glico=False):
+    """Samples a specified class balanced number of samples form the kth dataset
+    
+    returns:
+        train_loader, test_loader, seed, glico_loader
+    """
     transform_train = kth_augmentationFactory(trainAugmentation, height, width)
     transform_val = kth_augmentationFactory('noaugment', height, width)
 
@@ -82,7 +86,7 @@ def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
             batch.cuda()
             target.cuda()
     
-    return train_loader, test_loader, loader.seed
+    return train_loader, test_loader, loader.seed, None
 
 class KTHLoader():
     """Class for loading the KTH texture dataset"""
