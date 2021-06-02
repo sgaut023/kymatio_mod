@@ -43,6 +43,9 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         loss = (1- cos(target_one_hot, output)).mean()
         loss.backward()
 
+        # augment gradient of orientations
+        #optimizer.param_groups[1]['params'][0].grad *= 2
+
         if alternating:
             optimizer.step(epoch)
         else:
