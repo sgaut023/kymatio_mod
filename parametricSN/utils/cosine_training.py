@@ -46,10 +46,14 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         loss = (1 - cos(target_one_hot, output)).mean()
         loss.backward()
 
+        model.scatteringBase.saveFilterGrads() #cache scattering filters for plotting
+
         if alternating:
             optimizer.step(epoch)
         else:
             optimizer.step()
+
+        model.scatteringBase.saveFilterValues() #cache scattering filters for plotting
 
         if scheduler != None:
             scheduler.step()

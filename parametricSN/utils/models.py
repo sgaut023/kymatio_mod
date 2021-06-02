@@ -223,8 +223,85 @@ class sn_ScatteringBase(nn.Module):
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
+        self.filterTracker = {'orientation1':[],'orientation2':[],'1':[],'2':[],'3':[]}
+        self.filterGradTracker = {'orientation1':[],'orientation2':[],'1':[],'2':[],'3':[]}
+
         self.filters_plots_before = self.getFilterViz()
         self.scatteringTrain = False
+
+    def saveFilterValues(self):
+        print('orientation1',self.params_filters[0][:,0].detach().shape)
+        print('not ori',self.params_filters[1].detach().shape)
+        self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach()) #torch.Size([16])
+        self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach()) #torch.Size([16])
+        self.filterTracker['1'].append(self.params_filters[1].detach()) #torch.Size([16])
+        self.filterTracker['2'].append(self.params_filters[2].detach()) #torch.Size([16])
+        self.filterTracker['3'].append(self.params_filters[3].detach()) #torch.Size([16])
+
+
+    def saveFilterGrads(self):
+        print('orientation1grad',self.params_filters[0].grad.shape)
+        self.filterGradTracker['orientation1'].append(self.params_filters[0][:,0].grad) #torch.Size([16])
+        self.filterGradTracker['orientation2'].append(self.params_filters[0][:,1].grad) #torch.Size([16])
+        self.filterGradTracker['1'].append(self.params_filters[1].grad) #torch.Size([16])
+        self.filterGradTracker['2'].append(self.params_filters[2].grad) #torch.Size([16])
+        self.filterGradTracker['3'].append(self.params_filters[3].grad) #torch.Size([16])
+
+
+    def plotFilterGrads(self):
+        """ plots the graph of the filter gradients """
+        filterNum = self.params_filters[1].shape[0]
+        col = 8
+        row = int(filterNum/col)
+        
+
+        f, axarr = plt.subplots(row, col, figsize=(20, 2*row)) # create plots
+
+        for x in range(filterNum):#iterate over all the filters
+            temp = {
+                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['orientation1']],
+                'orientation2': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['orientation2']],
+                '1': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                '2': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                '3': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
+            }
+
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['1']))],temp['1'],color='green')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['2']))],temp['2'],color='yellow')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['3']))],temp['3'],color='orange')
+
+        return f
+    
+    def plotFilterValues(self):
+        return 0
+        n_filters =0
+        L=8
+        for j in range(2, self.J+1):
+            n_filters +=  j* L
+        num_rows = int(n_filters/L) 
+        num_col = L
+        f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
+        for scale in range(J-1):
+            count = L * scale
+            end_row = (J-scale) + start_row 
+            for i in range(start_row, end_row) :
+                for j in range(0, L) :
+
+
+                    
+                    a=np.abs(x).max()
+                    axarr[i,j].imshow(x, vmin=-a, vmax=a)
+                    # axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}, S:{scale} ")
+                    axarr[i,j].axis('off')
+                    count = count +1
+                    axarr[i,j].set_xticklabels([])
+                    axarr[i,j].set_yticklabels([])
+                    axarr[i,j].set_aspect('equal')
+        start_row = end_row
+
+        
 
     def train(self,mode=True):
         super().train(mode=mode)

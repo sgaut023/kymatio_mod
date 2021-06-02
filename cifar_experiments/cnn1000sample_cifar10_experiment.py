@@ -19,7 +19,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
 mlflow_exp_name = "\"CNN cosine loss Cifar-10 1000 samples batch norm affine\""
 
@@ -44,6 +44,7 @@ AUGMENT = "autoaugment"
 ALTERNATING = 1
 MODEL = "cnn"
 PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
+PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
 # PHASE_ENDS = " ".join(["5","10"])
 
 MODEL_LOSS = 'cross-entropy'

@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 5
 
-mlflow_exp_name = "\"CNN Cifar-10 100 Samples batch norm affine\""
+mlflow_exp_name = "\"CNN Cifar-10 100 samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"

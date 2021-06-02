@@ -18,11 +18,11 @@ matplotlib.use('Agg')
 # PACKAGE_PARENT = '..'
 # SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 # os.sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from glico.glico_model.model import Classifier
-from glico.glico_model.interpolate import save_inter_imgs
-import glico.glico_model.model as model
-from glico.glico_model.utils import *
-from glico.logger import Logger, savefig
+from parametricSN.glico.glico_model.model import Classifier
+from parametricSN.glico.glico_model.interpolate import save_inter_imgs
+import parametricSN.glico.glico_model.model as model
+from parametricSN.glico.glico_model.utils import *
+from parametricSN.glico.logger import Logger, savefig
 
 
 class NAG():
