@@ -37,6 +37,8 @@ from parametricSN.utils import cosine_training, cross_entropy_training
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
+from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
     """Factory for different schedulers"""
@@ -115,7 +117,8 @@ def datasetFactory(params,dataDir,use_cuda):
                     trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
                     multiplier=1, trainAugmentation=params['dataset']['augment'],
                     seed=params['general']['seed'], dataDir=dataDir, 
-                    num_workers=params['general']['cores'], use_cuda=use_cuda
+                    num_workers=params['general']['cores'], use_cuda=use_cuda,
+                    glico=params['dataset']['glico']
                 )
     elif params['dataset']['name'].lower() == "kth":
         return kth_getDataloaders(
@@ -123,7 +126,7 @@ def datasetFactory(params,dataDir,use_cuda):
                     trainAugmentation=params['dataset']['augment'], height= params['dataset']['height'] , 
                     width = params['dataset']['width'], sample = params['dataset']['sample'] , 
                     seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], 
-                    use_cuda=use_cuda
+                    use_cuda=use_cuda, glico=params['dataset']['glico']
                 )
     elif params['dataset']['name'].lower() == "x-ray":
         return xray_getDataloaders(
@@ -132,8 +135,9 @@ def datasetFactory(params,dataDir,use_cuda):
             multiplier=1, trainAugmentation=params['dataset']['augment'],
             height= params['dataset']['height'] , width = params['dataset']['width'],
             seed=params['general']['seed'], dataDir=dataDir, 
-            num_workers=params['general']['cores'], use_cuda=use_cuda
-                )
+            num_workers=params['general']['cores'], use_cuda=use_cuda, 
+            glico=params['dataset']['glico']
+        )
     else:
         raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
 
@@ -172,9 +176,20 @@ def get_train_test_functions(loss_name):
     return train, test
 
 
+def setAllSeeds(seed):
+    """Helper for setting seeds"""
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+
 def run_train(args):
     """Initializes and trains scattering models with different architectures
     """
+    torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
+    torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
+
     catalog, params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
@@ -186,12 +201,20 @@ def run_train(args):
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
-    train_loader, test_loader, params['general']['seed'] = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
-    
+    if params['optim']['alternating'] and params['scattering']['learnable']:
+        params['model']['epoch'] = params['model']['epoch'] + int(params['optim']['phase_ends'][-1])
 
-    torch.manual_seed(params['general']['seed'])
-    random.seed(params['general']['seed'])
-    np.random.seed(params['general']['seed'])
+    train_loader, test_loader, params['general']['seed'], glico_dataset = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
+    
+    if glico_dataset != None:
+        setAllSeeds(seed=params['general']['seed'])
+        nag = trainGlico(glico_dataset,params['dataset']['num_classes'],epochs=750)
+        glicoController = GlicoController(nag,steps=5,replaceProb=0.075)
+    else:
+        glicoController = None
+
+
+    setAllSeeds(seed=params['general']['seed'])
 
     scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
         J=params['scattering']['J'],
@@ -207,10 +230,8 @@ def run_train(args):
         use_cuda=use_cuda
     )
 
-    torch.manual_seed(params['general']['seed'])
-    random.seed(params['general']['seed'])
-    np.random.seed(params['general']['seed'])
-
+    setAllSeeds(seed=params['general']['seed'])
+    
     top = modelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
         architecture=params['model']['name'],
@@ -266,7 +287,9 @@ def run_train(args):
                 lrs_scattering.append(optimizer.param_groups[2]['lr'])
 
         train, test = get_train_test_functions(params['model']['loss'])
-        train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, epoch+1, alternating=params['optim']['alternating'])
+        train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
+                                           epoch+1, alternating=params['optim']['alternating'],
+                                           glicoController=glicoController)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
 
@@ -340,6 +363,7 @@ def main():
     subparser.add_argument("--dataset-height", "-dh", type=int)
     subparser.add_argument("--dataset-width", "-dw", type=int)
     subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
+    subparser.add_argument("--dataset-glico", "-dg", type=int, choices=[0,1])
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
@@ -371,7 +395,7 @@ def main():
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
-    subparser.add_argument("--model-loss", "-loss", type=str, choices=['cosine', 'cross-entropy'])
+    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy'])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
@@ -379,9 +403,11 @@ def main():
     args = parser.parse_args()
 
     for key in ['optim_alternating','optim_three_phase','scattering_learnable',
-                'scattering_second_order','scattering_three_phase']:
+                'scattering_second_order','scattering_three_phase','dataset_glico']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
+
+    print(args.__dict__['optim_three_phase'])
 
     args.callback(args)
 

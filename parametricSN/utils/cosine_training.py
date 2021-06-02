@@ -13,7 +13,7 @@ def test(model, device, test_loader):
             output = model(data)
             #output = F.softmax(output, dim=1)
             #test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
-            target_one_hot = F.one_hot(target)
+            target_one_hot = F.one_hot(target,num_classes=model.top.num_classes)
             cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
             test_loss += (1- cos(target_one_hot, output)).mean().item()
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
@@ -27,7 +27,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True):
+def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True,glicoController=None):
     """training method"""
 
     model.train()
@@ -36,20 +36,24 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
 
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
+        if glicoController != None:
+            data, target = glicoController(data,target)
+
         optimizer.zero_grad()
         output = model(data)
         target_one_hot = F.one_hot(target, num_classes= model.top.num_classes)
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
-        loss = (1- cos(target_one_hot, output)).mean()
+        loss = (1 - cos(target_one_hot, output)).mean()
         loss.backward()
 
-        # augment gradient of orientations
-        #optimizer.param_groups[1]['params'][0].grad *= 2
+        model.scatteringBase.saveFilterGrads() #cache scattering filters for plotting
 
         if alternating:
             optimizer.step(epoch)
         else:
             optimizer.step()
+
+        model.scatteringBase.saveFilterValues() #cache scattering filters for plotting
 
         if scheduler != None:
             scheduler.step()

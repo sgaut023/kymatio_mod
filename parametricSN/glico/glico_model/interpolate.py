@@ -8,10 +8,10 @@ import torch
 from numpy.linalg import norm
 from torch.utils.data import dataloader
 
-from newglico.glico_model.utils import save_image_grid
+from parametricSN.glico.glico_model.utils import save_image_grid
 import torchvision.utils as vutils
 
-from newglico.glico_model.utils import get_loader_with_idx
+from parametricSN.glico.glico_model.utils import get_loader_with_idx
 
 
 def lerp_mat(start, end, n_steps):
