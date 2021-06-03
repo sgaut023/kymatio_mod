@@ -232,20 +232,24 @@ class sn_ScatteringBase(nn.Module):
     def saveFilterValues(self):
         #print('orientation1',self.params_filters[0][:,0].detach().shape)
         #print('not ori',self.params_filters[1].detach().shape)
-        self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach()) #torch.Size([16])
-        self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach()) #torch.Size([16])
-        self.filterTracker['1'].append(self.params_filters[1].detach()) #torch.Size([16])
-        self.filterTracker['2'].append(self.params_filters[2].detach()) #torch.Size([16])
-        self.filterTracker['3'].append(self.params_filters[3].detach()) #torch.Size([16])
+        self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach().clone()) #torch.Size([16])
+        self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach().clone()) #torch.Size([16])
+        self.filterTracker['1'].append(self.params_filters[1].detach().clone()) #torch.Size([16])
+        self.filterTracker['2'].append(self.params_filters[2].detach().clone()) #torch.Size([16])
+        self.filterTracker['3'].append(self.params_filters[3].detach().clone()) #torch.Size([16])
 
 
     def saveFilterGrads(self):
         #print('orientation1grad',self.params_filters[0].grad.shape)
-        self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0]) #torch.Size([16])
-        self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,0]) #torch.Size([16])
-        self.filterGradTracker['1'].append(self.params_filters[1].grad) #torch.Size([16])
-        self.filterGradTracker['2'].append(self.params_filters[2].grad) #torch.Size([16])
-        self.filterGradTracker['3'].append(self.params_filters[3].grad) #torch.Size([16])
+        try:
+            self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0].clone()) #torch.Size([16])
+            self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,1].clone()) #torch.Size([16])
+        except:
+            self.filterGradTracker['orientation1'].append(self.params_filters[0].grad.clone()) #torch.Size([16])
+            self.filterGradTracker['orientation2'].append(self.params_filters[0].grad.clone()) #torch.Size([16])
+        self.filterGradTracker['1'].append(self.params_filters[1].grad.clone()) #torch.Size([16])
+        self.filterGradTracker['2'].append(self.params_filters[2].grad.clone()) #torch.Size([16])
+        self.filterGradTracker['3'].append(self.params_filters[3].grad.clone()) #torch.Size([16])
 
     def plotFilterGrad(self):
         """ plots the graph of the filter gradients """
@@ -359,9 +363,11 @@ class sn_ScatteringBase(nn.Module):
     def parameters(self):
         """ override parameters to include learning rates """
         if self.learnable:
-            yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
-            yield {'params': [self.params_filters[1], self.params_filters[2],
-                self.params_filters[3]],'lr': self.lr_scattering}
+            yield {'params': [self.params_filters[0],self.params_filters[1],
+                              self.params_filters[2]], 'lr': self.lr_orientation, 
+                             'weight_decay': 0, 'maxi_lr':self.lr_orientation}
+            yield {'params': self.params_filters[3],'lr': self.lr_scattering,
+                             'weight_decay': 0, 'maxi_lr':self.lr_scattering}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""

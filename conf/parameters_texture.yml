@@ -21,6 +21,7 @@ dataset:
   width:  128  # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
+  glico: 0
 
 # kymatio 
 scattering:
@@ -34,11 +35,11 @@ scattering:
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.1
-  weight_decay: 0 #0.0005
+  lr: 0.01
+  weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 1 #highest lr we can
-  scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  max_lr: 0.01 #highest lr we can
+  scheduler: 'OneCycleLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
@@ -48,7 +49,7 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 25
+  epoch: 5
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   

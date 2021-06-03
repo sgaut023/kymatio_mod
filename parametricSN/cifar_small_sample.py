@@ -57,6 +57,12 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
             three_phase=params['optim']['three_phase'],
             div_factor=params['optim']['div_factor']
         )
+
+        for group in optimizer.param_groups:
+            if 'maxi_lr' in group .keys():
+                group['max_lr'] = group['maxi_lr']
+
+
     elif params['optim']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max = params['optim']['T_max'], eta_min = 1e-8)
@@ -327,11 +333,13 @@ def run_train(args):
     filters_plots_before = hybridModel.scatteringBase.filters_plots_before
     hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
     filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-    filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
-
+    
     filters_values = hybridModel.scatteringBase.plotFilterValues()
     filters_value = hybridModel.scatteringBase.plotFilterValue()
+
+    
     filters_grad = hybridModel.scatteringBase.plotFilterGrads()
+    filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
 
 
     # save metrics and params in mlflow
