@@ -49,6 +49,8 @@ class Optimizer():
         self.param_groups = self.optimizer.param_groups
         self.scheduler = None
 
+        self.scatteringActive = False
+
 
     def define_optimizer(self, parameters):
         if  self.optimizer_name == 'adam':
@@ -84,14 +86,17 @@ class Optimizer():
 
             if self.phase % 2 == 0:
                 print("Switching to Model parameters")
+                self.scatteringActive = False
                 self.optimizer.zero_grad()
                 params = self.model.parameters()
                 self.define_optimizer(params)
                 self.scheduler.define_scheduler(epoch=int(nextPhaseEpochs),optimizer=self)
                 # self.scatteringModel.train()
                 self.model.train()
+                self.optimizer.zero_grad()
             else: 
                 print("Switching to Scattering parameters")
+                self.scatteringActive = True
                 self.optimizer.zero_grad()
                 params = self.scatteringModel.parameters()
                 self.define_optimizer(params)
@@ -104,6 +109,7 @@ class Optimizer():
                 )
                 self.scatteringModel.train()
                 self.model.eval()
+                self.optimizer.zero_grad()
             
             self.scheduler.skipStep = True #skip the step to make this compatible with scheduler trianing loop behaviours
 
