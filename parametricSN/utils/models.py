@@ -230,8 +230,8 @@ class sn_ScatteringBase(nn.Module):
         self.scatteringTrain = False
 
     def saveFilterValues(self):
-        print('orientation1',self.params_filters[0][:,0].detach().shape)
-        print('not ori',self.params_filters[1].detach().shape)
+        #print('orientation1',self.params_filters[0][:,0].detach().shape)
+        #print('not ori',self.params_filters[1].detach().shape)
         self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach()) #torch.Size([16])
         self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach()) #torch.Size([16])
         self.filterTracker['1'].append(self.params_filters[1].detach()) #torch.Size([16])
@@ -240,12 +240,34 @@ class sn_ScatteringBase(nn.Module):
 
 
     def saveFilterGrads(self):
-        print('orientation1grad',self.params_filters[0].grad.shape)
-        self.filterGradTracker['orientation1'].append(self.params_filters[0][:,0].grad) #torch.Size([16])
-        self.filterGradTracker['orientation2'].append(self.params_filters[0][:,1].grad) #torch.Size([16])
+        #print('orientation1grad',self.params_filters[0].grad.shape)
+        self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0]) #torch.Size([16])
+        self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,0]) #torch.Size([16])
         self.filterGradTracker['1'].append(self.params_filters[1].grad) #torch.Size([16])
         self.filterGradTracker['2'].append(self.params_filters[2].grad) #torch.Size([16])
         self.filterGradTracker['3'].append(self.params_filters[3].grad) #torch.Size([16])
+
+    def plotFilterGrad(self):
+        """ plots the graph of the filter gradients """
+
+
+        f = plt.figure (figsize=(7,7))
+        temp = {
+            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterGradTracker['orientation1']],
+            'orientation2': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['orientation2']],
+            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['1']],
+            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['2']],
+            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
+        }
+
+        plt.plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+        plt.plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+        plt.plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+        plt.legend()
+
+        return f
 
 
     def plotFilterGrads(self):
@@ -261,46 +283,67 @@ class sn_ScatteringBase(nn.Module):
             temp = {
                 'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['orientation1']],
                 'orientation2': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['orientation2']],
-                '1': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
-                '2': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
-                '3': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
+                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
             }
 
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['1']))],temp['1'],color='green')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['2']))],temp['2'],color='yellow')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['3']))],temp['3'],color='orange')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+            axarr[int(x/col),x%col].plot([x/10  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            #axarr[int(x/col),x%col].legend()
+
+        return f
+
+    def plotFilterValue(self):
+        """ plots the graph of the filter 0 value  """
+
+        f = plt.figure (figsize=(7,7))
+        temp = {
+            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterTracker['orientation1']],
+            'orientation2': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['orientation2']],
+            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['1']],
+            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['2']],
+            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['3']]
+        }
+
+        plt.plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+        plt.plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+        plt.plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+        plt.legend()
 
         return f
     
     def plotFilterValues(self):
-        return 0
-        n_filters =0
-        L=8
-        for j in range(2, self.J+1):
-            n_filters +=  j* L
-        num_rows = int(n_filters/L) 
-        num_col = L
-        f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
-        for scale in range(J-1):
-            count = L * scale
-            end_row = (J-scale) + start_row 
-            for i in range(start_row, end_row) :
-                for j in range(0, L) :
+        filterNum = self.params_filters[1].shape[0]
+        col = 8
+        row = int(filterNum/col)
+        
 
+        f, axarr = plt.subplots(row, col, figsize=(20, 2*row)) # create plots
 
-                    
-                    a=np.abs(x).max()
-                    axarr[i,j].imshow(x, vmin=-a, vmax=a)
-                    # axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}, S:{scale} ")
-                    axarr[i,j].axis('off')
-                    count = count +1
-                    axarr[i,j].set_xticklabels([])
-                    axarr[i,j].set_yticklabels([])
-                    axarr[i,j].set_aspect('equal')
-        start_row = end_row
+        for x in range(filterNum):#iterate over all the filters
+            #axarr[int(x/col),x%col].axis('off')
+            temp = {
+                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['orientation1']],
+                'orientation2': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['orientation2']],
+                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
+                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
+                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']]
+            }
 
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            #axarr[int(x/col),x%col].legend()
+
+        return f
         
 
     def train(self,mode=True):

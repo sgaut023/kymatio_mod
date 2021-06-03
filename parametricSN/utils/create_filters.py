@@ -148,7 +148,7 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
     # sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters))
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(3), n_filters))
+    sigmas = np.log(np.random.uniform(np.exp(3), np.exp(5), n_filters ))
     
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
     sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)

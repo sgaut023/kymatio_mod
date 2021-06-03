@@ -37,7 +37,7 @@ from parametricSN.utils import cosine_training, cross_entropy_training
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
-from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+#from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
@@ -327,14 +327,19 @@ def run_train(args):
     filters_plots_before = hybridModel.scatteringBase.filters_plots_before
     hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
     filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
+    filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
 
-       
+    filters_values = hybridModel.scatteringBase.plotFilterValues()
+    filters_value = hybridModel.scatteringBase.plotFilterValue()
+    filters_grad = hybridModel.scatteringBase.plotFilterGrads()
+
+
     # save metrics and params in mlflow
     log_mlflow(
         params, hybridModel, np.array(test_acc).round(2), 
         np.array(test_losses).round(2), np.array(train_accuracies).round(2), np.array(train_losses).round(2), 
         start_time, filters_plots_before, filters_plots_after, 
-        [f_loss,f_accuracy, f_accuracy_benchmark ], f_lr
+        [f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, filter0_grad, filters_values, filters_value ], f_lr
     )
 
 
