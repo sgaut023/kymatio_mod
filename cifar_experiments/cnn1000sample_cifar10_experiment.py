@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"CNN cosine loss Cifar-10 1000 samples batch norm affine\""
+mlflow_exp_name = "\"CNN ce loss no AA Cifar-10 1000 samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -40,15 +40,15 @@ RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "autoaugment"
+AUGMENT = "original-cifar"
 ALTERNATING = 1
 MODEL = "cnn"
-PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
-PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
-# PHASE_ENDS = " ".join(["5","10"])
+# PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
+# PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
+PHASE_ENDS = " ".join(["100","200"])
 
 MODEL_LOSS = 'cross-entropy'
-SCATT_LRMAX = 0.6
+SCATT_LRMAX = 0.1
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     for SEED in [737523103,207715039,491659600,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio"),(0,"Kymatio"),(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
+        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(

@@ -39,7 +39,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         loss = F.cross_entropy(output, target)
         loss.backward()
 
-        model.scatteringBase.saveFilterGrads() #cache scattering filter grads for plotting
+        # model.scatteringBase.saveFilterGrads() #cache scattering filter grads for plotting
 
         if alternating:
             optimizer.step(epoch)
@@ -49,7 +49,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         if scheduler != None:
             scheduler.step()
 
-        model.scatteringBase.saveFilterValues() #cache scattering filters for plotting
+        # model.scatteringBase.saveFilterValues() #cache scattering filters for plotting
 
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
