@@ -37,7 +37,7 @@ from parametricSN.utils import cosine_training, cross_entropy_training
 from parametricSN.utils.models import *
 from parametricSN.utils.optimizer_loader import *
 
-from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+#rom parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
