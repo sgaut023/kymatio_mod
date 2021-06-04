@@ -282,20 +282,13 @@ class sn_ScatteringBase(nn.Module):
             'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
         }
 
-<<<<<<< HEAD
-        plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-=======
 
 
->>>>>>> ben_branch_new
         plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
         plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
         plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
         plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-<<<<<<< HEAD
-=======
         plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
->>>>>>> ben_branch_new
         plt.legend()
 
         return f
@@ -319,22 +312,12 @@ class sn_ScatteringBase(nn.Module):
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
             }
 
-<<<<<<< HEAD
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
- 
-            #axarr[int(x/col),x%col].legend()
-=======
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
             axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
             axarr[int(x/col),x%col].legend()
->>>>>>> ben_branch_new
 
         return f
 
