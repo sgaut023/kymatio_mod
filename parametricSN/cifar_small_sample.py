@@ -333,11 +333,9 @@ def run_train(args):
     filters_plots_before = hybridModel.scatteringBase.filters_plots_before
     hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
     filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-    
+
     filters_values = hybridModel.scatteringBase.plotFilterValues()
     filters_value = hybridModel.scatteringBase.plotFilterValue()
-
-    
     filters_grad = hybridModel.scatteringBase.plotFilterGrads()
     filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
 

@@ -64,6 +64,7 @@ def update_psi(J, psi, wavelets,  initialization , device):
                         d[res] = wavelets[count]
                     else:
                         d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
+                        #d[res] = wavelets[count]
                     count +=1
                 except KeyError:
                     pass

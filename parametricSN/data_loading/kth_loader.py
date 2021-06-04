@@ -34,6 +34,7 @@ def kth_augmentationFactory(augmentation, height, width):
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.Resize((200,200)),
+            transforms.RandomRotation(degrees=40),
             # transforms.RandomAffine(degrees=40,
             #                     translate=(0.25, 0.5),
             #                     scale=(1.2, 2.0)), 

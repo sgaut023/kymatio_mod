@@ -276,11 +276,11 @@ class sn_ScatteringBase(nn.Module):
             'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
         }
 
-        plt.plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
-        plt.plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-        plt.plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-        plt.plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-        plt.plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+        plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+        plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
         plt.legend()
 
         return f
@@ -304,11 +304,12 @@ class sn_ScatteringBase(nn.Module):
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
             }
 
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x/10  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+ 
             #axarr[int(x/col),x%col].legend()
 
         return f
@@ -325,11 +326,11 @@ class sn_ScatteringBase(nn.Module):
             'slant': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['3']]
         }
 
-        plt.plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
-        plt.plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-        plt.plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-        plt.plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-        plt.plot([x/10 for x in range(len(temp['slant']))], temp['slant'], color='orange', label='slant')
+        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+        plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+        plt.plot([x for x in range(len(temp['slant']))], temp['slant'], color='orange', label='slant')
         plt.legend()
 
         return f
@@ -351,12 +352,12 @@ class sn_ScatteringBase(nn.Module):
                 'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']]
             }
-
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x/10 for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+    
             #axarr[int(x/col),x%col].legend()
 
         return f
@@ -375,11 +376,11 @@ class sn_ScatteringBase(nn.Module):
     def parameters(self):
         """ override parameters to include learning rates """
         if self.learnable:
-            yield {'params': [self.params_filters[0],self.params_filters[1],
-                              self.params_filters[2]], 'lr': self.lr_orientation, 
-                             'weight_decay': 0, 'maxi_lr':self.lr_orientation}
-            yield {'params': self.params_filters[3],'lr': self.lr_scattering,
-                             'weight_decay': 0, 'maxi_lr':self.lr_scattering}
+            yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
+                              'maxi_lr':self.lr_orientation , 'weight_decay': 0}
+            yield {'params': [ self.params_filters[1],self.params_filters[2],
+                               self.params_filters[3]],'lr': self.lr_scattering,
+                               'maxi_lr':self.lr_scattering , 'weight_decay': 0}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -398,6 +399,7 @@ class sn_ScatteringBase(nn.Module):
         x = construct_scattering(ip, self.scattering, self.psi)
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
+        #x = x.reshape(x.size(0), self.n_coefficients*3)
         return x
 
     def countLearnableParams(self):
