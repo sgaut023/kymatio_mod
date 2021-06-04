@@ -299,8 +299,7 @@ class sn_ScatteringBase(nn.Module):
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
-        size = (20, 2*row)
-        size = (80, 20,)
+        size = (80, 10*row,)
 
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
@@ -347,8 +346,7 @@ class sn_ScatteringBase(nn.Module):
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
-        size = (20, 2*row)
-        size = (80,20,)
+        size = (80, 10*row,)
 
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
