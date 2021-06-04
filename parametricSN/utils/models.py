@@ -233,34 +233,40 @@ class sn_ScatteringBase(nn.Module):
         #print('orientation1',self.params_filters[0][:,0].detach().shape)
         #print('not ori',self.params_filters[1].detach().shape)
         # print(self.params_filters[3].detach())
-        if scatteringActive:
-            self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach().clone())
-            self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach().clone())
-            self.filterTracker['1'].append(self.params_filters[1].detach().clone())
-            self.filterTracker['2'].append(self.params_filters[2].detach().clone()) 
-            self.filterTracker['3'].append(self.params_filters[3].detach().clone()) 
-        else:
-            self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0])) 
-            self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
-            self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
-            self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
-            self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        try:
+            if scatteringActive:
+                self.filterTracker['orientation1'].append(self.params_filters[0][:,0].detach().clone())
+                self.filterTracker['orientation2'].append(self.params_filters[0][:,1].detach().clone())
+                self.filterTracker['1'].append(self.params_filters[1].detach().clone())
+                self.filterTracker['2'].append(self.params_filters[2].detach().clone()) 
+                self.filterTracker['3'].append(self.params_filters[3].detach().clone()) 
+            else:
+                self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        except Exception:
+            pass
 
 
     def saveFilterGrads(self,scatteringActive):
         #print('orientation1grad',self.params_filters[0].grad.shape)
-        if scatteringActive:
-            self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0].clone()) 
-            self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,1].clone()) 
-            self.filterGradTracker['1'].append(self.params_filters[1].grad.clone()) 
-            self.filterGradTracker['2'].append(self.params_filters[2].grad.clone()) 
-            self.filterGradTracker['3'].append(self.params_filters[3].grad.clone()) 
-        else:
-            self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0])) 
-            self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
-            self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
-            self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
-            self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        try:
+            if scatteringActive:
+                self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0].clone()) 
+                self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,1].clone()) 
+                self.filterGradTracker['1'].append(self.params_filters[1].grad.clone()) 
+                self.filterGradTracker['2'].append(self.params_filters[2].grad.clone()) 
+                self.filterGradTracker['3'].append(self.params_filters[3].grad.clone()) 
+            else:
+                self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        except Exception:
+            pass
 
 
     def plotFilterGrad(self):
@@ -276,11 +282,20 @@ class sn_ScatteringBase(nn.Module):
             'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
         }
 
+<<<<<<< HEAD
         plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+=======
+
+
+>>>>>>> ben_branch_new
         plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
         plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
         plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
         plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+<<<<<<< HEAD
+=======
+        plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+>>>>>>> ben_branch_new
         plt.legend()
 
         return f
@@ -291,9 +306,9 @@ class sn_ScatteringBase(nn.Module):
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
-        
+        size = (80, 10*row,)
 
-        f, axarr = plt.subplots(row, col, figsize=(20, 2*row)) # create plots
+        f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
         for x in range(filterNum):#iterate over all the filters
             temp = {
@@ -304,6 +319,7 @@ class sn_ScatteringBase(nn.Module):
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']]
             }
 
+<<<<<<< HEAD
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
@@ -311,6 +327,14 @@ class sn_ScatteringBase(nn.Module):
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
  
             #axarr[int(x/col),x%col].legend()
+=======
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].legend()
+>>>>>>> ben_branch_new
 
         return f
 
@@ -339,9 +363,9 @@ class sn_ScatteringBase(nn.Module):
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
-        
+        size = (80, 10*row,)
 
-        f, axarr = plt.subplots(row, col, figsize=(20, 2*row)) # create plots
+        f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
         for x in range(filterNum):#iterate over all the filters
             #axarr[int(x/col),x%col].axis('off')
@@ -352,13 +376,13 @@ class sn_ScatteringBase(nn.Module):
                 'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']]
             }
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta1')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-    
-            #axarr[int(x/col),x%col].legend()
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            axarr[int(x/col),x%col].legend()
 
         return f
         

@@ -47,13 +47,13 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         loss.backward()
 
         if alternating:
-            model.scatteringBase.saveFilterGrads(scatteringActive=optimizer.scatteringActive) #cache scattering filter grads for plotting
+            model.scatteringBase.saveFilterGrads(scatteringActive=optimizer.scatteringActive) 
             optimizer.step(epoch)
             model.scatteringBase.saveFilterValues(scatteringActive=True)
         else:
-            model.scatteringBase.saveFilterGrads(scatteringActive=True) #cache scattering filter grads for plotting
+            model.scatteringBase.saveFilterGrads(scatteringActive=True) 
             optimizer.step()
-            model.scatteringBase.saveFilterValues(scatteringActive=True) #cache scattering filters for plotting
+            model.scatteringBase.saveFilterValues(scatteringActive=True) 
 
         if scheduler != None:
             scheduler.step()

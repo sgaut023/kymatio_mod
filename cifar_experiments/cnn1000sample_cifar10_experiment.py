@@ -19,7 +19,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 4
 
 mlflow_exp_name = "\"CNN ce loss no-AA Cifar-10 1000 samples batch norm affine\""
 
@@ -29,28 +29,27 @@ OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.06
+LRMAX = 0.07
 DF = 25
 THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 10
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "original-cifar"
+AUGMENT = "cifar-original"
 ALTERNATING = 1
 MODEL = "cnn"
 # PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
 # PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
 PHASE_ENDS = " ".join(["100","200"])
-PHASE_ENDS = " ".join(["25"])
 
 
 MODEL_LOSS = 'cross-entropy'
-SCATT_LRMAX = 0.6
+SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
 
@@ -76,12 +75,13 @@ if __name__ == '__main__':
 
     commands = []
 
+
     # for x in range(RUNS_PER_SEED):
-    for SEED in [737523103,207715039,491659600,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [491659600,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio",0.1),(1,"Kymatio",0.6)]:#(1,"Random"),(0,"Random")]:
-            LEARNABLE, INIT, SCATT_LRMAX = aa
+        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
+            LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
                 OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM

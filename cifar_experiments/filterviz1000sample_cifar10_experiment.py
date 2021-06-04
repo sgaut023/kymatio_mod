@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"new Cifar-10 1000 batch norm affine\""
+mlflow_exp_name = "\"viz Cifar-10 100 batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -33,15 +33,15 @@ LRMAX = 0.2
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 500
+EPOCHS = 5000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 1000
+TRAIN_SAMPLE_NUM = 100
+TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
 ALTERNATING = 0
-
+MODEL_LOSS = 'cross-entropy'
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -65,14 +65,14 @@ if __name__ == '__main__':
     commands = []
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [207715039,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [207715039,491659600]:#,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
-            LEARNABLE, INIT = aa
+        for aa in [(1,"Kymatio",0.2),(1,"Kymatio",0.15),(1,"Kymatio",0.1),(1,"Kymatio",0.05)]:#(1,"Kymatio",'cross-entropy'),(1,"Kymatio",'cosine')]:#(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+            LEARNABLE, INIT, LRMAX = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} -mloss {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL_LOSS,DATA_ARG)
 
             commands.append(command)
     
