@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 5
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Cifar-10 500 Samples + batch norm affine\""
+mlflow_exp_name = "\"new Cifar-10 500 Samples + batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -29,7 +29,7 @@ OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.06
+LRMAX = 0.13
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
