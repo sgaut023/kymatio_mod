@@ -55,18 +55,26 @@ def update_psi(J, psi, wavelets,  initialization , device):
                 d[0] = wavelets[i]
 
     else:
-        count = 0
         for i,d in enumerate(psi):
             for res in range(0, J-1):
-                try:
-                    d[res]
+                if res in d.keys():
                     if res == 0:
-                        d[res] = wavelets[count]
+                        d[res]=wavelets[i]
                     else:
-                        d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
-                    count +=1
-                except KeyError:
-                    pass
+                        d[res]= periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
+        # count = 0
+        # for i,d in enumerate(psi):
+        #     for res in range(0, J-1):
+        #         try:
+        #             d[res]
+        #             if res == 0:
+        #                 d[res] = wavelets[count]
+        #             else:
+        #                 d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
+        #                 #d[res] = wavelets[count]
+        #             count +=1
+        #         except KeyError:
+        #             pass
                 
     return psi
 
@@ -175,20 +183,20 @@ def create_filters_params(J, L, is_scattering_dif, device):
 
     for j in range(J):
         for theta in range(L):
-            for res in range(min(j + 1, max(J - 1, 1))):
-                sigma = 0.8 * 2**j
-                sigmas.append(0.8 * 2**j)
-                t = ((int(L-L/2-1)-theta) * np.pi / L)
-                xis.append(3.0 / 4.0 * np.pi /2**j)
-                slant = 4.0/L
-                slants.append(slant)
+            #for res in range(min(j + 1, max(J - 1, 1))):
+            sigma = 0.8 * 2**j
+            sigmas.append(0.8 * 2**j)
+            t = ((int(L-L/2-1)-theta) * np.pi / L)
+            xis.append(3.0 / 4.0 * np.pi /2**j)
+            slant = 4.0/L
+            slants.append(slant)
 
-                #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
-                #R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32)
-                D = np.array([[1, 0], [0, slant * slant]])
-                R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
-                #orientations.append( (np.dot(R, np.dot(D, R_inv)) / ( 2 * sigma * sigma)))
-                orientations.append(R_inv)    
+            #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
+            #R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32)
+            D = np.array([[1, 0], [0, slant * slant]])
+            R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
+            #orientations.append( (np.dot(R, np.dot(D, R_inv)) / ( 2 * sigma * sigma)))
+            orientations.append(R_inv)    
 
             
     xis = torch.tensor(xis, dtype=torch.float32, device=device)

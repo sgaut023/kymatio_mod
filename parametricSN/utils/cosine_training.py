@@ -58,6 +58,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         if scheduler != None:
             scheduler.step()
 
+
         pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
         correct += pred.eq(target.view_as(pred)).sum().item()
         train_loss += loss.item() # sum up batch loss

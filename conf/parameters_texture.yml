@@ -1,12 +1,12 @@
 #data preprocessing:
 general:
   cores: 2
-  seed:   42 # seed for dataset subselection and random initialization
+  seed:  1191801386 # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'KTH2- all orders'
+  experiment_name: 'JTH Test Gradient'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
@@ -20,36 +20,41 @@ dataset:
   height: 128  # ultrasound image dimension
   width:  128  # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  sample: 'd'
+  sample: 'c'
+  glico: 0
 
 # kymatio 
 scattering:
   J: 4
   max_order: 2
-  lr_scattering: 0.1
-  lr_orientation: 0.1
+  lr_scattering: 0.01
+  lr_orientation: 0.01
+  max_lr: 0.01
   init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
   second_order: False
+  three_phase: False
+  div_factor: 5 # so far, best results with 25 and maxlr = 0.05 
 
 optim: 
-  name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.1
-  weight_decay: 0 #0.0005
+  name: 'adam' #choices=['adam', 'sgd']
+  lr: 0.001 
+  weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 1 #highest lr we can
-  scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  max_lr: 0.01 #highest lr we can
+  scheduler: 'StepLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 5 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num: 3
   alternating: False
   T_max: 
+  phase_ends: ["75","150"]
 
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 25
-  step_test: 25
+  epoch: 200
+  step_test: 200
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   
 
