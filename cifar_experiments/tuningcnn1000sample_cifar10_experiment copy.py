@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"CNN ce loss no-AA Cifar-10 1000 samples batch norm affine\""
+mlflow_exp_name = "\"Tuning CNN Cifar-10 1000 samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -40,7 +40,7 @@ RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "cifar-original"
+AUGMENT = "autoaugment"
 ALTERNATING = 1
 MODEL = "cnn"
 # PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
@@ -77,7 +77,33 @@ if __name__ == '__main__':
 
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [491659600,207715039,491659600,207715039]:#,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [491659600,207715039]:#737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+
+        # SEED = int(time.time() * np.random.rand(1))
+        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
+            LEARNABLE, INIT = aa
+
+            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
+            )
+
+            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
+                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
+            )
+
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
+            )
+
+            command = "{} {} run-train {} {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
+
+            commands.append(command)
+
+    ALTERNATING = 0
+
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [491659600,207715039]:#737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
