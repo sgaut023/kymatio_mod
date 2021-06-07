@@ -17,7 +17,7 @@ cp -r /home/mila/g/gauthies/datasets/KTH $SLURM_TMPDIR
 
 # 4. Launch your job, tell it to save the model in $SLURM_TMPDIR
 #    and look for the dataset into $SLURM_TMPDIR
-python kth-sample-experiment.py -dr $SLURM_TMPDIR  
+python kth-sample-experiment.py -dr $SLURM_TMPDIR -df KTH  
 
 # 5. Copy whatever you want to save on $SCRATCH
 #cp $SLURM_TMPDIR/<to_save> /network/tmp1/<user>/
