@@ -54,28 +54,28 @@ def update_psi(J, psi, wavelets,  initialization , device):
         for i,d in enumerate(psi):
                 d[0] = wavelets[i]
 
-    # else:
-    #     for i,d in enumerate(psi):
-    #         for res in range(0, J-1):
-    #             if res in d.keys():
-    #                 if res == 0:
-    #                     d[res]=wavelets[i]
-    #                 else:
-    #                     d[res]= periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
     else:
-        count = 0
         for i,d in enumerate(psi):
             for res in range(0, J-1):
-                try:
-                    d[res]
+                if res in d.keys():
                     if res == 0:
-                        d[res] = wavelets[count]
+                        d[res]=wavelets[i]
                     else:
-                        d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
-                        #d[res] = wavelets[count]
-                    count +=1
-                except KeyError:
-                    pass
+                        d[res]= periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
+    # else:
+    #     count = 0
+    #     for i,d in enumerate(psi):
+    #         for res in range(0, J-1):
+    #             try:
+    #                 d[res]
+    #                 if res == 0:
+    #                     d[res] = wavelets[count]
+    #                 else:
+    #                     d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
+    #                     #d[res] = wavelets[count]
+    #                 count +=1
+    #             except KeyError:
+    #                 pass
                 
     return psi
 
