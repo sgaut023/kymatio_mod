@@ -8,25 +8,25 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 3
 
-mlflow_exp_name = "\"KTH all orders + normalization\""
+mlflow_exp_name = "\"09 KTH all orders + normalization\""
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
-LR = 0.01
-LRS = 0.01
-LRO = 0.01
+LR = 0.001
+LRS = 0.1
+LRO = 0.7
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
 INIT = "Kymatio"
-EPOCHS = 500
-RUNS_PER_SEED = 1
-TOTALRUNS = 2 * RUNS_PER_SEED
-SCHEDULER = "StepLR"
+EPOCHS = 300
+RUNS_PER_SEED = 4
+TOTALRUNS = 4
+SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 ALTERNATING = 0
 
@@ -51,40 +51,20 @@ if __name__ == '__main__':
         DATA_ARG = ""
 
     commands = []
-    for sample in ['d', 'c', 'b', 'a']:
+    for p in range(RUNS_PER_SEED):
         SEED = int(time.time() * np.random.rand(1))
-        for x in range(TOTALRUNS):
+        for sample in ['d', 'c', 'b', 'a']:
+            for x in range(TOTALRUNS):
 
-            LEARNABLE = 0 if LEARNABLE == 1 else 1
-            # if x % 1 == 0  and x != 0:
-            #     SEED = int(time.time() * np.random.rand(1))
-            # if LEARNABLE  ==1:
-            #     INIT = "Random"
-            # else:
-            #     INIT = "Kymatio"
+                LEARNABLE = 0 if LEARNABLE == 1 else 1
+                if x % 2 == 0  and x != 0:
+                    INIT = "Random" if INIT == "Kymatio" else "Kymatio"
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
-            PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)
+                command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)
 
-            commands.append(command)
-    
-    INIT = "Random"
-    for sample in ['d', 'c', 'b', 'a']:
-        SEED = int(time.time() * np.random.rand(1))
-        for x in range(TOTALRUNS):
-
-            LEARNABLE = 0 if LEARNABLE == 1 else 1
-            # if x % 2 == 0  and x != 0:
-            #     SEED = int(time.time() * np.random.rand(1))
-            # if LEARNABLE  ==1:
-            #     INIT = "Random"
-            # else:
-            #     INIT = "Kymatio"
-
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
-            PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG)
-
-            commands.append(command)
+                commands.append(command)
+        
 
     for cmd in commands:
         print(cmd)

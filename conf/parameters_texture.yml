@@ -1,12 +1,12 @@
 #data preprocessing:
 general:
   cores: 2
-  seed:  1191801386 # seed for dataset subselection and random initialization
+  seed: 559086261 # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'JTH Test Gradient'
+  experiment_name: 'June 7, 2021'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
@@ -27,34 +27,35 @@ dataset:
 scattering:
   J: 4
   max_order: 2
-  lr_scattering: 0.01
-  lr_orientation: 0.01
-  max_lr: 0.01
+  lr_scattering: 0.6
+  lr_orientation: 0.6
   init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
   second_order: False
-  three_phase: False
-  div_factor: 5 # so far, best results with 25 and maxlr = 0.05 
+  # max_lr: 0.1
+  # div_factor: 25
+  # three_phase: False
+ 
 
 optim: 
-  name: 'adam' #choices=['adam', 'sgd']
+  name: 'sgd' #choices=['adam', 'sgd']
   lr: 0.001 
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.01 #highest lr we can
-  scheduler: 'StepLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
-  div_factor: 5 # so far, best results with 25 and maxlr = 0.05
-  three_phase: False 
+  max_lr: 0.001 #highest lr we can
+  scheduler: 'OneCycleLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  div_factor: 25 # so far, best results with 25 and maxlr = 0.05
+  three_phase: False
   phase_num: 3
   alternating: False
   T_max: 
-  phase_ends: ["75","150"]
+  phase_ends: #["50", "100", "200"]
 
 model:
-  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'cnn' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 200
-  step_test: 200
+  epoch: 100
+  step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   
 
