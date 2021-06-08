@@ -222,29 +222,43 @@ def run_train(args):
 
     setAllSeeds(seed=params['general']['seed'])
 
-    scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
-        J=params['scattering']['J'],
-        N=params['dataset']['height'],
-        M=params['dataset']['width'],
-        second_order=params['scattering']['second_order'],
-        initialization=params['scattering']['init_params'],
-        seed=params['general']['seed'],
-        learnable=params['scattering']['learnable'],
-        lr_orientation=params['scattering']['lr_orientation'],
-        lr_scattering=params['scattering']['lr_scattering'],
-        device = device,
-        use_cuda=use_cuda
-    )
 
-    setAllSeeds(seed=params['general']['seed'])
-    
-    top = modelFactory( #create cnn, mlp, linearlayer, or other
-        base=scatteringBase,
-        architecture=params['model']['name'],
-        num_classes=params['dataset']['num_classes'], 
-        width= params['model']['width'], 
-        use_cuda=use_cuda
-    )
+    if params['scattering']['identity']:
+        scatteringBase = sn_Identity()
+
+        setAllSeeds(seed=params['general']['seed'])
+        
+        top = modelFactory( #create cnn, mlp, linearlayer, or other
+            base=scatteringBase,
+            architecture=params['model']['name'],
+            num_classes=params['dataset']['num_classes'], 
+            width= params['model']['width'], 
+            use_cuda=use_cuda
+        )
+    else:
+        scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
+            J=params['scattering']['J'],
+            N=params['dataset']['height'],
+            M=params['dataset']['width'],
+            second_order=params['scattering']['second_order'],
+            initialization=params['scattering']['init_params'],
+            seed=params['general']['seed'],
+            learnable=params['scattering']['learnable'],
+            lr_orientation=params['scattering']['lr_orientation'],
+            lr_scattering=params['scattering']['lr_scattering'],
+            device = device,
+            use_cuda=use_cuda
+        )
+
+        setAllSeeds(seed=params['general']['seed'])
+        
+        top = modelFactory( #create cnn, mlp, linearlayer, or other
+            base=scatteringBase,
+            architecture=params['model']['name'],
+            num_classes=params['dataset']['num_classes'], 
+            width= params['model']['width'], 
+            use_cuda=use_cuda
+        )
 
 
 
@@ -274,23 +288,26 @@ def run_train(args):
 
     for epoch in  range(0, params['model']['epoch']):
 
-        if params['optim']['alternating']:
-            if optimizer.phase % 2 == 0:
+        try:
+            if params['optim']['alternating']:
+                if optimizer.phase % 2 == 0:
+                    lrs.append(optimizer.param_groups[0]['lr'])
+                    if params['scattering']['learnable']:
+                        lrs_orientation.append(0)
+                        lrs_scattering.append(0)
+                else:
+                    lrs.append(0)
+                    if params['scattering']['learnable']:
+                        lrs_orientation.append(optimizer.param_groups[0]['lr'])
+                        lrs_scattering.append(optimizer.param_groups[1]['lr'])
+
+            else:
                 lrs.append(optimizer.param_groups[0]['lr'])
                 if params['scattering']['learnable']:
-                    lrs_orientation.append(0)
-                    lrs_scattering.append(0)
-            else:
-                lrs.append(0)
-                if params['scattering']['learnable']:
-                    lrs_orientation.append(optimizer.param_groups[0]['lr'])
-                    lrs_scattering.append(optimizer.param_groups[1]['lr'])
-
-        else:
-            lrs.append(optimizer.param_groups[0]['lr'])
-            if params['scattering']['learnable']:
-                lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                lrs_scattering.append(optimizer.param_groups[2]['lr'])
+                    lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                    lrs_scattering.append(optimizer.param_groups[2]['lr'])
+        except Exception:
+            pass
 
         train, test = get_train_test_functions(params['model']['loss'])
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
@@ -329,15 +346,24 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
-    #visualize filters
-    filters_plots_before = hybridModel.scatteringBase.filters_plots_before
-    hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
-    filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
+    if not params['scattering']['identity']:
+        #visualize filters
+        filters_plots_before = hybridModel.scatteringBase.filters_plots_before
+        hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
+        filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
 
-    filters_values = hybridModel.scatteringBase.plotFilterValues()
-    filters_value = hybridModel.scatteringBase.plotFilterValue()
-    filters_grad = hybridModel.scatteringBase.plotFilterGrads()
-    filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
+        filters_values = hybridModel.scatteringBase.plotFilterValues()
+        filters_value = hybridModel.scatteringBase.plotFilterValue()
+        filters_grad = hybridModel.scatteringBase.plotFilterGrads()
+        filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
+    else:
+        filters_plots_before = None
+        filters_plots_after = None
+        filters_values = None
+        filters_value = None
+        filters_grad = None
+        filter0_grad = None
+
 
 
     # save metrics and params in mlflow
@@ -386,6 +412,7 @@ def main():
     subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
+    subparser.add_argument("--scattering-identity", "-sid", type=int, choices=[0,1])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
@@ -413,7 +440,7 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable','scattering_identity',
                 'scattering_second_order','scattering_three_phase','dataset_glico']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans

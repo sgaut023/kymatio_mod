@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"CNN Cifar-10 500 samples batch norm affine\""
+mlflow_exp_name = "\"All Data Cifar-10 CNN No SCATT\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -34,12 +34,12 @@ DF = 25
 THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 2000
+EPOCHS = 2
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
-TRAIN_BATCH_SIZE = 128
+TRAIN_SAMPLE_NUM = 50000
+TRAIN_BATCH_SIZE = 256
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 MODEL = "cnn"
@@ -47,6 +47,8 @@ MODEL = "cnn"
 # PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
 PHASE_ENDS = " ".join(["100","200"])
 
+MODEL_WIDTH = 8
+IDENTITY = 1
 
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
@@ -77,34 +79,10 @@ if __name__ == '__main__':
 
 
     # for x in range(RUNS_PER_SEED):
-    # for SEED in [491659600,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
-
-    #     # SEED = int(time.time() * np.random.rand(1))
-    #     for aa in [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]:
-    #         LEARNABLE, INIT = aa
-
-    #         args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
-    #             OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
-    #         )
-
-    #         args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
-    #             SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
-    #         )
-
-    #         args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
-    #             SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
-    #         )
-
-    #         command = "{} {} run-train {} {} {} {}".format(
-    #             PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
-
-    #         commands.append(command)
-
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [491659600]:#,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [491659600,207715039,737523103,493572006,827192296]:#,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]:
+        for aa in [(1,"Kymatio")]: #,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
@@ -115,32 +93,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
-            )
-
-            command = "{} {} run-train {} {} {} {}".format(
-                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
-
-            commands.append(command)
-
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [827192296]:#,491659600,207715039,737523103,493572006,877498678,1103100946,1210393663,1277404878,1377264326]:
-
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio"),(1,"Random")]:
-            LEARNABLE, INIT = aa
-
-            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
-            )
-
-            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
-                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
-            )
-
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sid {} -mw {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,IDENTITY,MODEL_WIDTH
             )
 
             command = "{} {} run-train {} {} {} {}".format(
