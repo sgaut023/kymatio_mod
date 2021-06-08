@@ -151,9 +151,9 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
     # or take complex exponential/ cos & sin of uniform between 0 and 2pi).
-    orientations = np.random.normal(0,1,(n_filters,2)) 
-    norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
-    orientations = orientations/norm
+    orientations = np.random.uniform(0,2*np.pi,n_filters) 
+    #norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
+    #orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
     # sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters))
