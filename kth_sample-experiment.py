@@ -8,28 +8,27 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"09 KTH all orders + normalization\""
+mlflow_exp_name = "\"June 8th - all KTH + linear Layer\""
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
-LR = 0.001
+LR = 0.1
 LRS = 0.1
-LRO = 0.7
+LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
 INIT = "Kymatio"
-EPOCHS = 300
+EPOCHS = 150
 RUNS_PER_SEED = 4
 TOTALRUNS = 4
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 ALTERNATING = 0
-
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
