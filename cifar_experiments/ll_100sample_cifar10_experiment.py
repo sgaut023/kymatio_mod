@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 5
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"CNN Cifar-10 100 samples batch norm affine\""
+mlflow_exp_name = "\"new Cifar-10 100 Samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -41,8 +41,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
-ALTERNATING = 1
-MODEL = 'cnn'
+ALTERNATING = 0
 
 
 def runCommand(cmd):
@@ -51,8 +50,9 @@ def runCommand(cmd):
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str)
 
     return parser.parse_args()
 
@@ -64,6 +64,9 @@ if __name__ == '__main__':
     else:
         DATA_ARG = ""
 
+    if args.python != None:
+        PYTHON = args.python
+
     commands = []
 
     # for x in range(RUNS_PER_SEED):
@@ -73,8 +76,8 @@ if __name__ == '__main__':
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -oalt {} -en {} -mname {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,MODEL,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -oalt {} -en {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,DATA_ARG)
 
             commands.append(command)
     

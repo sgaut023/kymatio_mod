@@ -35,7 +35,7 @@ scattering:
   # max_lr: 0.1
   # div_factor: 25
   # three_phase: Falsde
- 
+  architecture: 'scattering'
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']

@@ -42,7 +42,7 @@ def modelFactory(base,architecture,num_classes, width=8, average=False, use_cuda
 
     if architecture.lower() == 'cnn':
         return sn_CNN(
-        base.n_coefficients, width, num_classes=num_classes, standard=False
+            base.n_coefficients, k=width, num_classes=num_classes, standard=False
         )
     elif architecture.lower() == 'mlp':
         return sn_MLP(
@@ -118,8 +118,30 @@ class sn_Identity(nn.Module):
     """Identity nn.Module for identity"""
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.n_coefficients = 1
+
     def forward(self, x):
         return x
+        
+    def saveFilterGrads(self,scatteringActive):
+        pass
+
+    def saveFilterValues(self,scatteringActive):
+        pass
+
+    def plotFilterGrad(self):
+        pass
+
+    def plotFilterGrads(self):
+        pass
+
+
+    def plotFilterValue(self):
+        pass
+
+    def plotFilterValues(self):
+        pass
+
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
@@ -629,6 +651,7 @@ class sn_CNN(nn.Module):
             # print(x.shape)
             # x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
 
+        print("CNN shape:",x.shape)
         x = self.bn0(x)
         x = self.init_conv(x)
 

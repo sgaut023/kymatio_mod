@@ -102,13 +102,18 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         #mlflow.pytorch.log_model(model, artifact_path = 'model')
 
         #save filters 
-        for key in filters_plots_before:
-            mlflow.log_figure(filters_plots_before[key], f'filters_before/{key}.pdf')
-            mlflow.log_figure(filters_plots_after[key], f'filters_after/{key}.pdf')
+        try:
+            for key in filters_plots_before:
+                
+                    mlflow.log_figure(filters_plots_before[key], f'filters_before/{key}.pdf')
+                    mlflow.log_figure(filters_plots_after[key], f'filters_after/{key}.pdf')
+        except:
+            pass
 
         mlflow.log_figure(figures_plot[0], f'plot/train_test_loss.pdf')
         mlflow.log_figure(figures_plot[1], f'plot/train_test_accuracy.pdf')
         mlflow.log_figure(figures_plot[2], f'plot/train_test_accuracy_2.pdf')
+        
         try:
             mlflow.log_figure(figures_plot[3], f'learnable_parameters/filters_grad.pdf')
             mlflow.log_figure(figures_plot[4], f'learnable_parameters/filter_0_grad.pdf')

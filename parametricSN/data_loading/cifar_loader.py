@@ -76,6 +76,9 @@ def cifar_augmentationFactory(augmentation):
     normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
                                      std=[x/255.0 for x in [63.0, 62.1, 66.7]])
 
+    # more precise cifar normalization thanks to:
+    # https://github.com/tomgoldstein/loss-landscape/blob/master/cifar10/dataloader.py#L16
+
     return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
