@@ -34,10 +34,11 @@ from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
 
 from parametricSN.utils import cosine_training, cross_entropy_training
-from parametricSN.utils.models import *
+from parametricSN.models.sn_top_models import topModelFactory
+from parametricSN.models.sn_base_models import baseModelFactory
+from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.utils.optimizer_loader import *
-
-#rom parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
@@ -222,39 +223,32 @@ def run_train(args):
 
     setAllSeeds(seed=params['general']['seed'])
 
-
-    if params['scattering']['identity']:
-        scatteringBase = sn_Identity()
-    else:
-        scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
-            J=params['scattering']['J'],
-            N=params['dataset']['height'],
-            M=params['dataset']['width'],
-            second_order=params['scattering']['second_order'],
-            initialization=params['scattering']['init_params'],
-            seed=params['general']['seed'],
-            learnable=params['scattering']['learnable'],
-            lr_orientation=params['scattering']['lr_orientation'],
-            lr_scattering=params['scattering']['lr_scattering'],
-            device = device,
-            use_cuda=use_cuda
-        )
+    scatteringBase = baseModelFactory( #creat scattering base model
+        architecture=params['scattering']['architecture'],
+        J=params['scattering']['J'],
+        N=params['dataset']['height'],
+        M=params['dataset']['width'],
+        second_order=params['scattering']['second_order'],
+        initialization=params['scattering']['init_params'],
+        seed=params['general']['seed'],
+        learnable=params['scattering']['learnable'],
+        lr_orientation=params['scattering']['lr_orientation'],
+        lr_scattering=params['scattering']['lr_scattering'],
+        device=device,
+        use_cuda=use_cuda
+    )
 
     setAllSeeds(seed=params['general']['seed'])
     
-    top = modelFactory( #create cnn, mlp, linearlayer, or other
+    top = topModelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
         architecture=params['model']['name'],
         num_classes=params['dataset']['num_classes'], 
         width= params['model']['width'], 
-        average = params['model']['average'], 
+        average=params['model']['average'], 
         use_cuda=use_cuda
     )
 
-
-
-    #use for cnn?
-    # model = Scattering2dResNet(8, params['model']['width'],standard=True).to(device)
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top, use_cuda=use_cuda)
 
@@ -337,7 +331,7 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
-    if not params['scattering']['identity']:
+    if params['scattering']['architecture']  == 'scattering':
         #visualize filters
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
         hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
@@ -403,7 +397,7 @@ def main():
     subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
-    subparser.add_argument("--scattering-identity", "-sid", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
@@ -431,12 +425,10 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable','scattering_identity',
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
                 'scattering_second_order','scattering_three_phase','dataset_glico']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
-
-    print(args.__dict__['optim_three_phase'])
 
     args.callback(args)
 

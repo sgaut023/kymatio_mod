@@ -35,7 +35,7 @@ scattering:
   # max_lr: 0.1
   # div_factor: 25
   # three_phase: Falsde
- 
+  architecture: 'scattering'
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']
@@ -57,7 +57,8 @@ model:
   epoch: 300
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
-  average: True
+  average: False
+
   
 
 

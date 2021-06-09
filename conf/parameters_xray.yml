@@ -20,18 +20,19 @@ dataset:
   height:  96   # ultrasound image dimension
   width:  96   # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  sample: 
+  sample:
+  glico: 0
 
 # kymatio 
 scattering:
-  J: 4
+  J: 3
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
   init_params: 'Random' # 'Random' or 'Kymatio'
   learnable: True # True if learnable
   second_order: False
-
+  architecture: 'scattering'
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
@@ -52,7 +53,8 @@ model:
   epoch: 100
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
-  average: True
+  average: False
+
   
 
 

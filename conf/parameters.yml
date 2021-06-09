@@ -23,6 +23,7 @@ dataset:
   sample: 
   glico: 0
 # kymatio 
+
 scattering:
   J: 2
   max_order: 2
@@ -31,7 +32,8 @@ scattering:
   init_params: 'Kymatio' # 'Random' or 'Kymatio'
   learnable: False # True if learnable
   second_order: False
-  identity: False
+  architecture: 'scattering'
+
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
@@ -53,6 +55,6 @@ model:
   epoch: 5
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
-  average: True
+  average: False
   
 
