@@ -1,7 +1,7 @@
 #data preprocessing:
 general:
   cores: 2
-  seed: 559086261 # seed for dataset subselection and random initialization
+  seed: 1557226124 # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
@@ -20,29 +20,29 @@ dataset:
   height: 128  # ultrasound image dimension
   width:  128  # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  sample: 'c'
+  sample: 'd'
   glico: 0
 
 # kymatio 
 scattering:
-  J: 4
+  J: 2
   max_order: 2
-  lr_scattering: 0.6
-  lr_orientation: 0.6
+  lr_scattering: 0.1
+  lr_orientation: 0.1
   init_params: 'Kymatio' # 'Kymatio' or 'Random'
   learnable: True # True if learnable
   second_order: False
   # max_lr: 0.1
   # div_factor: 25
-  # three_phase: False
+  # three_phase: Falsde
  
 
 optim: 
-  name: 'sgd' #choices=['adam', 'sgd']
+  name: 'sgd' #choices=['adam', 'dsgd']
   lr: 0.001 
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.001 #highest lr we can
+  max_lr: 0.1 #highest lr we can
   scheduler: 'OneCycleLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
   three_phase: False
@@ -52,11 +52,12 @@ optim:
   phase_ends: #["50", "100", "200"]
 
 model:
-  name: 'cnn' # choices=['c', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 100
+  epoch: 300
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
+  average: True
   
 
 

@@ -37,7 +37,7 @@ class InvalidArchitectureError(Exception):
     """Error thrown when an invalid architecture name is passed"""
     pass
 
-def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
+def modelFactory(base,architecture,num_classes, width=8, average=False, use_cuda=True):
     """factory for the creation of different model architectures associated to a scattering base"""
 
     if architecture.lower() == 'cnn':
@@ -54,7 +54,7 @@ def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
         return sn_LinearLayer(
             num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False
+            standard=False, average=average
         )
     else:
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
@@ -430,7 +430,6 @@ class sn_ScatteringBase(nn.Module):
         x = construct_scattering(ip, self.scattering, self.psi)
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
-        #x = x.reshape(x.size(0), self.n_coefficients*3)
         return x
 
     def countLearnableParams(self):
@@ -494,10 +493,11 @@ class sn_MLP(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, average = False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
+        self.average= average
         if use_cuda:
             self.cuda()
 
@@ -505,7 +505,8 @@ class sn_LinearLayer(nn.Module):
             self.fc1 = nn.Linear(3*32*32,num_classes)
             #self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            #self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
             # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
             # self.fc2 = nn.Linear(1024, num_classes)
 
@@ -515,6 +516,8 @@ class sn_LinearLayer(nn.Module):
     def forward(self, x):
         # x = x[:,:, -self.n_coefficients:,:,:]
         x = self.bn0(x)
+        if self.average:
+            x = x.mean(dim=(2,3))
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         return x

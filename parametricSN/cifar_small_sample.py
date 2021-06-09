@@ -243,6 +243,7 @@ def run_train(args):
         architecture=params['model']['name'],
         num_classes=params['dataset']['num_classes'], 
         width= params['model']['width'], 
+        average = params['model']['average'], 
         use_cuda=use_cuda
     )
 
