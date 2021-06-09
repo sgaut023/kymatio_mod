@@ -5,9 +5,9 @@ import os
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 
 #cifar
+os.system("{} cifar_experiments/onlycnnalldata_cifar10_experiment.py".format(PYTHON))
 os.system("{} cifar_experiments/cnnalldata_cifar10_experiment.py".format(PYTHON))
 
-os.system("{} cifar_experiments/onlycnnalldata_cifar10_experiment.py".format(PYTHON))
 # os.system("{} cifar_experiments/llalldata_cifar10_experiment.py".format(PYTHON))
 
 

@@ -640,6 +640,7 @@ class sn_CNN(nn.Module):
             # print(x.shape)
             # x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
 
+        print("CNN shape:",x.shape)
         x = self.bn0(x)
         x = self.init_conv(x)
 

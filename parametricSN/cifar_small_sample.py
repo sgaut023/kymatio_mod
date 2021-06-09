@@ -225,16 +225,6 @@ def run_train(args):
 
     if params['scattering']['identity']:
         scatteringBase = sn_Identity()
-
-        setAllSeeds(seed=params['general']['seed'])
-        
-        top = modelFactory( #create cnn, mlp, linearlayer, or other
-            base=scatteringBase,
-            architecture=params['model']['name'],
-            num_classes=params['dataset']['num_classes'], 
-            width= params['model']['width'], 
-            use_cuda=use_cuda
-        )
     else:
         scatteringBase = sn_ScatteringBase( #create learnable of non-learnable scattering
             J=params['scattering']['J'],
@@ -250,15 +240,15 @@ def run_train(args):
             use_cuda=use_cuda
         )
 
-        setAllSeeds(seed=params['general']['seed'])
-        
-        top = modelFactory( #create cnn, mlp, linearlayer, or other
-            base=scatteringBase,
-            architecture=params['model']['name'],
-            num_classes=params['dataset']['num_classes'], 
-            width= params['model']['width'], 
-            use_cuda=use_cuda
-        )
+    setAllSeeds(seed=params['general']['seed'])
+    
+    top = modelFactory( #create cnn, mlp, linearlayer, or other
+        base=scatteringBase,
+        architecture=params['model']['name'],
+        num_classes=params['dataset']['num_classes'], 
+        width= params['model']['width'], 
+        use_cuda=use_cuda
+    )
 
 
 
