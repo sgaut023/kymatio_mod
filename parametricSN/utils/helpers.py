@@ -113,6 +113,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_figure(figures_plot[0], f'plot/train_test_loss.pdf')
         mlflow.log_figure(figures_plot[1], f'plot/train_test_accuracy.pdf')
         mlflow.log_figure(figures_plot[2], f'plot/train_test_accuracy_2.pdf')
+        
         try:
             mlflow.log_figure(figures_plot[3], f'learnable_parameters/filters_grad.pdf')
             mlflow.log_figure(figures_plot[4], f'learnable_parameters/filter_0_grad.pdf')

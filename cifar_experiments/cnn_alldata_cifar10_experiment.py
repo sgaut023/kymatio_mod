@@ -43,10 +43,9 @@ TRAIN_BATCH_SIZE = 1024
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 MODEL = "cnn"
-# PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
-# PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
 PHASE_ENDS = " ".join(["100","200"])
 
+SCATT_ARCH = 'scattering'
 
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
@@ -60,8 +59,9 @@ def runCommand(cmd):
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str)
 
     return parser.parse_args()
 
@@ -72,6 +72,9 @@ if __name__ == '__main__':
         DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
     else:
         DATA_ARG = ""
+
+    if args.python != None:
+        PYTHON = args.python
 
     commands = []
 
@@ -91,8 +94,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH
             )
 
             command = "{} {} run-train {} {} {} {}".format(

@@ -48,10 +48,11 @@ def runCommand(cmd):
     print("[Running] {}".format(cmd))
     os.system(cmd)
 
-def cli(): 
+def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str)
 
     return parser.parse_args()
 
@@ -62,6 +63,9 @@ if __name__ == '__main__':
         DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
     else:
         DATA_ARG = ""
+
+    if args.python != None:
+        PYTHON = args.python
 
     commands = []
 

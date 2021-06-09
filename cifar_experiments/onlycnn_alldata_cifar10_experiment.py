@@ -38,17 +38,16 @@ EPOCHS = 50
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
+TEST_BATCH_SIZE = 256
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 256
 AUGMENT = "autoaugment"
 ALTERNATING = 0
 MODEL = "cnn"
-# PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
-# PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
 PHASE_ENDS = " ".join(["100","200"])
 
 MODEL_WIDTH = 8
-IDENTITY = 1
+SCATT_ARCH = 'identity'
 
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
@@ -62,8 +61,9 @@ def runCommand(cmd):
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str)
 
     return parser.parse_args()
 
@@ -74,6 +74,9 @@ if __name__ == '__main__':
         DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
     else:
         DATA_ARG = ""
+
+    if args.python != None:
+        PYTHON = args.python
 
     commands = []
 
@@ -93,8 +96,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sid {} -mw {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,IDENTITY,MODEL_WIDTH
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -mw {} -dtstbs {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,MODEL_WIDTH,TEST_BATCH_SIZE
             )
 
             command = "{} {} run-train {} {} {} {}".format(

@@ -1,4 +1,5 @@
 import torch
+
 import torch.nn.functional as F
 
 def test(model, device, test_loader):
