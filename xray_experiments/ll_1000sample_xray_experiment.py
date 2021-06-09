@@ -1,13 +1,4 @@
-""" 1000 sample xray experiment script
-
-This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
-
-Experiment: learnable vs non-learnable & Kymatio vs Random for xray 1000 samples 
-
-example command:
-
-    python parametricSN/cifar_small_sample.py run-train -oname sgd -olr 0.1 -gseed 1371927268 -sl 1 -me 500 -omaxlr 0.06 -odivf 25 -sip Random -dtsn 100 -os OneCycleLR -daug original-cifar -oalt 0 -en "Xray 100 Samples" -pf parameters_xray.yml 
-
+""" SN+LL 1000 Samples Xray
 """
 
 import os
@@ -21,7 +12,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Xray 1000 Samples batch norm affine\""
+mlflow_exp_name = "\"SN+LL 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -70,9 +61,9 @@ if __name__ == '__main__':
     commands = []
 
 
-    for x in range(RUNS_PER_SEED):
+    for SEED in [1274534694,729356706,1161505729,1092247892,725267588,1109890709,1121912626,980318438,939207048,782047964]:
 
-        SEED = int(time.time() * np.random.rand(1))
+        # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 

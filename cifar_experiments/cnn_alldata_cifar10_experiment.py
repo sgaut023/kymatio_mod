@@ -1,12 +1,4 @@
-"""CNN Cifar-10 1000 sample experiment script
-
-This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
-
-Experiment: learnable vs non-learnable scattering for cifar-10 1000 samples 
-
-example command:
-
-    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
+"""SN+CNN All Data Cifar-10
 
 """
 
@@ -21,7 +13,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"All Data Cifar-10 CNN + BNA\""
+mlflow_exp_name = "\"SN+CNN All Data Cifar-10\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -80,7 +72,7 @@ if __name__ == '__main__':
 
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [491659600,207715039]:#,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [491659600,207715039,737523103,493572006,827192296]:#,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]:
@@ -94,8 +86,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -slrs {} -slro {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,LRS,LRO
             )
 
             command = "{} {} run-train {} {} {} {}".format(
