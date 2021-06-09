@@ -22,6 +22,7 @@ import os
 from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 from parametricSN.data_loading.cifar_loader import SmallSampleController
 from torchvision import datasets, transforms
+from torch.utils.data import Subset
 
 
 
@@ -65,8 +66,12 @@ def xray_augmentationFactory(augmentation, height, width):
 def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
                          valBatchSize, multiplier, trainAugmentation,
                          height , width , seed=None,   dataDir=".", num_workers=4, 
-                         use_cuda=True):
-    """Samples a specified class balanced number of samples form the cifar dataset"""
+                         use_cuda=True, glico=False):
+    """Samples a specified class balanced number of samples form the cifar dataset
+    
+    returns:
+        train_loader, test_loader, seed, glico_dataset
+    """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -91,5 +96,11 @@ def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
         seed=seed
     ) 
 
-    return train_loader_in_list[0], test_loader_in_list[0], seed
+    if glico:
+        glico_dataset = datasets.ImageFolder(root=os.path.join(dataDir,'train'))
+        glico_train = Subset(glico_dataset, ssc.trainSampler.indexes[0])
+    else:
+        glico_train = None
+
+    return train_loader_in_list[0], test_loader_in_list[0], seed, glico_train
 

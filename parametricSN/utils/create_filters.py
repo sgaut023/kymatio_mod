@@ -55,18 +55,27 @@ def update_psi(J, psi, wavelets,  initialization , device):
                 d[0] = wavelets[i]
 
     else:
-        count = 0
         for i,d in enumerate(psi):
             for res in range(0, J-1):
-                try:
-                    d[res]
+                if res in d.keys():
                     if res == 0:
-                        d[res] = wavelets[count]
+                        d[res]=wavelets[i]
                     else:
-                        d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
-                    count +=1
-                except KeyError:
-                    pass
+                        d[res]= periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
+    # else:
+    #     count = 0
+    #     for i,d in enumerate(psi):
+    #         for res in range(0, J-1):
+    #             try:
+    #                 d[res]
+    #                 if res == 0:
+    #                     d[res] = wavelets[count]
+    #                 else:
+    #                     d[res] = periodize_filter_fft(wavelets[count].squeeze(2), res, device).unsqueeze(2)
+    #                     #d[res] = wavelets[count]
+    #                 count +=1
+    #             except KeyError:
+    #                 pass
                 
     return psi
 
@@ -142,13 +151,13 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     # For the orientation, choose uniform on the circle 
     #(can init some 2d gaussian values then divide by their norm 
     # or take complex exponential/ cos & sin of uniform between 0 and 2pi).
-    orientations = np.random.normal(0,1,(n_filters,2)) 
-    norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
-    orientations = orientations/norm
+    orientations = np.random.uniform(0,2*np.pi,n_filters) 
+    #norm = np.linalg.norm(orientations, axis=1).reshape(orientations.shape[0], 1)
+    #orientations = orientations/norm
     slants = np.random.uniform(0.5, 1.5,n_filters )# like uniform between 0.5 and 1.5.
     xis = np.random.uniform(0.5, 1, n_filters )
     # sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters))
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(3), n_filters))
+    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
     
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
     sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
@@ -175,20 +184,21 @@ def create_filters_params(J, L, is_scattering_dif, device):
 
     for j in range(J):
         for theta in range(L):
-            for res in range(min(j + 1, max(J - 1, 1))):
-                sigma = 0.8 * 2**j
-                sigmas.append(0.8 * 2**j)
-                t = ((int(L-L/2-1)-theta) * np.pi / L)
-                xis.append(3.0 / 4.0 * np.pi /2**j)
-                slant = 4.0/L
-                slants.append(slant)
+            #for res in range(min(j + 1, max(J - 1, 1))):
+            sigma = 0.8 * 2**j
+            sigmas.append(0.8 * 2**j)
+            t = ((int(L-L/2-1)-theta) * np.pi / L)
+            xis.append(3.0 / 4.0 * np.pi /2**j)
+            slant = 4.0/L
+            slants.append(slant)
 
-                #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
-                #R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32)
-                D = np.array([[1, 0], [0, slant * slant]])
-                R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
-                #orientations.append( (np.dot(R, np.dot(D, R_inv)) / ( 2 * sigma * sigma)))
-                orientations.append(R_inv)    
+            #orientations.append(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32))
+            #R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], np.float32)
+            D = np.array([[1, 0], [0, slant * slant]])
+            R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
+            #orientations.append( (np.dot(R, np.dot(D, R_inv)) / ( 2 * sigma * sigma)))
+            #orientations.append(R_inv) 
+            orientations.append(t) 
 
             
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
@@ -196,7 +206,8 @@ def create_filters_params(J, L, is_scattering_dif, device):
     slants = torch.tensor(slants, dtype=torch.float32, device=device)
     orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
 
-    params = [orientations[:, 0], xis, sigmas, slants]
+    #params = [orientations[:, 0], xis, sigmas, slants]
+    params = [orientations, xis, sigmas, slants]
     if is_scattering_dif:
         for param in params:
             param.requires_grad = True
@@ -242,16 +253,19 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
 
     return filters
 
-def morlets(grid_or_shape, orientations, xis, sigmas, slants, device=None, morlet=True, ifftshift=True, fft=True):
+def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True, ifftshift=True, fft=True):
     """Creates morlet wavelet filters from input
 
     --long description TODO pour laurent
     """
     if device is None:
-        device = orientations.device
+        device = theta.device
+    orientations = torch.cat((torch.cos(theta).unsqueeze(1),torch.sin(theta).unsqueeze(1)), dim =1)
+    #orientations = torch.tensor((torch.cos(theta),torch.sin(theta)), dtype=torch.float32, device=device) 
+
 
     n_filters, ndim = orientations.shape
-    orientations = orientations / (torch.norm(orientations, dim=1, keepdim=True) + 1e-19)
+    #orientations = orientations / (torch.norm(orientations, dim=1, keepdim=True) + 1e-19)
     wave_vectors = orientations * xis[:, np.newaxis]
 
     _, _, gauss_directions = torch.linalg.svd(orientations[:, np.newaxis])

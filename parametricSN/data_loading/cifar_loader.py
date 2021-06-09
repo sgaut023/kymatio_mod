@@ -73,16 +73,20 @@ def cifar_augmentationFactory(augmentation):
     else: 
         NotImplemented(f"augment parameter {augmentation} not implemented")
 
-    normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
-                                     std=[0.247, 0.243, 0.261])
+    normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
+                                     std=[x/255.0 for x in [63.0, 62.1, 66.7]])
 
     return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
                          valBatchSize, multiplier, trainAugmentation,
                          seed=None, dataDir=".", num_workers=4, 
-                         use_cuda=True):
-    """Samples a specified class balanced number of samples form the cifar dataset"""
+                         use_cuda=True,glico=False):
+    """Samples a specified class balanced number of samples form the cifar dataset
+    
+    returns:
+        train_loader, test_loader, seed, glico_dataset
+    """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -112,7 +116,15 @@ def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
         seed=seed
     ) 
 
-    return train_loader_in_list[0], test_loader_in_list[0], seed
+    if glico:
+        glico_dataset = datasets.CIFAR10(#load train dataset again
+            root=dataDir, train=True, download=True
+        )
+        glico_train = Subset(glico_dataset, ssc.trainSampler.indexes[0])
+    else:
+        glico_train = None
+
+    return train_loader_in_list[0], test_loader_in_list[0], seed, glico_train
 
 class SmallSampleController:
     """
@@ -225,13 +237,13 @@ class SmallSampleController:
 
         
         self.trainSampler = SmallSampleController.Sampler(
-            numClasses=self.numClasses,sampleNum=trainSampleNum,
-            batchSize=trainBatchSize,multiplier=1
+            numClasses=self.numClasses, sampleNum=trainSampleNum,
+            batchSize=trainBatchSize, multiplier=1
             )
 
         self.valSampler = SmallSampleController.Sampler(
-            numClasses=self.numClasses,sampleNum=valSampleNum,
-            batchSize=valBatchSize,multiplier=multiplier
+            numClasses=self.numClasses, sampleNum=valSampleNum,
+            batchSize=valBatchSize, multiplier=multiplier
             )
 
         self.trainDataset = SmallSampleController.DatasetContainer(trainDataset)

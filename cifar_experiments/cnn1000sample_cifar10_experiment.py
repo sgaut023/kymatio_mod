@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"CNN Cifar-10 1000 samples batch norm affine\""
+mlflow_exp_name = "\"CNN ce loss no-AA Cifar-10 1000 samples batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -29,24 +29,26 @@ OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.06
+LRMAX = 0.07
 DF = 25
 THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 3000
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 256
-AUGMENT = "autoaugment"
+TRAIN_BATCH_SIZE = 128
+AUGMENT = "cifar-original"
 ALTERNATING = 1
 MODEL = "cnn"
-PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
-PHASE_ENDS = " ".join(["10","15"])
+# PHASE_ENDS = " ".join(["200","300","600","700","900","1000"])
+# PHASE_ENDS = " ".join(["1","300","600","700","900","1000"])
+PHASE_ENDS = " ".join(["100","200"])
 
 
+MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
@@ -73,11 +75,12 @@ if __name__ == '__main__':
 
     commands = []
 
+
     # for x in range(RUNS_PER_SEED):
-    for SEED in [737523103,207715039,491659600,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [491659600,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#,(1,"Random"),(0,"Random")]:
+        for aa in [(1,"Kymatio"),(0,"Kymatio")]:#(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
@@ -88,8 +91,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
             )
 
             command = "{} {} run-train {} {} {} {}".format(

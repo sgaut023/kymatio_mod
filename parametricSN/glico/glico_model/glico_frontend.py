@@ -15,8 +15,8 @@ import torchvision.utils as vutils
 from numpy.random import RandomState
 from torch.utils.data import Subset
 
-from newglico.glico_model.nag_trainer import NAGTrainer
-from newglico.glico_model.interpolate import interpolate_points
+from parametricSN.glico.glico_model.nag_trainer import NAGTrainer
+from parametricSN.glico.glico_model.interpolate import interpolate_points
 
 OptParams = collections.namedtuple(
     'OptParams', 
@@ -75,7 +75,7 @@ def getGenImage(z1,z2,gen,steps,codeSize):
     return im
 
 
-class GlicoLoader:
+class GlicoController:
     """Object to hold the Glico models in order to sample from them to
     obtain new training images
     
@@ -98,7 +98,7 @@ class GlicoLoader:
             self.interps[i] = torch.cat(temp,dim=0)
             
         
-    def __init__(self,nagTrainer,steps):
+    def __init__(self, nagTrainer, steps, replaceProb):
         """Parse GLICO models out of their objects
 
         parameters:
@@ -110,15 +110,19 @@ class GlicoLoader:
         self.netZ = self.nag.netZ
         self.netG = self.nag.netG
         self.steps = steps
+        self.replaceProb = replaceProb
         self.getInterpolations()
         
         self.indices = [0 for x in range(10)]
         a = self.interps[0].size(0)
         prng = RandomState(int(time.time()))
         self.indexers = [list(prng.permutation(np.arange(0,a))) for x in range(10)]
+
+    def __call__(self, img, targets):
+        return (self.replaceBatch(img,targets), targets,)
         
         
-    def sample(self,classNum):
+    def sample(self, classNum):
         if self.interps[0].size(0) == self.indices[classNum]:
             self.indices[classNum] = 0
             prng = RandomState(int(time.time()))
@@ -128,18 +132,19 @@ class GlicoLoader:
             
         return temp
     
-    def replaceBatch(self,batch,targets,replaceProb):
+    def replaceBatch(self,batch,targets):
         for x in range(batch.size(0)):
             prob = np.random.rand()
-            if prob < replaceProb:
+            if prob < self.replaceProb:
                 batch[x,:,:,:] = self.sample(targets[x].item())
             else:
                 pass
         return batch
 
     def visualize(self):
+        pass
 
-        vutils.save_image(Irec.data, f'runs/ims_{self.rn}/reconstructions_{image_size}__{epoch}_vutils.png',
-                          normalize=False)
+        # vutils.save_image(Irec.data, f'runs/ims_{self.rn}/reconstructions_{image_size}__{epoch}_vutils.png',
+        #                   normalize=False)
 
 

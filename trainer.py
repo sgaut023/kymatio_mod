@@ -4,10 +4,15 @@ import os
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 
-
+#cifar
+os.system("{} cifar_experiments/100sample_cifar10_experiment.py".format(PYTHON))
+os.system("{} cifar_experiments/500sample_cifar10_experiment.py".format(PYTHON))
+os.system("{} cifar_experiments/1000sample_cifar10_experiment.py".format(PYTHON))
+os.system("{} cifar_experiments/cnn1000sample_cifar10_experiment.py".format(PYTHON))
+exit(0)
 
 #cifar cnn
-os.system("{} cifar_experiments/cnn1000sample_cifar10_experiment.py".format(PYTHON))
+
 os.system("{} cifar_experiments/cnn500sample_cifar10_experiment.py".format(PYTHON))
 os.system("{} cifar_experiments/cnn100sample_cifar10_experiment.py".format(PYTHON))
 

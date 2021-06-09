@@ -37,7 +37,7 @@ class InvalidArchitectureError(Exception):
     """Error thrown when an invalid architecture name is passed"""
     pass
 
-def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
+def modelFactory(base,architecture,num_classes, width=8, average=False, use_cuda=True):
     """factory for the creation of different model architectures associated to a scattering base"""
 
     if architecture.lower() == 'cnn':
@@ -54,7 +54,7 @@ def modelFactory(base,architecture,num_classes, width =8, use_cuda=True):
         return sn_LinearLayer(
             num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False
+            standard=False, average=average
         )
     else:
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
@@ -95,7 +95,8 @@ def create_scatteringExclusive(J,N,M,second_order,device,initilization,seed=0,re
     if initilization == "Kymatio":
         params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
     elif initilization == "Random":
-        num_filters = get_total_num_filters(J,L)
+        #num_filters = get_total_num_filters(J,L)
+        num_filters= J*L
         params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
     else:
         raise InvalidInitializationException
@@ -223,8 +224,175 @@ class sn_ScatteringBase(nn.Module):
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
+        #self.filterTracker = {'orientation1':[],'orientation2':[],'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
+        self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
+       
+        self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
+
         self.filters_plots_before = self.getFilterViz()
         self.scatteringTrain = False
+
+    def saveFilterValues(self,scatteringActive):
+        #print('orientation1',self.params_filters[0][:,0].detach().shape)
+        #print('not ori',self.params_filters[1].detach().shape)
+        # print(self.params_filters[3].detach())
+        try:
+            if scatteringActive:
+                #orientations1 = self.params_filters[0][:,0].detach().clone()
+                #orientations2 = self.params_filters[0][:,1].detach().clone()
+                orientations1 = self.params_filters[0].detach().clone()
+                #self.filterTracker['orientation1'].append(orientations1)
+                #self.filterTracker['orientation2'].append(orientations2)
+                self.filterTracker['1'].append(self.params_filters[1].detach().clone())
+                self.filterTracker['2'].append(self.params_filters[2].detach().clone()) 
+                self.filterTracker['3'].append(self.params_filters[3].detach().clone()) 
+                scale = torch.mul(self.params_filters[1].detach().clone(), self.params_filters[2].detach().clone())
+                self.filterTracker['scale'].append(scale) 
+                #angle = torch.atan2(orientations1, orientations2)
+                self.filterTracker['angle'].append(orientations1) 
+
+            else:
+                #self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['angle'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                #self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        except Exception:
+            pass
+
+
+    def saveFilterGrads(self,scatteringActive):
+        #print('orientation1grad',self.params_filters[0].grad.shape)
+        try:
+            if scatteringActive:
+                #self.filterGradTracker['orientation1'].append(self.params_filters[0].grad[:,0].clone()) 
+                self.filterGradTracker['angle'].append(self.params_filters[0].grad.clone()) 
+                #self.filterGradTracker['orientation2'].append(self.params_filters[0].grad[:,1].clone()) 
+                self.filterGradTracker['1'].append(self.params_filters[1].grad.clone()) 
+                self.filterGradTracker['2'].append(self.params_filters[2].grad.clone()) 
+                self.filterGradTracker['3'].append(self.params_filters[3].grad.clone()) 
+            else:
+                self.filterGradTracker['angle'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                #self.filterGradTracker['orientation1'].append(torch.zeros(self.params_filters[1].shape[0]))
+                #self.filterGradTracker['orientation2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['1'].append(torch.zeros(self.params_filters[1].shape[0])) 
+                self.filterGradTracker['2'].append(torch.zeros(self.params_filters[1].shape[0]))
+                self.filterGradTracker['3'].append(torch.zeros(self.params_filters[1].shape[0]))
+        except Exception:
+            pass
+
+
+    def plotFilterGrad(self):
+        """ plots the graph of the filter gradients """
+
+
+        f = plt.figure (figsize=(7,7))
+        temp = {
+            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterGradTracker['angle']],
+            #'orientation2': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['orientation2']],
+            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['1']],
+            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['2']],
+            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
+        }
+
+
+
+        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+        #plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+        plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+        plt.legend()
+
+        return f
+
+
+    def plotFilterGrads(self):
+        """ plots the graph of the filter gradients """
+        filterNum = self.params_filters[1].shape[0]
+        col = 8
+        row = int(filterNum/col)
+        size = (80, 10*row,)
+
+        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+
+        for x in range(filterNum):#iterate over all the filters
+            temp = {
+                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
+                #'orientation2': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['orientation2']],
+                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
+            }
+
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
+            #axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='orientation2')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+
+            axarr[int(x/col),x%col].legend()
+
+        return f
+
+    def plotFilterValue(self):
+        """ plots the graph of the filter 0 value  """
+
+        f = plt.figure (figsize=(7,7))
+        temp = {
+            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterTracker['angle']],
+            #'orientation2': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['orientation2']],
+            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['1']],
+            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['2']],
+            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['3']],
+            'scale': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['scale']],
+            #'angle': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['angle']]
+        }
+
+        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+        #plt.plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='theta2')
+        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+        plt.plot([x for x in range(len(temp['slant']))], temp['slant'], color='orange', label='slant')
+        #plt.plot([x for x in range(len(temp['angle']))],temp['angle'],color='pink', label='theta')
+        plt.plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+        
+        plt.legend()
+
+        return f
+    
+    def plotFilterValues(self):
+        filterNum = self.params_filters[1].shape[0]
+        col = 8
+        row = int(filterNum/col)
+        size = (80, 10*row,)
+
+        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+
+        for x in range(filterNum):#iterate over all the filters
+            #axarr[int(x/col),x%col].axis('off')
+            temp = {
+                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
+                #'orientation2': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['orientation2']],
+                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
+                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
+                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
+                'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
+                'angle': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['angle']]
+            }
+
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+            #axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation2']))],temp['orientation2'],color='blue', label='orientation2')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+            #axarr[int(x/col),x%col].plot([x for x in range(len(temp['angle']))],temp['angle'],color='pink', label='theta')
+            axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+            axarr[int(x/col),x%col].legend()
+
+        return f
+        
 
     def train(self,mode=True):
         super().train(mode=mode)
@@ -239,9 +407,11 @@ class sn_ScatteringBase(nn.Module):
     def parameters(self):
         """ override parameters to include learning rates """
         if self.learnable:
-            yield {'params': self.params_filters[0], 'lr': self.lr_orientation}
-            yield {'params': [self.params_filters[1], self.params_filters[2],
-                self.params_filters[3]],'lr': self.lr_scattering}
+            yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
+                              'maxi_lr':self.lr_orientation , 'weight_decay': 0}
+            yield {'params': [ self.params_filters[1],self.params_filters[2],
+                               self.params_filters[3]],'lr': self.lr_scattering,
+                               'maxi_lr':self.lr_scattering , 'weight_decay': 0}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
@@ -323,10 +493,11 @@ class sn_MLP(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, average = False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
+        self.average= average
         if use_cuda:
             self.cuda()
 
@@ -334,7 +505,8 @@ class sn_LinearLayer(nn.Module):
             self.fc1 = nn.Linear(3*32*32,num_classes)
             #self.fc2 = nn.Linear(256, num_classes)
         else:
-            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            #self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
             # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
             # self.fc2 = nn.Linear(1024, num_classes)
 
@@ -344,6 +516,8 @@ class sn_LinearLayer(nn.Module):
     def forward(self, x):
         # x = x[:,:, -self.n_coefficients:,:,:]
         x = self.bn0(x)
+        if self.average:
+            x = x.mean(dim=(2,3))
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         return x

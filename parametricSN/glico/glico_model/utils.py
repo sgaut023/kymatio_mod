@@ -18,12 +18,12 @@ from torch.nn import init
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 
-from ..autoaugment import Cutout_, AutoAugment
-from .model import weights_init
-from ..vgg_arch import vgg19_bn
-from wide_resnet import WideResNet
-from ..wideresnet_2 import WideResNet2
-from . import vgg_metric
+from parametricSN.glico.autoaugment import Cutout_, AutoAugment
+from parametricSN.glico.glico_model.model import weights_init
+from parametricSN.glico.vgg_arch import vgg19_bn
+from parametricSN.glico.wide_resnet import WideResNet
+from parametricSN.glico.wideresnet_2 import WideResNet2
+from parametricSN.glico.glico_model import vgg_metric
 
 
 NAGParams = collections.namedtuple('NAGParams',
