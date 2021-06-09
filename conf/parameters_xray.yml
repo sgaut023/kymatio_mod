@@ -52,6 +52,7 @@ model:
   epoch: 100
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
+  average: True
   
 
 
