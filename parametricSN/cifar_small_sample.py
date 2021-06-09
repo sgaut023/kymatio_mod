@@ -430,8 +430,6 @@ def main():
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 
-    print(args.__dict__['optim_three_phase'])
-
     args.callback(args)
 
 

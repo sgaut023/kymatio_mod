@@ -42,13 +42,13 @@ def topModelFactory(base,architecture,num_classes, width=8, average=False, use_c
         return sn_MLP(
             num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False,use_cuda=use_cuda
+            use_cuda=use_cuda
         )
     elif architecture.lower() == 'linear_layer':
         return sn_LinearLayer(
             num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            standard=False, average=average
+            average=average
         )
     else:
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))
@@ -59,16 +59,13 @@ class sn_MLP(nn.Module):
     '''
     Multilayer Perceptron.
     '''
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, use_cuda=True):
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_MLP,self).__init__()
         selfnum_classes =num_classes
         if use_cuda:
             self.cuda()
 
-        if standard:
-            fc1 = nn.Linear(3*32*32, 512)
-        else:
-            fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
+        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
 
         self.layers = nn.Sequential(
             nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True),
@@ -98,7 +95,7 @@ class sn_MLP(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, standard=False, average = False, use_cuda=True):
+    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
@@ -106,14 +103,10 @@ class sn_LinearLayer(nn.Module):
         if use_cuda:
             self.cuda()
 
-        if standard:
-            self.fc1 = nn.Linear(3*32*32,num_classes)
-            #self.fc2 = nn.Linear(256, num_classes)
-        else:
-            #self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+        if self.average:
             self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
-            # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
-            # self.fc2 = nn.Linear(1024, num_classes)
+        else:
+            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
 
         self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
 
