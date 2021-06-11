@@ -22,7 +22,16 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
+
+
+
 #cifar
+os.system("{} xray_experiments/onlycnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} xray_experiments/onlycnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} xray_experiments/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+
+exit(0)
+
 os.system("{} cifar_experiments/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} cifar_experiments/ll_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 

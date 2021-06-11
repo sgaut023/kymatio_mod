@@ -10,9 +10,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"SN+CNN 500 Samples Xray\""
+mlflow_exp_name = "\"ONLY CNN 500 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -30,7 +30,8 @@ RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 500
-TRAIN_BATCH_SIZE = 128
+TEST_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 16
 AUGMENT = "original-cifar"
 ALTERNATING = 0
 SECOND_ORDER = 0
@@ -63,18 +64,10 @@ if __name__ == '__main__':
     commandsNL = []
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [750490779,706825958,884698041]: # 22942091,313350229,433842091,637789757,1065155395,1452034008,1614090550
+    for SEED in [750490779,706825958,884698041,22942091,313350229,433842091,637789757,1065155395,1452034008,1614090550]:
         # SEED = int(time.time() * np.random.rand(1))
-        if SEED == 750490779:
-            rns = [(1,"Random"),(1,"Kymatio")]
-        elif SEED == 706825958:
-            rns = [(1,"Kymatio")]
-        elif SEED == 884698041:
-            rns = [(0,"Kymatio")]
-        else: 
-            rns = [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]
 
-        for aa in rns:
+        for aa in [(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(

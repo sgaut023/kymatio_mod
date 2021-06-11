@@ -13,11 +13,11 @@ module --quiet load anaconda/3
 conda activate parametricSN
 
 # 3. Copy your dataset on the compute node
-cp -r /home/mila/g/gauthies/datasets/KTH $SLURM_TMPDIR
+cp -r /home/mila/b/benjamin.therien/github/data/xray/chest_xrays_preprocess $SLURM_TMPDIR
 
 # 4. Launch your job, tell it to save the model in $SLURM_TMPDIR
 #    and look for the dataset into $SLURM_TMPDIR
-python mila_trainer.py -dr /network/datasets/ -df cifar10 -p python
+python mila_trainer.py -dr $SLURM_TMPDIR -df chest_xrays_preprocess -p python
 
 # 5. Copy whatever you want to save on $SCRATCH
 #cp $SLURM_TMPDIR/<to_save> /network/tmp1/<user>/
