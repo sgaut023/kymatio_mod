@@ -10,9 +10,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 3
 
-mlflow_exp_name = "\"SN+CNN 100 Samples Xray\""
+mlflow_exp_name = "\"ONLY CNN 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -29,7 +29,7 @@ INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 100
+TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
@@ -59,7 +59,8 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
+    commandsL = []
+    commandsNL = []
 
     # for x in range(RUNS_PER_SEED):
     for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
@@ -79,8 +80,12 @@ if __name__ == '__main__':
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)
 
-            commands.append(command)
-
+            if LEARNABLE == 1:
+                commandsL.append(command)
+            else:
+                commandsNL.append(command)
+    
+    commands = commandsL + commandsNL
 
     for cmd in commands:
         print(cmd)
@@ -101,6 +106,7 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
+
 
 
 

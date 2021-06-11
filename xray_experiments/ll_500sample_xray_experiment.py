@@ -10,7 +10,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 3
 
 mlflow_exp_name = "\"SN+LL 500 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
@@ -59,10 +59,10 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
+    commandsL = []
+    commandsNL = []
 
-
-    for SEED in [287946934,152241024,1049360704,43861066,839243457,50463677,1126614176,977417033,1441538770,1410873071]:
+    for SEED in [43861066,839243457,50463677,1126614176,977417033,1441538770,1410873071]:#287946934,152241024,1049360704,
 
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
@@ -80,9 +80,13 @@ if __name__ == '__main__':
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)
 
-            commands.append(command)
+            if LEARNABLE == 1:
+                commandsL.append(command)
+            else:
+                commandsNL.append(command)
     
-
+    commands = commandsL + commandsNL
+    
     for cmd in commands:
         print(cmd)
 

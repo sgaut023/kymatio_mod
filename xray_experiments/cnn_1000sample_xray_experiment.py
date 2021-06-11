@@ -10,21 +10,21 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 3
 
 mlflow_exp_name = "\"SN+CNN 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.06
-LRS = 0.06
-LRO = 0.06
-LRMAX = 0.06
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 100
+EPOCHS = 200
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
@@ -59,7 +59,8 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
+    commandsL = []
+    commandsNL = []
 
     # for x in range(RUNS_PER_SEED):
     for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
@@ -67,11 +68,24 @@ if __name__ == '__main__':
         for aa in [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
+            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
+                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
-            commands.append(command)
+            args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
 
+            args3 = "-slrs {} -slro {}".format(
+                LRS,LRO)
+            
+            command = "{} {} run-train {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3)
+
+            if LEARNABLE == 1:
+                commandsL.append(command)
+            else:
+                commandsNL.append(command)
+    
+    commands = commandsL + commandsNL
 
     for cmd in commands:
         print(cmd)

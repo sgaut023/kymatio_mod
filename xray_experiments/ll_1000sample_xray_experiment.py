@@ -10,7 +10,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 3
 
 mlflow_exp_name = "\"SN+LL 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
@@ -33,7 +33,8 @@ TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
-
+SECOND_ORDER = 0
+MODEL="linear_layer"
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -58,20 +59,33 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
+    commandsL = []
+    commandsNL = []
 
-
-    for SEED in [1274534694,729356706,1161505729,1092247892,725267588,1109890709,1121912626,980318438,939207048,782047964]:
+    for SEED in [1121912626,980318438,939207048,782047964]:#1274534694,729356706,1161505729,1092247892,725267588,1109890709,
 
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -pf {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,TRAIN_BATCH_SIZE,DATA_ARG)
+            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
+                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
-            commands.append(command)
+            args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
+
+            args3 = "-slrs {} -slro {}".format(
+                LRS,LRO)
+            
+            command = "{} {} run-train {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3)
+
+            if LEARNABLE == 1:
+                commandsL.append(command)
+            else:
+                commandsNL.append(command)
     
+    commands = commandsL + commandsNL
 
     for cmd in commands:
         print(cmd)
