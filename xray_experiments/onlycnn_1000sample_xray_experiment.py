@@ -1,4 +1,4 @@
-""" SN+LL 500 Samples Xray
+""" SN+CNN 100 Samples Xray
 """
 
 import os
@@ -10,31 +10,32 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"SN+LL 500 Samples Xray\""
+mlflow_exp_name = "\"ONLY CNN 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.1
-LRO = 0.1
-LRMAX = 0.06
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 400
+EPOCHS = 200
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
-TRAIN_BATCH_SIZE = 128
+TRAIN_SAMPLE_NUM = 1000
+TEST_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 16
 AUGMENT = "original-cifar"
 ALTERNATING = 0
 SECOND_ORDER = 0
-MODEL="linear_layer"
+MODEL = 'cnn'
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -62,10 +63,10 @@ if __name__ == '__main__':
     commandsL = []
     commandsNL = []
 
-    for SEED in [43861066,839243457,50463677,1126614176,977417033,1441538770,1410873071]:#287946934,152241024,1049360704,
-
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+        for aa in [(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
@@ -86,7 +87,7 @@ if __name__ == '__main__':
                 commandsNL.append(command)
     
     commands = commandsL + commandsNL
-    
+
     for cmd in commands:
         print(cmd)
 

@@ -33,7 +33,7 @@ from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
 from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
 
-from parametricSN.utils import cosine_training, cross_entropy_training
+from parametricSN.utils import cosine_training, cross_entropy_training, cross_entropy_training_accumulation
 from parametricSN.models.sn_top_models import topModelFactory
 from parametricSN.models.sn_base_models import baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
@@ -173,6 +173,9 @@ def get_train_test_functions(loss_name):
     if loss_name == 'cross-entropy':
         train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training.test(*args)
+    elif loss_name == 'cross-entropy-accum':
+        train = lambda *args, **kwargs : cross_entropy_training_accumulation.train(*args,**kwargs)
+        test = lambda *args : cross_entropy_training_accumulation.test(*args)    
     
     elif loss_name == 'cosine':
         train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
@@ -254,7 +257,12 @@ def run_train(args):
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
-    scheduler = schedulerFactory(optimizer, params, len(train_loader))
+    if params['model']['loss'] == 'cross-entropy-accum':
+        scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=1)
+    else:
+        scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
+
+    
 
     if params['optim']['alternating']:
         optimizer.scheduler = scheduler
@@ -418,7 +426,7 @@ def main():
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
-    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy'])
+    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy','cross-entropy-accum'])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")

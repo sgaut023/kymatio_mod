@@ -3,7 +3,7 @@
 import os
 import argparse
 
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = 'python'
 DATA_ARG = ""
 
 def cli():
@@ -22,23 +22,18 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
-os.system("{} xray_experiments/cnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-
-os.system("{} xray_experiments/cnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-# os.system("{} xray_experiments/ll_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/ll_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/ll_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-# os.system("{} xray_experiments/cnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
 
 
+#cifar
+os.system("{} xray_experiments/onlycnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} xray_experiments/onlycnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} xray_experiments/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
+exit(0)
 
-
-
-#cifarxray_experiments/
-# os.system("{} cifar_experiments/onlycnnalldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
-# os.system("{} cifar_experiments/cnnalldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} cifar_experiments/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} cifar_experiments/ll_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
 # os.system("{} cifar_experiments/llalldata_cifar10_experiment.py".format(PYTHON))
 

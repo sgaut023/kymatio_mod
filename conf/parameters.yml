@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: "sqlite:////home/mila/b/benjamin.therien/github/kymatio_mod/runs_ben/mlruns/store.db" #'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
 
 dataset:
@@ -54,7 +54,7 @@ model:
   width: 8   # width factor for resnet
   epoch: 5
   step_test: 25
-  loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
+  loss: 'cross-entropy' # choices=['cross-entropy', 'cosine', 'cross-entropy-accum']
   average: False
   
 
