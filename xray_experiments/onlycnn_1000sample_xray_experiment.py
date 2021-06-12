@@ -37,6 +37,12 @@ ALTERNATING = 0
 SECOND_ORDER = 0
 MODEL = 'cnn'
 
+MODEL_WIDTH = 8
+SCATT_ARCH = 'identity'
+
+MODEL_LOSS = 'cross-entropy-accum'
+
+
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
     os.system(cmd)
@@ -75,8 +81,8 @@ if __name__ == '__main__':
             args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
                 OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
 
-            args3 = "-slrs {} -slro {}".format(
-                LRS,LRO)
+            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {}".format(
+                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE)
             
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)

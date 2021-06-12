@@ -62,10 +62,25 @@ if __name__ == '__main__':
     commandsL = []
     commandsNL = []
 
-    for SEED in [43861066,839243457,50463677,1126614176,977417033,1441538770,1410873071]:#287946934,152241024,1049360704,
+    for SEED in [1049360704,1410873071,287946934,43861066,50463677,839243457]:#,152241024,1126614176,977417033,1441538770,
+
+        if SEED == 1049360704:
+            rns = [(0,"Kymatio")]
+        elif SEED == 1410873071:
+            rns = [(1,"Random")]
+        elif SEED == 287946934:
+            rns = [(0,"Kymatio")]
+        elif SEED == 43861066:
+            rns = [(1,"Random")]
+        elif SEED == 50463677:
+            rns = [(0,"Kymatio")]
+        elif SEED == 839243457:
+            rns = [(0,"Kymatio")]
+        else: 
+            rns = [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+        for aa in rns:
             LEARNABLE, INIT = aa
 
             args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
@@ -86,7 +101,7 @@ if __name__ == '__main__':
                 commandsNL.append(command)
     
     commands = commandsL + commandsNL
-    
+
     for cmd in commands:
         print(cmd)
 

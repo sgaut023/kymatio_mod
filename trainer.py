@@ -22,9 +22,9 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
-os.system("{} xray_experiments/cnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} xray_experiments/cnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
-os.system("{} xray_experiments/cnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} xray_experiments/cnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 # os.system("{} xray_experiments/ll_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} xray_experiments/ll_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} xray_experiments/ll_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
