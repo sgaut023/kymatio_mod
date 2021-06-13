@@ -108,12 +108,12 @@ class sn_LinearLayer(nn.Module):
         else:
             self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
 
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
+        #self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
 
 
     def forward(self, x):
         # x = x[:,:, -self.n_coefficients:,:,:]
-        x = self.bn0(x)
+        #x = self.bn0(x)
         if self.average:
             x = x.mean(dim=(2,3))
         x = x.reshape(x.shape[0], -1)
