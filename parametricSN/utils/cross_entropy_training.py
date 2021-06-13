@@ -23,7 +23,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True, glicoController=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True, glicoController=None, accum_step_multiple=None):
     """training method"""
 
     model.train()
