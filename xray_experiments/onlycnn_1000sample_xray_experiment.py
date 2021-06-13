@@ -32,6 +32,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
 TEST_BATCH_SIZE = 16
 TRAIN_BATCH_SIZE = 16
+ACCUM_STEP_MULTIPLE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
 SECOND_ORDER = 0
@@ -81,8 +82,8 @@ if __name__ == '__main__':
             args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
                 OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
 
-            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {}".format(
-                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE)
+            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {} -dasm {}".format(
+                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE,ACCUM_STEP_MULTIPLE)
             
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)
