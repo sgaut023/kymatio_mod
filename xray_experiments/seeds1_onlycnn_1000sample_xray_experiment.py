@@ -1,4 +1,4 @@
-""" SN+CNN 500 Samples Xray
+""" SN+CNN 100 Samples Xray
 """
 
 import os
@@ -12,7 +12,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"ONLY CNN 500 Samples Xray\""
+mlflow_exp_name = "\"ONLY CNN 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -29,7 +29,7 @@ INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
+TRAIN_SAMPLE_NUM = 1000
 TEST_BATCH_SIZE = 16
 TRAIN_BATCH_SIZE = 16
 ACCUM_STEP_MULTIPLE = 128
@@ -42,6 +42,7 @@ MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
 
 MODEL_LOSS = 'cross-entropy-accum'
+
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -70,9 +71,8 @@ if __name__ == '__main__':
     commandsNL = []
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [750490779,706825958,884698041,22942091,313350229,433842091,637789757,1065155395,1452034008,1614090550]:
+    for SEED in [22942091,313350229,433842091,637789757,706825958]:#,750490779,884698041,1065155395,1452034008,1614090550]:
         # SEED = int(time.time() * np.random.rand(1))
-
         for aa in [(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
