@@ -10,7 +10,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 2
 
 mlflow_exp_name = "\"ONLY CNN 100 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
