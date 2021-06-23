@@ -41,6 +41,7 @@ MODEL = 'cnn'
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
 
+ACCUM_STEP_MULTIPLE = 128
 MODEL_LOSS = 'cross-entropy-accum'
 
 
