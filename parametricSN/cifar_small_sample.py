@@ -33,7 +33,7 @@ from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
 from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
 
-from parametricSN.utils import cosine_training, cross_entropy_training
+from parametricSN.utils import cosine_training, cross_entropy_training, cross_entropy_training_accumulation
 from parametricSN.models.sn_top_models import topModelFactory
 from parametricSN.models.sn_base_models import baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
@@ -173,6 +173,9 @@ def get_train_test_functions(loss_name):
     if loss_name == 'cross-entropy':
         train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training.test(*args)
+    elif loss_name == 'cross-entropy-accum':
+        train = lambda *args, **kwargs : cross_entropy_training_accumulation.train(*args,**kwargs)
+        test = lambda *args : cross_entropy_training_accumulation.test(*args)    
     
     elif loss_name == 'cosine':
         train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
@@ -189,6 +192,18 @@ def setAllSeeds(seed):
     torch.cuda.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
+
+
+def estimateRemainingTime(trainTime,testTime,epochs,currentEpoch,testStep):
+    meanTrain = np.mean(trainTime)
+    meanTest = np.mean(testTime)
+
+    remainingEpochs = epochs - currentEpoch
+
+    remainingTrain = meanTrain *  remainingEpochs
+    remainingTest = meanTest * (int(remainingEpochs / testStep) + 1)
+
+    return (remainingTest + remainingTrain) / 60
 
 
 def run_train(args):
@@ -254,10 +269,28 @@ def run_train(args):
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
-    scheduler = schedulerFactory(optimizer, params, len(train_loader))
+    if params['model']['loss'] == 'cross-entropy-accum':
+        if params['dataset']['accum_step_multiple'] % params['dataset']['train_batch_size'] != 0:
+            print("Incompatible batch size and accum step multiple")
+            raise Exception
+        else:
+            steppingSize = int(params['dataset']['accum_step_multiple']/params['dataset']['train_batch_size'])
 
+        params['dataset']['accum_step_multiple']
+        scheduler = schedulerFactory(
+            optimizer=optimizer, params=params, 
+            steps_per_epoch=math.ceil(params['dataset']['train_sample_num']/params['dataset']['accum_step_multiple'])
+        )
+    else:
+        scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
+        steppingSize = None
+
+    
     if params['optim']['alternating']:
         optimizer.scheduler = scheduler
+
+
+    
 
 
     #M = params['model']['learning_schedule_multi']
@@ -268,10 +301,14 @@ def run_train(args):
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
 
+    trainTime = []
+    testTime = []
+
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
     for epoch in  range(0, params['model']['epoch']):
+        t1 = time.time()
 
         try:
             if params['optim']['alternating']:
@@ -297,15 +334,21 @@ def run_train(args):
         train, test = get_train_test_functions(params['model']['loss'])
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
                                            epoch+1, alternating=params['optim']['alternating'],
-                                           glicoController=glicoController)
+                                           glicoController=glicoController, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
 
-        
+        trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
+            t1 = time.time()
             accuracy, test_loss = test(hybridModel, device, test_loader)
             test_losses.append(test_loss)
             test_acc.append(accuracy)
+            testTime.append(time.time()-t1)
+            print("[ALERT] Estimated Time Remaining: {} minutes".format(
+                estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
+            ))
+
 
 
 
@@ -380,6 +423,7 @@ def main():
     subparser.add_argument("--dataset-test-batch-size", "-dtstbs", type=int)
     subparser.add_argument("--dataset-train-sample-num", "-dtsn", type=int)
     subparser.add_argument("--dataset-test-sample-num", "-dtstsn", type=int)
+    subparser.add_argument("--dataset-accum-step-multiple", "-dasm", type=int)
     subparser.add_argument("--dataset-data-root", "-ddr", type=str)
     subparser.add_argument("--dataset-data-folder", "-ddf", type=str)
     subparser.add_argument("--dataset-height", "-dh", type=int)
@@ -418,7 +462,7 @@ def main():
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
-    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy'])
+    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy','cross-entropy-accum'])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")

@@ -1,13 +1,4 @@
-""" 1000 sample xray experiment script
-
-This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
-
-Experiment: learnable vs non-learnable & Kymatio vs Random for xray 1000 samples 
-
-example command:
-
-    python parametricSN/cifar_small_sample.py run-train -oname sgd -olr 0.1 -gseed 1371927268 -sl 1 -me 500 -omaxlr 0.06 -odivf 25 -sip Random -dtsn 100 -os OneCycleLR -daug original-cifar -oalt 0 -en "Xray 100 Samples" -pf parameters_xray.yml 
-
+""" SN+LL 1000 Samples Xray
 """
 
 import os
@@ -19,9 +10,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 3
 
-mlflow_exp_name = "\"Xray 1000 Samples batch norm affine\""
+mlflow_exp_name = "\"SN+LL 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
@@ -42,7 +33,8 @@ TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
-
+SECOND_ORDER = 0
+MODEL="linear_layer"
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -67,20 +59,33 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
+    commandsL = []
+    commandsNL = []
 
+    for SEED in [1121912626,980318438,939207048,782047964]:#1274534694,729356706,1161505729,1092247892,725267588,1109890709,
 
-    for x in range(RUNS_PER_SEED):
-
-        SEED = int(time.time() * np.random.rand(1))
+        # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -pf {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,TRAIN_BATCH_SIZE,DATA_ARG)
+            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
+                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
-            commands.append(command)
+            args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
+
+            args3 = "-slrs {} -slro {}".format(
+                LRS,LRO)
+            
+            command = "{} {} run-train {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3)
+
+            if LEARNABLE == 1:
+                commandsL.append(command)
+            else:
+                commandsNL.append(command)
     
+    commands = commandsL + commandsNL
 
     for cmd in commands:
         print(cmd)
