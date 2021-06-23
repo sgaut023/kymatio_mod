@@ -527,8 +527,10 @@ class sn_LinearLayer(nn.Module):
             self.fc1 = nn.Linear(3*32*32,num_classes)
             #self.fc2 = nn.Linear(256, num_classes)
         else:
-            #self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
-            self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
+            if self.average:
+                self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
+            else: 
+                self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
             # self.fc1 =  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), 1024)
             # self.fc2 = nn.Linear(1024, num_classes)
 

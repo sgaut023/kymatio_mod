@@ -25,7 +25,7 @@ dataset:
 
 # kymatio 
 scattering:
-  J: 2
+  J: 3
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
@@ -39,10 +39,10 @@ scattering:
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']
-  lr: 0.001 
+  lr: 0.1 
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.1 #highest lr we can
+  max_lr: 0.001 #highest lr we can
   scheduler: 'OneCycleLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
   three_phase: False
@@ -52,13 +52,12 @@ optim:
   phase_ends: #["50", "100", "200"]
 
 model:
-  name: 'linear_layer' # choices=['c', 'mlp', 'linear_layer']
+  name: 'cnn' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 300
+  epoch: 50
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   average: False
-
   
 
 

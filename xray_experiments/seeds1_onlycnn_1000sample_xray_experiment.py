@@ -14,7 +14,7 @@ PROCESS_BATCH_SIZE = 1
 
 mlflow_exp_name = "\"ONLY CNN 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
 LR = 0.01

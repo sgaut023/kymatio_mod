@@ -107,8 +107,3 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
-
-
-
-
-

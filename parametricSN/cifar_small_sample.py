@@ -38,7 +38,7 @@ from parametricSN.models.sn_top_models import topModelFactory
 from parametricSN.models.sn_base_models import baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.utils.optimizer_loader import *
-from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+#from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
