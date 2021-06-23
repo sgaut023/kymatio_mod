@@ -41,6 +41,7 @@ MODEL = 'cnn'
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
 
+ACCUM_STEP_MULTIPLE = 128
 MODEL_LOSS = 'cross-entropy-accum'
 
 
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     commandsNL = []
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550, 22942091]:
+    for SEED in [22942091,313350229,433842091,637789757,706825958]:#,750490779,884698041,1065155395,1452034008,1614090550]:
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
