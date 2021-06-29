@@ -33,7 +33,6 @@ def xray_augmentationFactory(augmentation, height, width):
     if augmentation == 'autoaugment':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
-            transforms.Resize(downsample),
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
@@ -42,14 +41,13 @@ def xray_augmentationFactory(augmentation, height, width):
     elif augmentation == 'original-cifar':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
-            transforms.Resize(downsample),
-            transforms.RandomCrop((height, width)),
+            transforms.RandomResizedCrop((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
-            transforms.Resize(downsample),
+            transforms.Resize((height, width)),
             transforms.CenterCrop((height, width)),
         ]
 

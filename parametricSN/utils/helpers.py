@@ -99,8 +99,8 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_params(params['general'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
-        #mlflow.pytorch.log_model(model, artifact_path = 'model')
-
+        if params['model']['save']:
+            mlflow.pytorch.log_model(model, artifact_path = 'model')
         #save filters 
         try:
             for key in filters_plots_before:
