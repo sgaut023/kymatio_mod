@@ -38,7 +38,7 @@ from parametricSN.models.sn_top_models import topModelFactory
 from parametricSN.models.sn_base_models import baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.utils.optimizer_loader import *
-from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+#from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
@@ -379,19 +379,15 @@ def run_train(args):
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
         hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
         filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-
         filters_values = hybridModel.scatteringBase.plotFilterValues()
-        filters_value = hybridModel.scatteringBase.plotFilterValue()
         filters_grad = hybridModel.scatteringBase.plotFilterGrads()
-        filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
+        filters_parameters = hybridModel.scatteringBase.plotParameterValues()
     else:
         filters_plots_before = None
         filters_plots_after = None
         filters_values = None
-        filters_value = None
         filters_grad = None
-        filter0_grad = None
-
+        filters_parameters = None
 
 
     # save metrics and params in mlflow
@@ -399,7 +395,7 @@ def run_train(args):
         params, hybridModel, np.array(test_acc).round(2), 
         np.array(test_losses).round(2), np.array(train_accuracies).round(2), np.array(train_losses).round(2), 
         start_time, filters_plots_before, filters_plots_after, 
-        [f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, filter0_grad, filters_values, filters_value ], f_lr
+        [f_loss,f_accuracy, f_accuracy_benchmark, filters_grad,filters_values,filters_parameters], f_lr
     )
 
 

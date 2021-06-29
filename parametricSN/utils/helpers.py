@@ -116,9 +116,8 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         
         try:
             mlflow.log_figure(figures_plot[3], f'learnable_parameters/filters_grad.pdf')
-            mlflow.log_figure(figures_plot[4], f'learnable_parameters/filter_0_grad.pdf')
-            mlflow.log_figure(figures_plot[5], f'learnable_parameters/filter_values.pdf')
-            mlflow.log_figure(figures_plot[6], f'learnable_parameters/filter_0_value.pdf')
+            mlflow.log_figure(figures_plot[4], f'learnable_parameters/filter_values.pdf')
+            mlflow.log_figure(figures_plot[5], f'learnable_parameters/filter_parameters.pdf')
         except:
             pass
         mlflow.log_figure(f_lr, f'plot/lr.pdf')
