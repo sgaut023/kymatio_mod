@@ -338,7 +338,7 @@ class sn_ScatteringBase(nn.Module):
     def plotParameterValues(self):
         size = (10, 10)
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
-        plt.subplots_adjust(top = 0.99, bottom=0.01, hspace=1.5, wspace=0.4)
+        plt.subplots_adjust(hspace=0.35, wspace=0.35)
         label = ['theta','xis','sigma','slant']
 
         for idx,param in enumerate(['angle',"1",'2','3']):#iterate over all the parameters
@@ -349,7 +349,7 @@ class sn_ScatteringBase(nn.Module):
                 axarr[int(idx/2),idx%2].plot([x for x in range(len(filter))],filter)#, label=idx2)
             # axarr[int(idx/2),idx%2].legend()
             axarr[int(idx/2),idx%2].set_title(label[idx], fontsize=16)
-            axarr[int(idx/2),idx%2].set_xlabel('Epoch', fontsize=12)
+            axarr[int(idx/2),idx%2].set_xlabel('Epoch', fontsize=12) # Or ITERATION to be more precise
             axarr[int(idx/2),idx%2].set_ylabel('Value', fontsize=12)
             
 
