@@ -18,8 +18,8 @@ dataset:
   test_sample_num: 400
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'chest_xrays_preprocess'
-  height:  128   # ultrasound image dimension
-  width:  128  # ultrasound image dimension
+  height:  224   # ultrasound image dimension
+  width:  224  # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample:
   glico: 0
@@ -29,19 +29,19 @@ dataset:
 scattering:
   J: 3
   max_order: 2
-  lr_scattering: 0.1
-  lr_orientation: 0.1
+  lr_scattering: 0.05
+  lr_orientation: 0.05
   init_params: 'Kymatio' # 'Random' or 'Kymatio'
-  learnable: False # True if learnable
+  learnable: True # True if learnable
   second_order: False
   architecture: 'scattering'
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.1
+  lr: 0.01
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.06 #highest lr we can
+  max_lr: 0.01 #highest lr we can
   scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
@@ -52,11 +52,11 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer', 'resnet50']
   width: 8   # widthd factor for resnet
-  epoch: 200
+  epoch: 50
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', cross-entropy-accum', 'cosine']
   average: False
-  save: True
+  save: False
 
   
 

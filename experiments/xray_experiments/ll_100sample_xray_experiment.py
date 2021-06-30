@@ -10,21 +10,21 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"02- SN+LL 100 Samples Xray\""
+mlflow_exp_name = "\"SN+LL 100 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.06
-LRO = 0.06
-LRMAX = 0.06
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 150
+EPOCHS = 50
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
