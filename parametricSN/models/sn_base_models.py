@@ -278,28 +278,6 @@ class sn_ScatteringBase(nn.Module):
             pass
 
 
-    def plotFilterGrad(self):
-        """ plots the graph of the filter gradients """
-
-
-        f = plt.figure (figsize=(7,7))
-        temp = {
-            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterGradTracker['angle']],
-            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['1']],
-            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['2']],
-            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterGradTracker['3']]
-        }
-
-
-
-        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
-        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-        plt.plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-        plt.legend()
-
-        return f
-
 
     def plotFilterGrads(self):
         """ plots the graph of the filter gradients """
@@ -323,31 +301,11 @@ class sn_ScatteringBase(nn.Module):
             axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
 
+            
             axarr[int(x/col),x%col].legend()
 
         return f
 
-    def plotFilterValue(self):
-        """ plots the graph of the filter 0 value  """
-
-        f = plt.figure (figsize=(7,7))
-        temp = {
-            'orientation1': [float(filters[0].cpu().numpy()) for filters in self.filterTracker['angle']],
-            'xis': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['1']],
-            'sigmas': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['2']],
-            'slant': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['3']],
-            'scale': [float(filters[0].cpu().numpy())  for filters in self.filterTracker['scale']]
-        }
-
-        plt.plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
-        plt.plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-        plt.plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-        plt.plot([x for x in range(len(temp['slant']))], temp['slant'], color='orange', label='slant')
-        plt.plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
-        
-        plt.legend()
-
-        return f
     
     def plotFilterValues(self):
         filterNum = self.params_filters[1].shape[0]
@@ -365,7 +323,6 @@ class sn_ScatteringBase(nn.Module):
                 'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
                 'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
                 'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
-                'angle': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['angle']]
             }
 
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
@@ -377,6 +334,26 @@ class sn_ScatteringBase(nn.Module):
 
         return f
         
+
+    def plotParameterValues(self):
+        size = (10, 10)
+        f, axarr = plt.subplots(2, 2, figsize=size) # create plots
+        plt.subplots_adjust(top = 0.99, bottom=0.01, hspace=1.5, wspace=0.4)
+        label = ['theta','xis','sigma','slant']
+
+        for idx,param in enumerate(['angle',"1",'2','3']):#iterate over all the parameters
+            for idx2,filter in enumerate(torch.stack(self.filterTracker[param]).T):
+                filter = filter.cpu().numpy()
+                # if param == 'angle':
+                #     filter = filter%(2*np.pi)
+                axarr[int(idx/2),idx%2].plot([x for x in range(len(filter))],filter)#, label=idx2)
+            # axarr[int(idx/2),idx%2].legend()
+            axarr[int(idx/2),idx%2].set_title(label[idx], fontsize=16)
+            axarr[int(idx/2),idx%2].set_xlabel('Epoch', fontsize=12)
+            axarr[int(idx/2),idx%2].set_ylabel('Value', fontsize=12)
+            
+
+        return f
 
     def train(self,mode=True):
         super().train(mode=mode)
