@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.append(str(Path.cwd()))
 
-def get_context(parameters_file):
+def get_context(parameters_file, full_path = False):
     # Get the current project path (where you open the notebook)
     # and go up two levels to get the project path
     current_dir = Path.cwd()
@@ -22,11 +22,16 @@ def get_context(parameters_file):
     sys.path.append(os.path.join(proj_path, 'kymatio'))
 
     #Catalog contains all the paths related to datasets
-    with open(os.path.join(proj_path, 'conf/data_catalog.yml'), "r") as f:
+    if full_path:
+        params_path = parameters_file
+    else:
+        params_path = os.path.join(proj_path, f'conf/{parameters_file}')
+    
+    catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
+    with open(catalog_path, "r") as f:
         catalog = yaml.safe_load(f)
-        
     # Params contains all of the dataset creation parameters and model parameters
-    with open(os.path.join(proj_path, f'conf/{parameters_file}'), "r") as f:
+    with open(params_path, "r") as f:
         params = yaml.safe_load(f)
 
         
@@ -101,6 +106,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_metric('Final Accuracy', test_acc[-1])
         if params['model']['save']:
             mlflow.pytorch.log_model(model, artifact_path = 'model')
+            mlflow.log_dict(params, "model/parameters.yml")
         #save filters 
         try:
             for key in filters_plots_before:

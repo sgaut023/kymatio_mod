@@ -41,7 +41,7 @@ def xray_augmentationFactory(augmentation, height, width):
     elif augmentation == 'original-cifar':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
-            transforms.RandomResizedCrop((height, width)),
+            transforms.Resize((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':

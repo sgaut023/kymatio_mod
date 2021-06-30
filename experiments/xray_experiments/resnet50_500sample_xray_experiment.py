@@ -10,7 +10,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 6
 
 mlflow_exp_name = "\"Resnet50 500 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
@@ -24,7 +24,7 @@ LRMAX = 0.001
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 100
+EPOCHS = 300
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
