@@ -28,7 +28,7 @@ from torch.utils.data import Subset
 
 def xray_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""
-    downsample = (128,128)
+    downsample = (260,260)
 
     if augmentation == 'autoaugment':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
@@ -41,13 +41,14 @@ def xray_augmentationFactory(augmentation, height, width):
     elif augmentation == 'original-cifar':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
-            transforms.Resize((height, width)),
+            transforms.Resize(downsample),
+            transforms.RandomCrop(size=(height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
         # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
-            transforms.Resize((height, width)),
+            transforms.Resize(downsample),
             transforms.CenterCrop((height, width)),
         ]
 
