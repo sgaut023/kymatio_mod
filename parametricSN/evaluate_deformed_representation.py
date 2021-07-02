@@ -21,7 +21,6 @@ sys.path.append(str(Path.cwd()))
 
 import argparse
 import torch
-import math
 import mlflow
 import torchvision
 
@@ -104,7 +103,8 @@ def evaluate_deformed_repressentation(args):
     height = params['dataset']['height'] 
     max_translate = int(height* 0.07)
     deformations_list = torch.arange(0,max_translate , max_translate /num_data, dtype=int ).to(device)
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'translate', img, deformations_list , None, device )
+    transforms = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
+    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'translate', img, deformations_list , transforms, device )
     x_labels.append('Horizontal Translation ratio')
     titles.append('Transformation: Horizontal Translation')
     append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
@@ -170,11 +170,12 @@ def compute_l2norm(hybridModel, hybridModelLearnable, deformation, img, deformat
                     transforms.sharpness_factor = v.item()
                     img_deformed = transforms(img).to(device)
                 elif deformation == 'translate':
-                    transforms_PIL = torchvision.transforms.transforms.ToPILImage()
-                    transforms_Tensor = torchvision.transforms.transforms.ToTensor()
-                    img_deformed  = transforms_PIL(img[0, :, :, :])
-                    img_deformed = img_deformed.rotate(0, translate=(v.item(), 0))
-                    img_deformed  = transforms_Tensor(img_deformed).to(device).unsqueeze(0)
+                    ret = transforms.get_params(transforms.degrees, transforms.translate, transforms.scale, transforms.shear, img.shape)
+                    ret = list(ret)
+                    ret[1] = (v.item(),0)
+                    ret= tuple(ret)
+                    img_deformed  = torchvision.transforms.functional.affine(img.to(device), *ret, interpolation=transforms.interpolation, fill=False)
+                
                 representation = hybridModel.scatteringBase(img_deformed)
                 representation_learnable = hybridModelLearnable.scatteringBase(img_deformed)
                 deformations.append(v.item())
@@ -253,6 +254,8 @@ def log_mlflow(params, deformations, l2_norm, figure, img):
         log_csv_file('deformations.csv', deformations)
         log_csv_file('l2norm.csv', l2_norm)
         print(f"finish logging{params['mlflow']['tracking_uri']}")
+
+
 
 if __name__ == '__main__':
     # We need the paths to 2 differents models
