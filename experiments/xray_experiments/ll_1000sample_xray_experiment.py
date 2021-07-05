@@ -10,26 +10,26 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"SN+LL 100 Samples Xray\""
+mlflow_exp_name = "\"SN+LL 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.1
-LRO = 0.1
-LRMAX = 0.06
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 400
+EPOCHS = 50
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 100
+TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
@@ -102,9 +102,3 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
-
-
-
-
-
-
