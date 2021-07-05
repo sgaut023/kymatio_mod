@@ -25,8 +25,8 @@ if args.python != None:
 # os.system("{} xray_experiments/cnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
 # os.system("{} xray_experiments/cnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} experiments/xray_experiments/ll_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} experiments/xray_experiments/ll_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/xray_experiments/ll_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} experiments/xray_experiments/ll_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 #os.system("{} xray_experiments/resnet50_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 #os.system("{} xray_experiments/resnet50_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))

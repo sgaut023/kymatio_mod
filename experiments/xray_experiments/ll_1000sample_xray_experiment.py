@@ -1,4 +1,4 @@
-""" SN+LL 1000 Samples Xray
+""" SN+LL 500 Samples Xray
 """
 
 import os
@@ -24,7 +24,7 @@ LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 50
+EPOCHS = 400
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
@@ -35,7 +35,6 @@ AUGMENT = "original-cifar"
 ALTERNATING = 0
 SECOND_ORDER = 0
 MODEL="linear_layer"
-
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
