@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns/store.db'
+  tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'
   # tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'xray'
 
@@ -27,7 +27,7 @@ dataset:
 
 # kymatio 
 scattering:
-  J: 4
+  J: 3
   max_order: 2
   lr_scattering: 0.01
   lr_orientation: 0.01
@@ -56,7 +56,7 @@ model:
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', cross-entropy-accum', 'cosine']
   average: False
-  save: False
+  save: True
 
   
 
