@@ -84,12 +84,12 @@ def evaluate_deformed_repressentation(args):
     append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
 
     # shear
-    shears = torch.arange(0,40, 40/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel,hybridModelLearnable, 'shear', img, shears, transforms, device)
-    x_labels.append('Degree')
-    titles.append('Transformation: Shear')
-    append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
+    # shears = torch.arange(0,40, 40/ num_data ).to(device)
+    # transforms = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
+    # l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel,hybridModelLearnable, 'shear', img, shears, transforms, device)
+    # x_labels.append('Degree')
+    # titles.append('Transformation: Shear')
+    # append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
 
     # Sharpness
     # deformations_list = torch.arange(0,100, 1, dtype=int ).to(device)
@@ -107,6 +107,13 @@ def evaluate_deformed_repressentation(args):
     l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'translate', img, deformations_list , transforms, device )
     x_labels.append('Horizontal Translation ratio')
     titles.append('Transformation: Horizontal Translation')
+    append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
+
+    # Mallat1
+    distortion_levels = torch.arange(0,1, 1/ num_data ).to(device)
+    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'Mallat1', img, distortion_levels, None, device)
+    x_labels.append('Transformation Level')
+    titles.append('Transformation: Mallat1')
     append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
     
 
@@ -175,11 +182,20 @@ def compute_l2norm(hybridModel, hybridModelLearnable, deformation, img, deformat
                     ret[1] = (v.item(),0)
                     ret= tuple(ret)
                     img_deformed  = torchvision.transforms.functional.affine(img.to(device), *ret, interpolation=transforms.interpolation, fill=False)
+                elif deformation == "Mallat1":
+                    tau = lambda u : (v.item() *(0.5*u[0]+0.3*u[1]**2),v.item() *(0.3*u[1]) )      
+                    img_deformed = diffeo(img.to(device),tau,device)
+
                 
                 representation = hybridModel.scatteringBase(img_deformed)
                 representation_learnable = hybridModelLearnable.scatteringBase(img_deformed)
-                deformations.append(v.item())
-                deformations_learnable.append(v.item())
+                if deformation == "Mallat1":
+                    deformationSize = deformation_size(tau)
+                    deformations.append(deformationSize)
+                    deformations_learnable.append(deformationSize)
+                else:
+                    deformations.append(v.item())
+                    deformations_learnable.append(v.item())
                 l2_norm.append(torch.dist(representation_0, representation ).item())
                 l2_norm_learnable.append(torch.dist(representation_0, representation_learnable ).item())
     l2_norm = np.array(l2_norm)
@@ -235,6 +251,37 @@ def visualize_l2norm(x, y, x_learnable,y_learnable,titles, x_labels, baselines):
             axarr[i, p].legend()
             count+=1 
     return f
+
+# Deforms the image given a function \tau.
+def diffeo(img,tau,device):
+    img = img
+    # Number of pixels. Suppose square image.
+    dim = img.shape[-1]
+    # Create a (dim x dim) matrix of 2d vectors. Each vector represents the normalized position in the grid. 
+    # Normalized means (-1,-1) is top left and (1,1) is bottom right.
+    grid = torch.tensor([[[x,y] for x in torch.linspace(-1,1,dim)] for y in torch.linspace(-1,1,dim)])
+    # Apply u-tau(u) in Mallat's. 
+    tau_mat = lambda grid : torch.tensor([[tau(grid[i,j,:]) for j in range(len(grid))] for i in range(len(grid))])
+    grid_transf = (grid - tau_mat(grid)).unsqueeze(0).to(device)
+    # Apply x(u-tau(u)) by interpolating the image at the index points given by grid_transf.
+    img_transf = torch.nn.functional.grid_sample(img,grid_transf)
+    return img_transf
+
+# Calculate the deformation size : sup |J_{tau}(u)| over u.
+def deformation_size(tau):
+    # Set a precision. This is arbitrary.
+    precision = 128
+    # Create a (flatten) grid of points between (-1,-1) and (1,1). This is the same grid as in the previous
+    # function (but flatten), but it feels arbitrary also.
+    points = [torch.tensor([x,y]) for x in torch.linspace(-1,1,precision) for y in torch.linspace(-1,1,precision)]
+    # Evaluate the Jacobian of tau in each of those points. Returns a tensor of precision^2 x 2 x 2, i.e.
+    # for each point in points the 2 x 2 jacobian. Is it necessary to compute on all points, or only on the
+    # boundary would be sufficient?
+    jac = torch.stack(list(map(lambda point : torch.stack(torch.autograd.functional.jacobian(tau,point)), points)))
+    # Find the norm of those jacobians.
+    norm_jac = torch.linalg.matrix_norm(jac,ord=2,dim=(1, 2))
+    # Return the Jacobian with the biggest norm.
+    return torch.max(norm_jac)
 
 def log_mlflow(params, deformations, l2_norm, figure, img):
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
