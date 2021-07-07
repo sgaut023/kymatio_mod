@@ -16,7 +16,6 @@ Functions:
 import sys
 from pathlib import Path
 import sys
-import math
 import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 
@@ -39,7 +38,7 @@ def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_da
     hybridModel= load_models_weights(model_path,device)
     _, params = get_context(os.path.join(model_path,'parameters.yml'), True) 
     
-    print("Starting evaluate representationfor hybridModel with {} parameters".format(params['model']['trainable_parameters']))
+    print("Starting evaluate representationfor hybridModel".format(params['model']['trainable_parameters']))
 
     x, y, x_labels, titles = [], [], [], []
     
@@ -89,6 +88,7 @@ def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_da
 
     values = {"model_path": model_path,"distance": distance,  "x":x, "y": y, 
                 "x_labels": x_labels, "titles":titles, "params": params}
+    print("Done evaluating representationfor hybridModel: {}".format(model_path))
     return values
     
 
