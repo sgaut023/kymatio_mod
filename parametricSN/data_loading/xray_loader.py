@@ -60,7 +60,7 @@ def xray_augmentationFactory(augmentation, height, width):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    return transforms.Compose(transform + [transforms.ToTensor(), normalize])
+    return transforms.Compose(transform + [transforms.ToTensor()]) #transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
                          valBatchSize, multiplier, trainAugmentation,

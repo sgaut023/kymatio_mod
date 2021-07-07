@@ -15,11 +15,12 @@ Functions:
 """
 import sys
 from pathlib import Path
-
+import sys
+import math
 import matplotlib.pyplot as plt
+from torchvision.transforms.transforms import ToPILImage
 sys.path.append(str(Path.cwd()))
 
-import argparse
 import torch
 import mlflow
 import torchvision
@@ -33,105 +34,101 @@ from parametricSN.utils.helpers import get_context
 from parametricSN.cifar_small_sample import datasetFactory
 from parametricSN.utils.helpers import rename_params, log_csv_file
 
+def apply_transformation(max_value, name, hybridModel, img,x,y,titles,transformation_names,imgs_deformed, transform = None, device = None, num_data = 15):
+    if max_value > num_data:
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data,dtype = int)#.to(device)
+    else:
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data )#.to(device)
+    l2_norm, deformations, img_deformed = compute_l2norm(hybridModel, name,img, deformation_levels, transform, device)
+    titles.append(f'Transformation: {name}')
+    imgs_deformed.append(img_deformed)
+    transformation_names.append(name)
 
-def evaluate_deformed_repressentation(args):
+    append_to_list(x, y, l2_norm, deformations)
+
+def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_data = 15):
+    hybridModel= load_models_weights(model_path,device)
+    _, params = get_context(os.path.join(model_path,'parameters.yml'), True) 
+    
+    print("Starting evaluate representationfor hybridModel with {} parameters".format(params['model']['trainable_parameters']))
+
+    x, y, titles, transformation_names, imgs_deformed = [], [], [], [], []
+    
+    # rotation
+    transform = torchvision.transforms.RandomAffine(degrees=[0,0])
+    apply_transformation(max_value = 30, name = "rotation", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names, imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
+    # distortion
+    transform = torchvision.transforms.RandomPerspective(distortion_scale=0, p=1)
+    apply_transformation(max_value = 0.2, name = "distortion", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
+
+    # shear
+    transform = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
+    apply_transformation(max_value = 40, name = "shear", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
+
+    # Sharpness
+    transform = torchvision.transforms.RandomAdjustSharpness(sharpness_factor=100, p=1)
+    apply_transformation(max_value = 100, name = "sharpness", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+    
+    # Horizontal translation
+    height = params['dataset']['height'] 
+    max_translate = int(height* 0.1)
+    transform = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
+    apply_transformation(max_value = max_translate, name = "translation", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
+    # Mallat1
+    # apply_transformation(max_value = 1, name = "Mallat1", hybridModel = hybridModel, img = img,
+    #                      x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+    #                      transform = None, device = device, num_data = 15)
+
+    distance  = get_baseline(img, (iter(test_loader)), hybridModel,  device)
+
+    values = {"model_path": model_path,"distance": distance,  "x":x, "y": y, "titles":titles, "params": params,
+             "transformation_names":transformation_names,"image":imgs_deformed}
+    return values    
+
+def evaluate_deformed_repressentation(models):
     """Initializes and trains scattering models with different architectures
     """
-    model_path = args.model_path
-    model_path_learnable = args.model_path_learnable
-    _, params = get_context(os.path.join(model_path,'parameters.yml'), True) #parse params
+
+    # we'll use the parameters.yml of the first model to generate our dataloader
+    _, params = get_context(os.path.join(models[0],'parameters.yml'), True) #parse params
     params['dataset']['test_batch_size'] =1
     params['dataset']['train_batch_size'] =1
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    train_loader, test_loader= get_test_loader(params, use_cuda)
-    
-    # load weights of the classical scattering network
-
-
-    deformations, l2_norm= [], []
-    num_data = 15
-
-    hybridModel, hybridModelLearnable = load_models_weights(model_path, model_path_learnable,device)
-
-    print("Starting evaluate representationfor hybridModel with {} parameters".format(params['model']['trainable_parameters']))
+    _, test_loader= get_test_loader(params, use_cuda)
 
     it = (iter(test_loader))  
     img, _ = next(it)
     img.to(device)  
-    x, y, x_labels, titles = [], [], [], []
-    x_learnable, y_learnable = [], []
     
-    # rotation
-    angles = torch.arange(0,30, 30/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees=[0,0])
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel,hybridModelLearnable,  'rotation',img, angles, transforms, device)
-    x_labels.append('Degree')
-    titles.append('Transformation: Rotation')
-    x.append(deformations)
-    y.append(l2_norm)
-    x_learnable.append(deformations_learnable)
-    y_learnable.append(l2_norm_learnable)
-
-    # distortion
-    distortion_levels = torch.arange(0,1, 1/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomPerspective(distortion_scale=0, p=1)
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'distortion', img, distortion_levels, transforms, device)
-    x_labels.append('Distortion Level')
-    titles.append('Transformation: Distortion')
-    append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
-
-    # shear
-    # shears = torch.arange(0,40, 40/ num_data ).to(device)
-    # transforms = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
-    # l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel,hybridModelLearnable, 'shear', img, shears, transforms, device)
-    # x_labels.append('Degree')
-    # titles.append('Transformation: Shear')
-    # append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
-
-    # Sharpness
-    # deformations_list = torch.arange(0,100, 1, dtype=int ).to(device)
-    # transforms = torchvision.transforms.RandomAdjustSharpness(sharpness_factor=100, p=1)
-    # l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'sharpness', img, deformations_list , transforms, device )
-    # x_labels.append('Sharpness Factor')
-    # titles.append('Transformation: sharpness')
-    # append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
+    model_values = []
+    for model in models:
+        model_values.append(get_l2norm_deformation( model, test_loader, img, device, num_data = 15))
     
-    # Horizontal translation
-    height = params['dataset']['height'] 
-    max_translate = int(height* 0.07)
-    deformations_list = torch.arange(0,max_translate , max_translate /num_data, dtype=int ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'translate', img, deformations_list , transforms, device )
-    x_labels.append('Horizontal Translation ratio')
-    titles.append('Transformation: Horizontal Translation')
-    append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
+    figures = visualize_l2norm(model_values,len(model_values[0]["x"]))
+    log_mlflow(params, model_values, figures, img)
 
-    # Mallat1
-    distortion_levels = torch.arange(0,1, 1/ num_data ).to(device)
-    l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'Mallat1', img, distortion_levels, None, device)
-    x_labels.append('Transformation Level')
-    titles.append('Transformation: Mallat1')
-    append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
-    
-
-    print("Done evaluate representationfor hybridModel with {} parameters".format(params['model']['trainable_parameters']))
-    distance, distance_learnable = get_baseline(img, (iter(test_loader))  , hybridModel, hybridModelLearnable,  device)
-    f = visualize_l2norm(x, y,x_learnable,y_learnable,titles, x_labels, [distance, distance_learnable])
-    log_mlflow(params, deformations, l2_norm, f, img)
-
-def load_models_weights(model_path, model_path_learnable,device ):
+def load_models_weights(model_path, device ):
     hybridModel = mlflow.pytorch.load_model(model_path)
     hybridModel.to(device)
     hybridModel.eval()
-
-    # load weights of the classical scattering network
-    hybridModelLearnable = mlflow.pytorch.load_model(model_path_learnable)
-    hybridModelLearnable.to(device)
-    hybridModelLearnable.eval()
-    return hybridModel, hybridModelLearnable
+    return hybridModel
 
 def get_test_loader(params, use_cuda):
 
@@ -139,22 +136,13 @@ def get_test_loader(params, use_cuda):
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-  
-    train_loader, test_loader, params['general']['seed'], _ = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
-
+    train_loader, test_loader, params['general']['seed'], _ = datasetFactory(params,DATA_DIR,use_cuda) 
     return train_loader, test_loader
 
 
-def append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable):
-    x.append(deformations)
-    y.append(l2_norm)
-    x_learnable.append(deformations_learnable)
-    y_learnable.append(l2_norm_learnable)
-
-def compute_l2norm(hybridModel, hybridModelLearnable, deformation, img, deformation_list, transforms, device = None):
-    deformations, deformations_learnable= [], []
-    l2_norm, l2_norm_learnable = [], []
+def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, device = None):
+    deformations= []
+    l2_norm = []
     first_transformation = True
     with torch.no_grad():
         for v in deformation_list:
@@ -169,14 +157,13 @@ def compute_l2norm(hybridModel, hybridModelLearnable, deformation, img, deformat
                 elif deformation == 'shear':
                     transforms.shear = [v.item(), v.item()]
                     img_deformed = transforms(img).to(device)
-                elif deformation == 'distortion':
-                    (v.item() % 2) == 0
+                elif deformation == 'distortion':                    
                     transforms.distortion_scale = v.item()
                     img_deformed = transforms(img).to(device)
                 elif deformation == 'sharpness':
                     transforms.sharpness_factor = v.item()
                     img_deformed = transforms(img).to(device)
-                elif deformation == 'translate':
+                elif deformation == 'translation':
                     ret = transforms.get_params(transforms.degrees, transforms.translate, transforms.scale, transforms.shear, img.shape)
                     ret = list(ret)
                     ret[1] = (v.item(),0)
@@ -188,24 +175,23 @@ def compute_l2norm(hybridModel, hybridModelLearnable, deformation, img, deformat
 
                 
                 representation = hybridModel.scatteringBase(img_deformed)
-                representation_learnable = hybridModelLearnable.scatteringBase(img_deformed)
                 if deformation == "Mallat1":
                     deformationSize = deformation_size(tau)
                     deformations.append(deformationSize)
-                    deformations_learnable.append(deformationSize)
                 else:
                     deformations.append(v.item())
-                    deformations_learnable.append(v.item())
                 l2_norm.append(torch.dist(representation_0, representation ).item())
-                l2_norm_learnable.append(torch.dist(representation_0, representation_learnable ).item())
+                
     l2_norm = np.array(l2_norm)
     deformations = np.array(deformations)
-    l2_norm_learnable = np.array(l2_norm_learnable)
-    deformations_learnable = np.array(deformations_learnable)
-    return l2_norm, deformations, l2_norm_learnable, deformations_learnable
+    return l2_norm, deformations, img_deformed
+
+def append_to_list(x, y, l2_norm, deformations):
+    x.append(deformations)
+    y.append(l2_norm)
 
 
-def get_baseline(img, it, hybridModel, hybridModel_learnable,  device, num_images=50):
+def get_baseline(img, it, hybridModel,  device, num_images=50):
     '''
         In this function, we construct the image scattering coefficients of 
             1- classical scattering network (representation_0)
@@ -215,42 +201,39 @@ def get_baseline(img, it, hybridModel, hybridModel_learnable,  device, num_image
         bewteen representation_0 and representation_0 and all the representations.
         Thus, the outputs of the function are the 2 average distances computed. 
     '''
-    distances, distances_learnable= [], []
+    distances= []
     first_transformation = True
     with torch.no_grad():
         for i in range(num_images):
             if first_transformation:
                 representation_0 = hybridModel.scatteringBase(img.to(device))
-                representation_0_learnbable = hybridModel_learnable.scatteringBase(img.to(device))
                 first_transformation= False
             else:
                 img2, _ = next(it)  
                 representation = hybridModel.scatteringBase(img2.to(device) )
-                representation_learnbable = hybridModel_learnable.scatteringBase(img2.to(device))
                 distances.append(torch.dist(representation_0, representation ).item())
-                distances_learnable.append(torch.dist(representation_0_learnbable,representation_learnbable).item())
-    return np.array(distances).mean(), np.array(distances_learnable).mean(),
+    return np.array(distances).mean()
 
     
-def visualize_l2norm(x, y, x_learnable,y_learnable,titles, x_labels, baselines):
-    col = 2
-    row = 2
-    size = (35, 10*row,)
+def visualize_l2norm(model_values, num_transformations = 4):
+    plt.rcParams.update({'font.size': 20})
+    colors = ['#ff0000','#0000ff', '#008000','#ffd700', '#800000', '#ff00ff' ]
+    figures = []
+    for idx in range(num_transformations):
+        f = plt.figure(figsize=(10,10)) # create plots
+        for c, model_value in enumerate(model_values):
+            plt.scatter(x= model_value["x"][idx], y= model_value["y"][idx], 
+                                    label= f'{model_value["params"]["scattering"]["init_params"]} + {model_value["params"]["scattering"]["learnable"]}',
+                                    color =colors[c])
+            plt.axhline(y= model_value['distance'], color=colors[c], linestyle='-')
+            plt.xlabel("Deformation Size", fontsize=20)
+            plt.title(model_value['titles'][idx],    fontsize=20)
+            plt.ylabel('||S(x_tild) - S(x)||',   fontsize=20)
+            plt.legend(fontsize = 20)
+        figures.append(f)
+    return figures
 
-    f, axarr = plt.subplots(row, col, figsize=size) # create plots
-    count = 0
-    for i in range(row):
-        for p in range(col):
-            axarr[i, p].scatter(x_learnable[count], y_learnable[count], label='learnable scattering', color ='blue')
-            axarr[i, p].scatter(x[count], y[count], label='scattering', color ='orange')
-            axarr[i, p].axhline(y=baselines[0], color='blue', linestyle='-')
-            axarr[i, p].axhline(y=baselines[1], color='orange', linestyle='-')
-            axarr[i, p].set_xlabel(x_labels[count], fontsize=20)
-            axarr[i, p].set_ylabel('||S(x_tild) - S(x)||', fontsize=20)
-            axarr[i, p].set_title(titles[count], fontsize=20)
-            axarr[i, p].legend()
-            count+=1 
-    return f
+    
 
 # Deforms the image given a function \tau.
 def diffeo(img,tau,device):
@@ -283,11 +266,13 @@ def deformation_size(tau):
     # Return the Jacobian with the biggest norm.
     return torch.max(norm_jac)
 
-def log_mlflow(params, deformations, l2_norm, figure, img):
+def log_mlflow(params, model_values, figures, img):
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment('Exp Deformation')
 
     with mlflow.start_run():
+        ToPILImage = torchvision.transforms.ToPILImage()
+        img = ToPILImage(img.squeeze(0)).convert("L")
         #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
@@ -295,21 +280,22 @@ def log_mlflow(params, deformations, l2_norm, figure, img):
         mlflow.log_params(rename_params('optim', params['optim']))
         mlflow.log_params(params['general'])
         mlflow.log_dict(params, "model/parameters.yml")
-        mlflow.log_figure(figure, f'plot/deformation.pdf')
-        img = torchvision.transforms.functional.to_pil_image(img.cpu()[0,:, :, :])
-        mlflow.log_image(img, "image.png")
-        log_csv_file('deformations.csv', deformations)
-        log_csv_file('l2norm.csv', l2_norm)
+        for i,figure in enumerate(figures):
+            mlflow.log_figure(figure, f'Deformation/{model_values[0]["transformation_names"][i]}/Deformation.pdf')        
+            mlflow.log_image(img, f'Deformation/{model_values[0]["transformation_names"][i]}/Image_before.pdf')
+            img_deformed = ToPILImage(model_values[0]["image"][i].squeeze(0)).convert("L")
+            mlflow.log_image(img_deformed, f'Deformation/{model_values[0]["transformation_names"][i]}/Image_after.pdf')
+        # for value in model_values:
+        #     learnable = value['params']['scattering']['learnable']
+        #     init= value['params']['scattering']['init_params']
+        #     log_csv_file(f"{learnable}_{init}_deformations.csv", value['x'])
+        #     log_csv_file(f"{learnable}_{init}_l2norm.csv", value['y'])
         print(f"finish logging{params['mlflow']['tracking_uri']}")
 
-
-
 if __name__ == '__main__':
-    # We need the paths to 2 differents models
-    # The first Path is the path to the classical scattering network
-    # The second Path is the path to the learnable scattering network
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model-path", "-m", type=str, required=True)
-    parser.add_argument("--model-path-learnable", "-ml", type=str, required=True)
-    args = parser.parse_args()
-    evaluate_deformed_repressentation(args)
+    n = len(sys.argv)
+    print("Total paths passed:", n-1)
+    models = []
+    for i in range(1, n):
+        models.append(sys.argv[i])
+    evaluate_deformed_repressentation(models)
