@@ -8,11 +8,14 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+os.environ['MKL_THREADING_LAYER'] = 'GNU' # Fix a bug : mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible with libgomp.so.1 library.
+        #Try to import numpy first or set the threading layer accordingly. Set MKL_SERVICE_FORCE_INTEL to force it.
 
-mlflow_exp_name = "\"June 8th - all KTH + linear Layer\""
+PROCESS_BATCH_SIZE = 1
 
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+mlflow_exp_name = "\"KTH all orders + normalization\""
+
+PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
@@ -23,8 +26,8 @@ DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
 INIT = "Kymatio"
-EPOCHS = 150
-RUNS_PER_SEED = 4
+EPOCHS = 100
+RUNS_PER_SEED = 1
 TOTALRUNS = 4
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
@@ -52,8 +55,8 @@ if __name__ == '__main__':
     commands = []
     for p in range(RUNS_PER_SEED):
         SEED = int(time.time() * np.random.rand(1))
-        for sample in ['d', 'c', 'b', 'a']:
-            for x in range(TOTALRUNS):
+        for sample in ['d']:#, 'c', 'b', 'a']:
+            for x in [2]:#range(TOTALRUNS):
 
                 LEARNABLE = 0 if LEARNABLE == 1 else 1
                 if x % 2 == 0  and x != 0:

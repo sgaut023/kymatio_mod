@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 import sys
 import matplotlib.pyplot as plt
+from torchvision.transforms.transforms import ToPILImage
 sys.path.append(str(Path.cwd()))
 
 import torch
@@ -32,65 +33,72 @@ from parametricSN.utils.helpers import get_context
 from parametricSN.cifar_small_sample import datasetFactory
 from parametricSN.utils.helpers import rename_params, log_csv_file
 
+def apply_transformation(max_value, name, hybridModel, img,x,y,titles,transformation_names,imgs_deformed, transform = None, device = None, num_data = 15):
+    if max_value > num_data:
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data,dtype = int)#.to(device)
+    else:
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data )#.to(device)
+    l2_norm, deformations, img_deformed = compute_l2norm(hybridModel, name,img, deformation_levels, transform, device)
+    titles.append(f'Transformation: {name}')
+    imgs_deformed.append(img_deformed)
+    transformation_names.append(name)
+
+    append_to_list(x, y, l2_norm, deformations)
+
 def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_data = 15):
-    
-    deformations, l2_norm= [], []
     hybridModel= load_models_weights(model_path,device)
     _, params = get_context(os.path.join(model_path,'parameters.yml'), True) 
     
     print("Starting evaluate representationfor hybridModel".format(params['model']['trainable_parameters']))
 
-    x, y, x_labels, titles = [], [], [], []
+    x, y, titles, transformation_names, imgs_deformed = [], [], [], [], []
     
     # rotation
-    angles = torch.arange(0,30, 30/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees=[0,0])
-    l2_norm, deformations= compute_l2norm(hybridModel, 'rotation',img, angles, transforms, device)
-    x_labels.append('Degree')
-    titles.append('Transformation: Rotation')
-    append_to_list(x, y, l2_norm, deformations)
+    transform = torchvision.transforms.RandomAffine(degrees=[0,0])
+    apply_transformation(max_value = 30, name = "rotation", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names, imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
 
     # distortion
-    distortion_levels = torch.arange(0,1, 1/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomPerspective(distortion_scale=0, p=1)
-    l2_norm, deformations = compute_l2norm(hybridModel,  'distortion', img, distortion_levels, transforms, device)
-    x_labels.append('Distortion Level')
-    titles.append('Transformation: Distortion')
-    append_to_list(x, y, l2_norm, deformations)
+    transform = torchvision.transforms.RandomPerspective(distortion_scale=0, p=1)
+    apply_transformation(max_value = 0.2, name = "distortion", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
 
     # shear
-    shears = torch.arange(0,40, 40/ num_data ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
-    l2_norm, deformations = compute_l2norm(hybridModel, 'shear', img, shears, transforms, device)
-    x_labels.append('Degree')
-    titles.append('Transformation: Shear')
-    append_to_list(x, y, l2_norm, deformations)
+    transform = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
+    apply_transformation(max_value = 40, name = "shear", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
 
     # Sharpness
-    # deformations_list = torch.arange(0,100, 1, dtype=int ).to(device)
-    # transforms = torchvision.transforms.RandomAdjustSharpness(sharpness_factor=100, p=1)
-    # l2_norm, deformations, l2_norm_learnable, deformations_learnable = compute_l2norm(hybridModel, hybridModelLearnable, 'sharpness', img, deformations_list , transforms, device )
-    # x_labels.append('Sharpness Factor')
-    # titles.append('Transformation: sharpness')
-    # append_to_list(x, y,x_learnable,y_learnable, deformations, l2_norm, deformations_learnable, l2_norm_learnable)
+    transform = torchvision.transforms.RandomAdjustSharpness(sharpness_factor=100, p=1)
+    apply_transformation(max_value = 100, name = "sharpness", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
     
     # Horizontal translation
     height = params['dataset']['height'] 
     max_translate = int(height* 0.1)
-    deformations_list = torch.arange(0,max_translate , max_translate /num_data, dtype=int ).to(device)
-    transforms = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
-    l2_norm, deformations= compute_l2norm(hybridModel,  'translate', img, deformations_list , transforms, device )
-    x_labels.append('Horizontal Translation ratio')
-    titles.append('Transformation: Horizontal Translation')
-    append_to_list(x, y, l2_norm, deformations)
+    transform = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
+    apply_transformation(max_value = max_translate, name = "translation", hybridModel = hybridModel, img = img,
+                         x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+                         transform = transform, device = device, num_data = 15)
+
+    # Mallat1
+    # apply_transformation(max_value = 1, name = "Mallat1", hybridModel = hybridModel, img = img,
+    #                      x=x,y=y,titles=titles,transformation_names=transformation_names,imgs_deformed=imgs_deformed,
+    #                      transform = None, device = device, num_data = 15)
 
     distance  = get_baseline(img, (iter(test_loader)), hybridModel,  device)
 
-    values = {"model_path": model_path,"distance": distance,  "x":x, "y": y, 
-                "x_labels": x_labels, "titles":titles, "params": params}
     print("Done evaluating representationfor hybridModel: {}".format(model_path))
-    return values
     
+    values = {"model_path": model_path,"distance": distance,  "x":x, "y": y, "titles":titles, "params": params,
+             "transformation_names":transformation_names,"image":imgs_deformed}
+    return values    
 
 def evaluate_deformed_repressentation(models):
     """Initializes and trains scattering models with different architectures
@@ -114,8 +122,8 @@ def evaluate_deformed_repressentation(models):
     for model in models:
         model_values.append(get_l2norm_deformation( model, test_loader, img, device, num_data = 15))
     
-    f = visualize_l2norm(model_values)
-    log_mlflow(params, model_values, f, img)
+    figures = visualize_l2norm(model_values,len(model_values[0]["x"]))
+    log_mlflow(params, model_values, figures, img)
 
 def load_models_weights(model_path, device ):
     hybridModel = mlflow.pytorch.load_model(model_path)
@@ -150,27 +158,36 @@ def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, 
                 elif deformation == 'shear':
                     transforms.shear = [v.item(), v.item()]
                     img_deformed = transforms(img).to(device)
-                elif deformation == 'distortion':
-                    (v.item() % 2) == 0
+                elif deformation == 'distortion':                    
                     transforms.distortion_scale = v.item()
                     img_deformed = transforms(img).to(device)
                 elif deformation == 'sharpness':
                     transforms.sharpness_factor = v.item()
                     img_deformed = transforms(img).to(device)
-                elif deformation == 'translate':
+                elif deformation == 'translation':
                     ret = transforms.get_params(transforms.degrees, transforms.translate, transforms.scale, transforms.shear, img.shape)
                     ret = list(ret)
                     ret[1] = (v.item(),0)
                     ret= tuple(ret)
                     img_deformed  = torchvision.transforms.functional.affine(img.to(device), *ret, interpolation=transforms.interpolation, fill=False)
+                elif deformation == "Mallat1":
+                    tau = lambda u : (v.item() *(0.5*u[0]+0.3*u[1]**2),v.item() *(0.3*u[1]) )      
+                    img_deformed = diffeo(img.to(device),tau,device)
+
                 
                 representation = hybridModel.scatteringBase(img_deformed)
-                deformations.append(v.item())
-                l2_norm.append(torch.dist(representation_0, representation ).item())
-
+                if deformation == "Mallat1":
+                    deformationSize = deformation_size(tau)
+                    deformations.append(deformationSize)
+                else:
+                    deformations.append(v.item())
+               # l2_norm.append(torch.dist(representation_0, representation ).item())
+                l2_norm.append(torch.linalg.norm(representation_0 - representation).item()/
+                              torch.linalg.norm(representation_0).item())
+                
     l2_norm = np.array(l2_norm)
     deformations = np.array(deformations)
-    return l2_norm, deformations
+    return l2_norm, deformations, img_deformed
 
 def append_to_list(x, y, l2_norm, deformations):
     x.append(deformations)
@@ -197,37 +214,69 @@ def get_baseline(img, it, hybridModel,  device, num_images=50):
             else:
                 img2, _ = next(it)  
                 representation = hybridModel.scatteringBase(img2.to(device) )
-                distances.append(torch.dist(representation_0, representation ).item())
+                distances.append(torch.dist(representation_0, representation ).item()/
+                                torch.linalg.norm(representation_0).item())
     return np.array(distances).mean()
 
     
-def visualize_l2norm(model_values):
+def visualize_l2norm(model_values, num_transformations = 4):
     plt.rcParams.update({'font.size': 20})
-    row = 2
-    col = 2
-    size = (35, 10*row,)
     colors = ['#ff0000','#0000ff', '#008000','#ffd700', '#800000', '#ff00ff' ]
-    f, axarr = plt.subplots(row, col, figsize=size) # create plots
-    for c, model_value in enumerate(model_values):
-        count = 0
-        for i in range(row):
-            for p in range(col):
-                axarr[i, p].scatter(x= model_value["x"][count], y= model_value["y"][count], 
+    figures = []
+    for idx in range(num_transformations):
+        f = plt.figure(figsize=(10,10)) # create plots
+        for c, model_value in enumerate(model_values):
+            plt.scatter(x= model_value["x"][idx], y= model_value["y"][idx], 
                                     label= f'{model_value["params"]["scattering"]["init_params"]} + {model_value["params"]["scattering"]["learnable"]}',
                                     color =colors[c])
-                axarr[i, p].axhline(y= model_value['distance'], color=colors[c], linestyle='-')
-                axarr[i, p].set_xlabel(model_value["x_labels"][count], fontsize=20)
-                axarr[i, p].set_title(model_value['titles'][count],    fontsize=20)
-                axarr[i, p].set_ylabel('||S(x_tild) - S(x)||',   fontsize=20)
-                axarr[i, p].legend(fontsize = 20)
-                count+=1 
-    return f
+            plt.axhline(y= model_value['distance'], color=colors[c], linestyle='-')
+            plt.xlabel("Deformation Size", fontsize=20)
+            plt.title(model_value['titles'][idx],    fontsize=20)
+            plt.ylabel('||S(x_tild) - S(x)||',   fontsize=20)
+            plt.legend(fontsize = 20)
+        figures.append(f)
+    return figures
 
-def log_mlflow(params, model_values, f, img):
+    
+
+# Deforms the image given a function \tau.
+def diffeo(img,tau,device):
+    img = img
+    # Number of pixels. Suppose square image.
+    dim = img.shape[-1]
+    # Create a (dim x dim) matrix of 2d vectors. Each vector represents the normalized position in the grid. 
+    # Normalized means (-1,-1) is top left and (1,1) is bottom right.
+    grid = torch.tensor([[[x,y] for x in torch.linspace(-1,1,dim)] for y in torch.linspace(-1,1,dim)])
+    # Apply u-tau(u) in Mallat's. 
+    tau_mat = lambda grid : torch.tensor([[tau(grid[i,j,:]) for j in range(len(grid))] for i in range(len(grid))])
+    grid_transf = (grid - tau_mat(grid)).unsqueeze(0).to(device)
+    # Apply x(u-tau(u)) by interpolating the image at the index points given by grid_transf.
+    img_transf = torch.nn.functional.grid_sample(img,grid_transf)
+    return img_transf
+
+# Calculate the deformation size : sup |J_{tau}(u)| over u.
+def deformation_size(tau):
+    # Set a precision. This is arbitrary.
+    precision = 128
+    # Create a (flatten) grid of points between (-1,-1) and (1,1). This is the same grid as in the previous
+    # function (but flatten), but it feels arbitrary also.
+    points = [torch.tensor([x,y]) for x in torch.linspace(-1,1,precision) for y in torch.linspace(-1,1,precision)]
+    # Evaluate the Jacobian of tau in each of those points. Returns a tensor of precision^2 x 2 x 2, i.e.
+    # for each point in points the 2 x 2 jacobian. Is it necessary to compute on all points, or only on the
+    # boundary would be sufficient?
+    jac = torch.stack(list(map(lambda point : torch.stack(torch.autograd.functional.jacobian(tau,point)), points)))
+    # Find the norm of those jacobians.
+    norm_jac = torch.linalg.matrix_norm(jac,ord=2,dim=(1, 2))
+    # Return the Jacobian with the biggest norm.
+    return torch.max(norm_jac)
+
+def log_mlflow(params, model_values, figures, img):
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment('Exp Deformation')
 
     with mlflow.start_run():
+        ToPILImage = torchvision.transforms.ToPILImage()
+        img = ToPILImage(img.squeeze(0)).convert("L")
         #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
@@ -235,9 +284,11 @@ def log_mlflow(params, model_values, f, img):
         mlflow.log_params(rename_params('optim', params['optim']))
         mlflow.log_params(params['general'])
         mlflow.log_dict(params, "model/parameters.yml")
-        mlflow.log_figure(f, f'plot/deformation.pdf')
-        img = torchvision.transforms.functional.to_pil_image(img.cpu()[0,:, :, :])
-        mlflow.log_image(img, "image.png")
+        for i,figure in enumerate(figures):
+            mlflow.log_figure(figure, f'Deformation/{model_values[0]["transformation_names"][i]}/Deformation.pdf')        
+            mlflow.log_image(img, f'Deformation/{model_values[0]["transformation_names"][i]}/Image_before.pdf')
+            img_deformed = ToPILImage(model_values[0]["image"][i].squeeze(0)).convert("L")
+            mlflow.log_image(img_deformed, f'Deformation/{model_values[0]["transformation_names"][i]}/Image_after.pdf')
         # for value in model_values:
         #     learnable = value['params']['scattering']['learnable']
         #     init= value['params']['scattering']['init_params']

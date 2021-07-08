@@ -62,7 +62,7 @@ if __name__ == '__main__':
     commands = []
 
     # for x in range(RUNS_PER_SEED):
-    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
+    for SEED in [750490779,884698041,1065155395,1452034008,1614090550]:# 22942091,313350229,433842091,637789757,706825958
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa

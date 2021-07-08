@@ -13,7 +13,7 @@ from multiprocessing import Process
 os.environ['MKL_THREADING_LAYER'] = 'GNU' # Fix a bug : mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible with libgomp.so.1 library.
         #Try to import numpy first or set the threading layer accordingly. Set MKL_SERVICE_FORCE_INTEL to force it.
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 2
 
 mlflow_exp_name = "\"SN+CNN 100 samples Cifar-10\""
 
@@ -28,7 +28,7 @@ DF = 25
 THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 50
+EPOCHS = 3000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
@@ -72,10 +72,10 @@ if __name__ == '__main__':
     commands = []
 
 
-    for SEED in [491659600]:#,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [207715039]:#491659600,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
+        for aa in [(1,"Random"),(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
