@@ -12,7 +12,7 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Resnet50 100 Samples Xray\""
+mlflow_exp_name = "\"02-Resnet50 100 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"

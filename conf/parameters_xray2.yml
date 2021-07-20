@@ -1,20 +1,20 @@
 #data preprocessing:
 general:
   cores: 4
-  seed:  42  # seed for dataset subselection and random initialization
+  seed:  50  # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db'
+  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns/store.db'
   # tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'deformation_save'
+  experiment_name: 'xray'
 
 dataset:
   name: 'x-ray' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 2
   train_batch_size: 128
   test_batch_size: 128
-  train_sample_num: 1000  #total train samples
+  train_sample_num: 100  #total train samples
   test_sample_num: 400
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'chest_xrays_preprocess'
@@ -27,10 +27,10 @@ dataset:
 
 # kymatio 
 scattering:
-  J: 3
+  J: 4
   max_order: 2
-  lr_scattering: 0.05
-  lr_orientation: 0.05
+  lr_scattering: 0.01
+  lr_orientation: 0.01
   init_params: 'Kymatio' # 'Random' or 'Kymatio'
   learnable: True # True if learnable
   second_order: False
@@ -52,11 +52,11 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer', 'resnet50']
   width: 8   # widthd factor for resnet
-  epoch: 50
+  epoch: 300
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', cross-entropy-accum', 'cosine']
   average: False
-  save: False
+  save: True
 
   
 
