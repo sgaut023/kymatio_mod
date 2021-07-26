@@ -25,6 +25,8 @@ from kymatio import Scattering2D
 from .create_filters import *
 from .wavelet_visualization import get_filters_visualization
 from .sn_models_exceptions import InvalidInitializationException, InvalidArchitectureError
+from scipy.optimize import linear_sum_assignment
+import pprint
 
 
 def baseModelFactory(architecture,J,N,M,second_order,initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
@@ -182,6 +184,9 @@ class sn_Identity(nn.Module):
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
         return 0
+    
+    def checkFilterDistance(self):
+        return 0
         
 
 
@@ -213,7 +218,7 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,second_order, initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+    def __init__(self,J,N,M,second_order, initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,monitor_filters=True,use_cuda=True):
         """Creates scattering filters and adds them to the nn.parameters if learnable"""
         super(sn_ScatteringBase,self).__init__()
         self.J = J
@@ -228,11 +233,23 @@ class sn_ScatteringBase(nn.Module):
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
+        self.monitor_filters = monitor_filters
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
             J,N,M,second_order, initialization=self.initialization,seed=seed,
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
+
+        # import pprint
+        # pp = pprint.PrettyPrinter(indent=4)
+        # print("\n\nscattering:\n")
+        # pp.pprint(self.scattering)
+        # print("\n\npsi:\n")
+        # pp.pprint(self.psi)
+        # print("\n\nwavelets:\n")
+        # pp.pprint(self.wavelets.shape)
+
+        # exit(0)
 
         #self.filterTracker = {'orientation1':[],'orientation2':[],'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
@@ -241,6 +258,122 @@ class sn_ScatteringBase(nn.Module):
 
         self.filters_plots_before = self.getFilterViz()
         self.scatteringTrain = False
+
+        if self.monitor_filters == True:
+            _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
+                J,N,M,second_order, initialization="Kymatio",seed=seed,
+                requires_grad=False,use_cuda=self.use_cuda,device=self.device
+            )
+
+            self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in self.compared_params[1:]],dim=1)
+            self.compared_params_angle = self.compared_params[0] % (2 * np.pi)
+            self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
+            self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
+
+    # def checkParamDistance(self):
+    #     """Method to checking the minimal distance between filter params of one matrix and another"""
+    #     with torch.no_grad():
+    #         tempParams = torch.cat([x.unsqueeze(1) for x in self.params_filters],dim=1)
+    #         distances = torch.cdist(tempParams,self.compared_params)
+    #         sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1)-i)],key=lambda x: x[2],reverse=False)
+    #         used = [False for x in range(tempParams.size(0))]
+    #         totalDist = []
+    #         for i,j,dist in sortedDistances:
+    #             if used[i] == False:
+    #                 totalDist.append(dist)
+    #                 used[i] = True
+    #             elif len(totalDist) == tempParams.size(0):
+    #                 break
+    #             else:
+    #                 pass
+
+    #         return sum(totalDist)
+
+
+    def checkParamDistance(self):
+        """Method to checking the minimal distance between filter params of one matrix and another"""
+
+        def getAngleDistance(one,two):
+            if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
+                raise Exception
+
+            if one == two:
+                return 0
+            elif one < two:
+                diff = min(
+                    two - one,
+                    one + (2 * np.pi) - two
+                )
+            elif two < one:
+                diff = min(
+                    one - two,
+                    two + (2 * np.pi) - one
+                )
+
+            return diff
+            
+
+        with torch.no_grad():
+            numCompared = self.params_filters[0].size(0)
+
+            tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
+            tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+
+            groupDistances = torch.cdist(tempParamsGrouped,self.compared_params_grouped)
+            angleDistances = torch.zeros(groupDistances.shape, device=self.device)
+            avoidZero = torch.zeros(groupDistances.shape, device=self.device) + 0.0000000001
+
+            for i in range(angleDistances.size(0)):
+                for j in range(angleDistances.size(1)):
+                    angleDistances[i,j] = getAngleDistance(tempParamsAngle[i],self.compared_params_angle[j])
+
+            distances = groupDistances + angleDistances + avoidZero
+
+            distNumpy = distances.cpu().numpy()
+            row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
+
+            return distNumpy[row_ind, col_ind].sum()
+
+
+
+
+    def checkDistance(self,compared="wavelets"):
+        """Method to checking the minimal distance between filter params of one matrix and another"""
+        with torch.no_grad():
+            if compared == 'wavelets':
+                numCompared = self.wavelets.size(0)
+                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
+                distances = torch.cdist(tempWavelets.real,self.compared_wavelets.real)
+            elif compared == 'params':
+                numCompared = self.params_filters[0].size(0)
+                tempParams = torch.cat([x.unsqueeze(1) for x in self.params_filters],dim=1)
+                distances = torch.cdist(tempParams,self.compared_params)
+            elif compared == 'wavelets_complete':
+                numCompared = self.wavelets.size(0)
+                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
+                tempWavelets = torch.cat([tempWavelets.real, tempWavelets.imag],dim=1)
+                distances = torch.cdist(tempWavelets,self.compared_wavelets_complete)
+
+          
+            sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1))],key=lambda x: x[2],reverse=False)
+            usedi = [False for x in range(numCompared)]
+            usedj = [False for x in range(numCompared)]
+            totalDist = []
+            for i,j,dist in sortedDistances:
+                if usedi[i] == False and usedj[j] == False:
+                    totalDist.append(dist)
+                    usedi[i] = True
+                    usedj[j] = True
+                elif len(totalDist) == numCompared:
+                    break
+                else:
+                    pass
+
+            return sum(totalDist)
+        
+
+    
+
 
     def saveFilterValues(self,scatteringActive):
         try:

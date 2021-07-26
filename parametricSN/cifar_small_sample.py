@@ -28,7 +28,7 @@ import numpy as np
 
 from numpy.random import RandomState
 from parametricSN.utils.helpers import get_context
-from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow
+from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot
 from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
 from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
@@ -200,10 +200,15 @@ def estimateRemainingTime(trainTime,testTime,epochs,currentEpoch,testStep):
 
     remainingEpochs = epochs - currentEpoch
 
-    remainingTrain = meanTrain *  remainingEpochs
-    remainingTest = meanTest * (int(remainingEpochs / testStep) + 1)
+    remainingTrain = (meanTrain *  remainingEpochs) / 60
+    remainingTest = (meanTest * (int(remainingEpochs / testStep) + 1)) / 60
+    remainingTotal = remainingTest + remainingTrain
 
-    return (remainingTest + remainingTrain) / 60
+    print("[INFO] ~{:.2f} m remaining. Mean train epoch duration: {:.2f} s. Mean test epoch duration: {:.2f} s.".format(
+        remainingTotal, meanTrain, meanTest
+    ))
+
+    return remainingTotal
 
 
 def run_train(args):
@@ -290,20 +295,22 @@ def run_train(args):
         optimizer.scheduler = scheduler
 
 
-    
 
-
-    #M = params['model']['learning_schedule_multi']
-    #drops = [60*M,120*M,160*M] #eugene's scheduler
 
     test_acc = []
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
+    param_distance, wavelet_distance = [], []
 
     trainTime = []
     testTime = []
 
+    # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+    param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+
+    wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
+    
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
@@ -337,6 +344,10 @@ def run_train(args):
                                            glicoController=glicoController, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
+        # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+
+        wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -344,10 +355,10 @@ def run_train(args):
             accuracy, test_loss = test(hybridModel, device, test_loader)
             test_losses.append(test_loss)
             test_acc.append(accuracy)
+            
+
             testTime.append(time.time()-t1)
-            print("[ALERT] Estimated Time Remaining: {} minutes".format(
-                estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
-            ))
+            estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
 
 
@@ -374,6 +385,14 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
+    paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
+        title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
+        xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
+
+    waveletDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF wavelets',
+        title='Learnable wavelet filters progress towards the TF wavelet filters', label='Dist to TF wavelets',
+        xvalues=[x+1 for x in range(len(wavelet_distance))], yvalues=wavelet_distance)
+
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
@@ -392,15 +411,17 @@ def run_train(args):
         filters_grad = None
         filter0_grad = None
 
-
-
     # save metrics and params in mlflow
     log_mlflow(
-        params, hybridModel, np.array(test_acc).round(2), 
-        np.array(test_losses).round(2), np.array(train_accuracies).round(2), np.array(train_losses).round(2), 
-        start_time, filters_plots_before, filters_plots_after, 
-        [f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, filter0_grad, filters_values, filters_value ], f_lr
+        params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
+        test_loss=np.array(test_losses).round(2), train_acc=np.array(train_accuracies).round(2), 
+        train_loss=np.array(train_losses).round(2), start_time=start_time, 
+        filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
+        misc_plots=[f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, 
+        filter0_grad, filters_values, filters_value, f_lr,paramDistancePlot, waveletDistancePlot]
     )
+    
+    
 
 
 def main():
