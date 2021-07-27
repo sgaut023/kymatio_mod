@@ -2,18 +2,16 @@
 
 Authors: Benjamin Therien, Shanel Gauthier
 
-Exceptions:
-    InvalidInitializationException --
-    InvalidArchitectureError --
+TODO Shanel  -- can you comment everything here please?
 
 Functions: 
-    create_scatteringExclusive -- creates scattering parameters
-    topModelFactory -- creates different models based on input
+    conv3x3 -- 3x3 convolution with padding
 
 Classes: 
     sn_CNN -- CNN fitted for scattering input
     sn_LinearLayer -- Linear layer fitted for scattering input
     sn_MLP -- multilayer perceptron fitted for scattering input
+    BasicBlock -- standard wideresnet basicblock
 """
 
 from numpy.core.numeric import False_
@@ -21,16 +19,11 @@ from torchvision import models
 
 import torch.nn as nn
 
-from .sn_models_exceptions import InvalidInitializationException, InvalidArchitectureError
-
-
-
-
 
 class sn_MLP(nn.Module):
-    '''
+    """
     Multilayer Perceptron.
-    '''
+    """
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_MLP,self).__init__()
         selfnum_classes =num_classes
@@ -53,7 +46,7 @@ class sn_MLP(nn.Module):
         )
 
     def forward(self, x):
-        '''Forward pass'''
+        """Forward pass"""
         x = x.view(x.shape[0], -1)
         return self.layers(x)
 
@@ -252,42 +245,6 @@ class sn_LinearLayer(nn.Module):
         for t in self.parameters():
             count += t.numel()
         return count
-
-
-def conv3x3(in_planes, out_planes, stride=1):
-    "3x3 convolution with padding"
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
-
-
-class BasicBlock(nn.Module):
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
 
 
 class sn_Resnet50(nn.Module):

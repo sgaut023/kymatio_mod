@@ -128,7 +128,6 @@ def run_train(args):
 
     # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
     param_distance.append(hybridModel.scatteringBase.checkParamDistance())
-
     wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
     
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)

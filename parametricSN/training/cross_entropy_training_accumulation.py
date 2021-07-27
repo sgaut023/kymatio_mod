@@ -1,5 +1,9 @@
-"""train and test with gradient accumulation"""
+"""Cross entropy training using gradient accumulation
 
+Functions: 
+    train -- training function 
+    test -- testing function
+"""
 
 import torch
 

@@ -1,3 +1,5 @@
+""" Factory for all training methods"""
+
 from . import cosine_training, cross_entropy_training, cross_entropy_training_accumulation
 
 

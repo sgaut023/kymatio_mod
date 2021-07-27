@@ -3,10 +3,10 @@
 Author: Benjamin Therien
 
 Exceptions: 
-    ImpossibleSampleNumException --
-    IncompatibleBatchSizeException -- 
-    IncompatibleClassNumberException --
-    IndicesNotSetupException --
+    ImpossibleSampleNumException
+    IncompatibleBatchSizeException
+    IncompatibleClassNumberException
+    IndicesNotSetupException
 
 Functions:
     cifar_getDataloaders -- samples from the cifar-10 dataset based on input
@@ -26,7 +26,6 @@ from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
 from torch.utils.data import Subset
 from numpy.random import RandomState
-
 
 
 class ImpossibleSampleNumException(Exception):
@@ -49,7 +48,6 @@ def cifar_augmentationFactory(augmentation):
     """Factory for different augmentation choices"""
 
     if augmentation == 'autoaugment':
-        # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
@@ -57,15 +55,12 @@ def cifar_augmentationFactory(augmentation):
             Cutout()
         ]
     elif augmentation == 'original-cifar':
-        # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.RandomCrop(32, 4),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
-        # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = []
-
     elif augmentation == 'glico':
         NotImplemented(f"augment parameter {augmentation} not implemented")
     else: 
@@ -80,16 +75,12 @@ def cifar_augmentationFactory(augmentation):
     return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
-                         valBatchSize, multiplier, trainAugmentation,
-                         seed=None, dataDir=".", num_workers=4, 
-                         use_cuda=True,glico=False):
-    """Samples a specified class balanced number of samples form the cifar dataset
+                         valBatchSize, trainAugmentation, dataDir="."):
+    """Samples a specified class balanced number of samples form the Cifar-10 dataset
     
     returns:
         train_loader, test_loader, seed, glico_dataset
     """
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     transform_train = cifar_augmentationFactory(trainAugmentation)
     transform_val = cifar_augmentationFactory("noaugment")
@@ -112,21 +103,6 @@ def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
 
     return ssc
 
-    train_loader_in_list, test_loader_in_list, seed = ssc.generateNewSet(#Sample from datasets
-        device,workers=num_workers,
-        valMultiplier=multiplier,
-        seed=seed
-    ) 
-
-    if glico:
-        glico_dataset = datasets.CIFAR10(#load train dataset again
-            root=dataDir, train=True, download=True
-        )
-        glico_train = Subset(glico_dataset, ssc.trainSampler.indexes[0])
-    else:
-        glico_train = None
-
-    return train_loader_in_list[0], test_loader_in_list[0], seed, glico_train
 
 class SmallSampleController:
     """Interface for subsampling dataset of different classes.

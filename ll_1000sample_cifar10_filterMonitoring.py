@@ -24,7 +24,7 @@ PROCESS_BATCH_SIZE = 2
 mlflow_exp_name = "\"Tracking filters Cifar-10 all data \""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1

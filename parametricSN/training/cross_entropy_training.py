@@ -1,3 +1,10 @@
+"""Standard Cross entropy training 
+
+Functions: 
+    train -- training function 
+    test -- testing function
+"""
+
 import torch
 
 import torch.nn.functional as F

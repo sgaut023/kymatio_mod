@@ -1,3 +1,11 @@
+"""A training method using the cosine loss as described here: https://arxiv.org/pdf/1901.09054.pdf
+
+Functions: 
+    train -- training function 
+    test -- testing function
+"""
+
+
 import torch
 import torch.nn.functional as F
 
@@ -27,7 +35,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True,glicoController=None, accum_step_multiple=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True, glicoController=None, accum_step_multiple=None):
     """training method"""
 
     model.train()

@@ -16,18 +16,16 @@ Classes:
     SmallSampleController -- class used to sample a small portion from an existing dataset
 """
 
-import torch
 import os
 
 from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 from parametricSN.data_loading.cifar_loader import SmallSampleController
 from torchvision import datasets, transforms
-from torch.utils.data import Subset
 
 
 
 def xray_augmentationFactory(augmentation, height, width):
-    """Factory for different augmentation choices"""
+    """Factory for different augmentation tranforms for the COVIDx CRX-2 dataset mnj"""
     downsample = (260,260)
 
     if augmentation == 'autoaugment':
@@ -65,22 +63,20 @@ def xray_augmentationFactory(augmentation, height, width):
 
 
 def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 
-                         valBatchSize, multiplier, trainAugmentation,
-                         height , width , seed=None,   dataDir=".", num_workers=4, 
-                         use_cuda=True, glico=False):
-    """Samples a specified class balanced number of samples form the cifar dataset
+                        valBatchSize, trainAugmentation, height, 
+                        width, dataDir="."):
+    """Creates a SmallSampleController object from the COVIDx CRX-2 dataset
     
     returns:
         ssc
     """
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    transform_train = xray_augmentationFactory(trainAugmentation,  height, width)
-    transform_val = xray_augmentationFactory("noaugment",  height, width)
+    transform_train = xray_augmentationFactory(trainAugmentation, height, width)
+    transform_val = xray_augmentationFactory("noaugment", height, width)
 
     dataset_train= datasets.ImageFolder(root=os.path.join(dataDir,'train'), #use train dataset
                                             transform=transform_train)
+
     dataset_val = datasets.ImageFolder(root=os.path.join(dataDir,'test'), #use train dataset
                                             transform=transform_val)
 

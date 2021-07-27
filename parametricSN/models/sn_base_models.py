@@ -34,17 +34,18 @@ import pprint
 def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
-    Creates the scattering network, adds it to the passed device, and returns its for modification. Next,
+    Creates the scattering network, adds it to the passed device, and returns it for modification. Next,
     based on input, we modify the filter initialization and use it to create new conv kernels. Then, we
-    update the psi Kymatio object to match their api.
+    update the psi Kymatio object to match the Kymatio API.
 
     arguments:
     use_cuda -- True if were using gpu
     J -- scale of scattering (always 2 for now)
     N -- height of the input image
     M -- width of the input image
-    learnable -- boolean saying if we want to learn params
     initilization -- the type of init: ['kymatio' or 'random']
+    seed -- the seed used for creating randomly initialized filters
+    requires_grad -- boolean idicating whether we want to learn params
     """
     scattering = Scattering2D(J=J, shape=(M, N), frontend='torch')
 
@@ -173,14 +174,13 @@ class sn_ScatteringBase(nn.Module):
     """A learnable scattering nn.module 
 
     parameters:
-    learnable -- should the filters be learnable parameters of this model
-    use_cuda -- True if we are using cuda
-    J -- scale of scattering (always 2 for now)
-    N -- height of the input image
-    M -- width of the input image
-    initilization -- the type of init: ['kymatio' or 'random']
-    seed -- the random seed used to initialize the parameters
-
+        learnable -- should the filters be learnable parameters of this model
+        use_cuda -- True if we are using cuda
+        J -- scale of scattering (always 2 for now)
+        N -- height of the input image
+        M -- width of the input image
+        initilization -- the type of init: ['kymatio' or 'random']
+        seed -- the random seed used to initialize the parameters
     """
 
     def __str__(self):
@@ -197,8 +197,28 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
-    def __init__(self,J,N,M,second_order, initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,monitor_filters=True,use_cuda=True):
-        """Creates scattering filters and adds them to the nn.parameters if learnable"""
+    def __init__(self, J, N, M, second_order, initialization, seed, 
+                 device, learnable=True, lr_orientation=0.1, 
+                 lr_scattering=0.1, monitor_filters=True, use_cuda=True):
+        """Constructor for the leanable scattering nn.Module
+        
+        Creates scattering filters and adds them to the nn.parameters if learnable
+        
+        parameters: 
+            J -- scale of scattering (always 2 for now)
+            N -- height of the input image
+            M -- width of the input image
+            second_order -- 
+            initilization -- the type of init: ['kymatio' or 'random']
+            seed -- the random seed used to initialize the parameters
+            device -- the device to place weights on
+            learnable -- should the filters be learnable parameters of this model
+            lr_orientation -- learning rate for the orientation of the scattering parameters
+            lr_scattering -- learning rate for scattering parameters other than orientation                 
+            monitor_filters -- boolean indicating whether to track filter distances from initialization
+            use_cuda -- True if using GPU
+
+        """
         super(sn_ScatteringBase,self).__init__()
         self.J = J
         self.N = N
@@ -219,20 +239,7 @@ class sn_ScatteringBase(nn.Module):
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
-        # import pprint
-        # pp = pprint.PrettyPrinter(indent=4)
-        # print("\n\nscattering:\n")
-        # pp.pprint(self.scattering)
-        # print("\n\npsi:\n")
-        # pp.pprint(self.psi)
-        # print("\n\nwavelets:\n")
-        # pp.pprint(self.wavelets.shape)
-
-        # exit(0)
-
-        #self.filterTracker = {'orientation1':[],'orientation2':[],'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
-       
         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
 
         self.filters_plots_before = self.getFilterViz()
@@ -249,30 +256,18 @@ class sn_ScatteringBase(nn.Module):
             self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
             self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
 
-    # def checkParamDistance(self):
-    #     """Method to checking the minimal distance between filter params of one matrix and another"""
-    #     with torch.no_grad():
-    #         tempParams = torch.cat([x.unsqueeze(1) for x in self.params_filters],dim=1)
-    #         distances = torch.cdist(tempParams,self.compared_params)
-    #         sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1)-i)],key=lambda x: x[2],reverse=False)
-    #         used = [False for x in range(tempParams.size(0))]
-    #         totalDist = []
-    #         for i,j,dist in sortedDistances:
-    #             if used[i] == False:
-    #                 totalDist.append(dist)
-    #                 used[i] = True
-    #             elif len(totalDist) == tempParams.size(0):
-    #                 break
-    #             else:
-    #                 pass
-
-    #         return sum(totalDist)
-
 
     def checkParamDistance(self):
-        """Method to checking the minimal distance between filter params of one matrix and another"""
+        """Method to checking the minimal distance between initialized filters and learned ones
+        
+        Euclidean distances are calculated between each filter for parameters other than orientations
+        for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
+        these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
+        algorithm to compute the optimal match (I.E. the one that minizes total distance)        
+        """
 
         def getAngleDistance(one,two):
+            """returns the angle of arc between two points on the unit circle"""
             if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
                 raise Exception
 
@@ -288,12 +283,10 @@ class sn_ScatteringBase(nn.Module):
                     one - two,
                     two + (2 * np.pi) - one
                 )
-
             return diff
             
 
         with torch.no_grad():
-            numCompared = self.params_filters[0].size(0)
 
             tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
             tempParamsAngle = self.params_filters[0] % (2 * np.pi)
@@ -333,7 +326,6 @@ class sn_ScatteringBase(nn.Module):
                 tempWavelets = torch.cat([tempWavelets.real, tempWavelets.imag],dim=1)
                 distances = torch.cdist(tempWavelets,self.compared_wavelets_complete)
 
-          
             sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1))],key=lambda x: x[2],reverse=False)
             usedi = [False for x in range(numCompared)]
             usedj = [False for x in range(numCompared)]
@@ -349,8 +341,6 @@ class sn_ScatteringBase(nn.Module):
                     pass
 
             return sum(totalDist)
-        
-
     
 
 
@@ -392,7 +382,7 @@ class sn_ScatteringBase(nn.Module):
 
 
     def plotFilterGrads(self):
-        """ plots the graph of the filter gradients """
+        """plots the graph of the filter gradients"""
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
@@ -420,6 +410,7 @@ class sn_ScatteringBase(nn.Module):
 
     
     def plotFilterValues(self):
+        """plots the graph of the filter values"""
         filterNum = self.params_filters[1].shape[0]
         col = 8
         row = int(filterNum/col)
@@ -487,11 +478,15 @@ class sn_ScatteringBase(nn.Module):
                                'maxi_lr':self.lr_scattering , 'weight_decay': 0}
 
     def updateFilters(self):
-        """if were using learnable scattering, update the filters to reflect the new parameter values obtained from gradient descent"""
+        """if were using learnable scattering, update the filters to reflect 
+        the new parameter values obtained from gradient descent"""
         if self.learnable:
-            self.wavelets = morlets(self.grid, self.params_filters[0], self.params_filters[1], 
-                                    self.params_filters[2], self.params_filters[3], device=self.device)
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.initialization, self.device) 
+            self.wavelets = morlets(self.grid, self.params_filters[0], 
+                                    self.params_filters[1], self.params_filters[2], 
+                                    self.params_filters[3], device=self.device)
+                                    
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
+                                  self.initialization, self.device) 
         else:
             pass
 
