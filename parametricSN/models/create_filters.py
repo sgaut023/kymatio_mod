@@ -59,9 +59,9 @@ def update_psi(J, psi, wavelets,  initialization , device):
             for res in range(0, J-1):
                 if res in d.keys():
                     if res == 0:
-                        d[res]=wavelets[i]
+                        d[res] = wavelets[i]
                     else:
-                        d[res]= periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
+                        d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
     # else:
     #     count = 0
     #     for i,d in enumerate(psi):
@@ -269,6 +269,8 @@ def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True,
     wave_vectors = orientations * xis[:, np.newaxis]
 
     _, _, gauss_directions = torch.linalg.svd(orientations[:, np.newaxis])
+    # _, _, gauss_directions = torch.svd(orientations[:, np.newaxis],some=False)
+
     gauss_directions = gauss_directions / sigmas[:, np.newaxis, np.newaxis]
     indicator = torch.arange(ndim,device=device) < 1
     slant_modifications = (1.0 * indicator + slants[:, np.newaxis] * ~indicator)

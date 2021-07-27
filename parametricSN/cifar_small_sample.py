@@ -28,7 +28,7 @@ import numpy as np
 
 from numpy.random import RandomState
 from parametricSN.utils.helpers import get_context
-from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow
+from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot
 from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
 from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
@@ -42,7 +42,14 @@ from parametricSN.utils.optimizer_loader import *
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
-    """Factory for different schedulers"""
+    """Factory for OneCycle, CosineAnnealing, Lambda, Cyclic, and step schedulers
+
+    parameters: 
+    params -- dict of input parameters
+    optimizer -- the optimizer paired with the scheduler
+    steps_per_epoch -- number of steps the scheduler takes each epoch
+    """
+
     if params['optim']['alternating']: 
         return Scheduler(
                     optimizer, params['optim']['scheduler'], 
@@ -63,29 +70,39 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
             if 'maxi_lr' in group .keys():
                 group['max_lr'] = group['maxi_lr']
 
-
     elif params['optim']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max = params['optim']['T_max'], eta_min = 1e-8)
+
     elif params['optim']['scheduler'] =='LambdaLR':
         lmbda = lambda epoch: 0.95
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
+
     elif params['optim']['scheduler'] =='CyclicLR':
         scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
+
     elif params['optim']['scheduler'] =='StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
                                                     gamma=0.5)
+
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
+
     else:
         raise NotImplemented(f"Scheduler {params['optim']['scheduler']} not implemented")
+
     return scheduler
 
 
-def optimizerFactory(hybridModel,params):
-    """Factory for different optimizers"""
+def optimizerFactory(hybridModel, params):
+    """Factory for adam, sgd, and a custom alternating optimizer
+
+    parameters: 
+    params -- dict of input parameters
+    hybridModel -- the model used during training 
+    """
     if params['optim']['alternating']:
         return Optimizer(
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
@@ -112,8 +129,15 @@ def optimizerFactory(hybridModel,params):
         raise NotImplemented(f"Optimizer {params['optim']['name']} not implemented")
 
 
-def datasetFactory(params,dataDir,use_cuda):
-    """
+def datasetFactory(params, dataDir, use_cuda):
+    """ Factory for Cifar-10, kth-tips2, and COVID-CRX2 datasets
+
+    Creates and returns different dataloaders and datasets based on input
+
+    parameters: 
+    params -- dict of input parameters
+    dataDir -- path to the dataset
+
     returns:
         train_loader, test_loader, seed
     """
@@ -150,8 +174,13 @@ def datasetFactory(params,dataDir,use_cuda):
 
 
 
-def override_params(args,params):
-    """override passed params dict with CLI arguments"""
+def override_params(args, params):
+    """override passed params dict with any CLI arguments
+    
+    parameters: 
+    args -- namespace of arguments passed from CLI
+    params -- dict of default arguments list    
+    """
 
     # print("Overriding parameters:")
     for k,v in args.__dict__.items():
@@ -161,18 +190,22 @@ def override_params(args,params):
             key = "_".join(tempSplit[1:])
             try:
                 params[prefix][key] = v
-                # print("    ",k,v)
             except KeyError:
-                # print("Invalid parameter {} skipped".format(prefix))
                 pass
 
     return params
 
 def get_train_test_functions(loss_name):
+    """ Factory for different train and test Functions
+
+    parameters: 
+    loss_name -- the name of the loss function to use
+    """
             
     if loss_name == 'cross-entropy':
         train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training.test(*args)
+
     elif loss_name == 'cross-entropy-accum':
         train = lambda *args, **kwargs : cross_entropy_training_accumulation.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training_accumulation.test(*args)    
@@ -180,6 +213,7 @@ def get_train_test_functions(loss_name):
     elif loss_name == 'cosine':
         train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
         test = lambda *args : cosine_training.test(*args)
+
     else:
         raise NotImplemented(f"Loss {loss_name} not implemented")
     
@@ -200,14 +234,22 @@ def estimateRemainingTime(trainTime,testTime,epochs,currentEpoch,testStep):
 
     remainingEpochs = epochs - currentEpoch
 
-    remainingTrain = meanTrain *  remainingEpochs
-    remainingTest = meanTest * (int(remainingEpochs / testStep) + 1)
+    remainingTrain = (meanTrain *  remainingEpochs) / 60
+    remainingTest = (meanTest * (int(remainingEpochs / testStep) + 1)) / 60
+    remainingTotal = remainingTest + remainingTrain
 
-    return (remainingTest + remainingTrain) / 60
+    print("[INFO] ~{:.2f} m remaining. Mean train epoch duration: {:.2f} s. Mean test epoch duration: {:.2f} s.".format(
+        remainingTotal, meanTrain, meanTest
+    ))
+
+    return remainingTotal
 
 
 def run_train(args):
-    """Initializes and trains scattering models with different architectures
+    """Launches the training script 
+
+    parameters:
+    args -- namespace of arguments passed from CLI
     """
     torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
     torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
@@ -290,20 +332,22 @@ def run_train(args):
         optimizer.scheduler = scheduler
 
 
-    
 
-
-    #M = params['model']['learning_schedule_multi']
-    #drops = [60*M,120*M,160*M] #eugene's scheduler
 
     test_acc = []
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
+    param_distance, wavelet_distance = [], []
 
     trainTime = []
     testTime = []
 
+    # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+    param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+
+    wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
+    
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
@@ -337,6 +381,10 @@ def run_train(args):
                                            glicoController=glicoController, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
+        # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+
+        wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -344,10 +392,10 @@ def run_train(args):
             accuracy, test_loss = test(hybridModel, device, test_loader)
             test_losses.append(test_loss)
             test_acc.append(accuracy)
+            
+
             testTime.append(time.time()-t1)
-            print("[ALERT] Estimated Time Remaining: {} minutes".format(
-                estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
-            ))
+            estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
 
 
@@ -374,6 +422,14 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
+    paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
+        title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
+        xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
+
+    waveletDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF wavelets',
+        title='Learnable wavelet filters progress towards the TF wavelet filters', label='Dist to TF wavelets',
+        xvalues=[x+1 for x in range(len(wavelet_distance))], yvalues=wavelet_distance)
+
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
@@ -387,16 +443,16 @@ def run_train(args):
         filters_plots_after = None
         filters_values = None
         filters_grad = None
-        filters_parameters = None
 
-
-    # save metrics and params in mlflow
     log_mlflow(
-        params, hybridModel, np.array(test_acc).round(2), 
-        np.array(test_losses).round(2), np.array(train_accuracies).round(2), np.array(train_losses).round(2), 
-        start_time, filters_plots_before, filters_plots_after, 
-        [f_loss,f_accuracy, f_accuracy_benchmark, filters_grad,filters_values,filters_parameters], f_lr
+        params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
+        test_loss=np.array(test_losses).round(2), train_acc=np.array(train_accuracies).round(2), 
+        train_loss=np.array(train_losses).round(2), start_time=start_time, 
+        filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
+        misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
+        filters_values, filters_parameters, f_lr, paramDistancePlot, waveletDistancePlot]
     )
+    
 
 
 def main():

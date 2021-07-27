@@ -78,6 +78,15 @@ def visualize_learning_rates(lrs, lrs_orientation, lrs_scattering):
     plt.legend() 
     return f  
 
+def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7)):
+    plot = plt.figure(figsize=figsize)
+    plt.title(title)
+    plt.plot(xvalues, yvalues, label=label) 
+    plt.ylabel(ylab)
+    plt.xlabel(xlab)
+    plt.legend() 
+    return plot
+
 def log_csv_file(name, file):
     np.savetxt(name,  file, delimiter=",")
     mlflow.log_artifact(name, 'metrics')
@@ -88,7 +97,7 @@ def rename_params(prefix, params):
 
 def log_mlflow(params, model, test_acc, test_loss, train_acc, 
                train_loss, start_time, filters_plots_before, 
-               filters_plots_after, figures_plot, f_lr):
+               filters_plots_after, misc_plots):
     """Log stats in mlflow"""
 
     duration = (time.time() - start_time)
@@ -116,17 +125,20 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         except:
             pass
 
-        mlflow.log_figure(figures_plot[0], f'plot/train_test_loss.pdf')
-        mlflow.log_figure(figures_plot[1], f'plot/train_test_accuracy.pdf')
-        mlflow.log_figure(figures_plot[2], f'plot/train_test_accuracy_2.pdf')
+        mlflow.log_figure(misc_plots[0], f'plot/train_test_loss.pdf')
+        mlflow.log_figure(misc_plots[1], f'plot/train_test_accuracy.pdf')
+        mlflow.log_figure(misc_plots[2], f'plot/train_test_accuracy_2.pdf')
         
         try:
-            mlflow.log_figure(figures_plot[3], f'learnable_parameters/filters_grad.pdf')
-            mlflow.log_figure(figures_plot[4], f'learnable_parameters/filter_values.pdf')
-            mlflow.log_figure(figures_plot[5], f'learnable_parameters/filter_parameters.pdf')
+            mlflow.log_figure(misc_plots[3], f'learnable_parameters/filters_grad.pdf')
+            mlflow.log_figure(misc_plots[4], f'learnable_parameters/filter_values.pdf')
+            mlflow.log_figure(misc_plots[5], f'learnable_parameters/filter_parameters.pdf')
         except:
             pass
-        mlflow.log_figure(f_lr, f'plot/lr.pdf')
+
+        mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
+        mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
+        mlflow.log_figure(misc_plots[8], f'learnable_parameters/wavelet_distance.pdf')
 
         # saving all accuracies
         log_csv_file('test_acc.csv', test_acc)
