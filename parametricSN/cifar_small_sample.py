@@ -38,11 +38,18 @@ from parametricSN.models.sn_top_models import topModelFactory
 from parametricSN.models.sn_base_models import baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.utils.optimizer_loader import *
-from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+#from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
 
 
 def schedulerFactory(optimizer, params, steps_per_epoch):
-    """Factory for different schedulers"""
+    """Factory for OneCycle, CosineAnnealing, Lambda, Cyclic, and step schedulers
+
+    parameters: 
+    params -- dict of input parameters
+    optimizer -- the optimizer paired with the scheduler
+    steps_per_epoch -- number of steps the scheduler takes each epoch
+    """
+
     if params['optim']['alternating']: 
         return Scheduler(
                     optimizer, params['optim']['scheduler'], 
@@ -63,29 +70,39 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
             if 'maxi_lr' in group .keys():
                 group['max_lr'] = group['maxi_lr']
 
-
     elif params['optim']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max = params['optim']['T_max'], eta_min = 1e-8)
+
     elif params['optim']['scheduler'] =='LambdaLR':
         lmbda = lambda epoch: 0.95
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
+
     elif params['optim']['scheduler'] =='CyclicLR':
         scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
                                             step_size_up=params['optim']['T_max']*2,
                                              mode="triangular2")
+
     elif params['optim']['scheduler'] =='StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
                                                     gamma=0.5)
+
     elif params['optim']['scheduler'] == 'NoScheduler':
         scheduler = None
+
     else:
         raise NotImplemented(f"Scheduler {params['optim']['scheduler']} not implemented")
+
     return scheduler
 
 
-def optimizerFactory(hybridModel,params):
-    """Factory for different optimizers"""
+def optimizerFactory(hybridModel, params):
+    """Factory for adam, sgd, and a custom alternating optimizer
+
+    parameters: 
+    params -- dict of input parameters
+    hybridModel -- the model used during training 
+    """
     if params['optim']['alternating']:
         return Optimizer(
                     model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
@@ -112,8 +129,15 @@ def optimizerFactory(hybridModel,params):
         raise NotImplemented(f"Optimizer {params['optim']['name']} not implemented")
 
 
-def datasetFactory(params,dataDir,use_cuda):
-    """
+def datasetFactory(params, dataDir, use_cuda):
+    """ Factory for Cifar-10, kth-tips2, and COVID-CRX2 datasets
+
+    Creates and returns different dataloaders and datasets based on input
+
+    parameters: 
+    params -- dict of input parameters
+    dataDir -- path to the dataset
+
     returns:
         train_loader, test_loader, seed
     """
@@ -150,8 +174,13 @@ def datasetFactory(params,dataDir,use_cuda):
 
 
 
-def override_params(args,params):
-    """override passed params dict with CLI arguments"""
+def override_params(args, params):
+    """override passed params dict with any CLI arguments
+    
+    parameters: 
+    args -- namespace of arguments passed from CLI
+    params -- dict of default arguments list    
+    """
 
     # print("Overriding parameters:")
     for k,v in args.__dict__.items():
@@ -161,18 +190,22 @@ def override_params(args,params):
             key = "_".join(tempSplit[1:])
             try:
                 params[prefix][key] = v
-                # print("    ",k,v)
             except KeyError:
-                # print("Invalid parameter {} skipped".format(prefix))
                 pass
 
     return params
 
 def get_train_test_functions(loss_name):
+    """ Factory for different train and test Functions
+
+    parameters: 
+    loss_name -- the name of the loss function to use
+    """
             
     if loss_name == 'cross-entropy':
         train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training.test(*args)
+
     elif loss_name == 'cross-entropy-accum':
         train = lambda *args, **kwargs : cross_entropy_training_accumulation.train(*args,**kwargs)
         test = lambda *args : cross_entropy_training_accumulation.test(*args)    
@@ -180,6 +213,7 @@ def get_train_test_functions(loss_name):
     elif loss_name == 'cosine':
         train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
         test = lambda *args : cosine_training.test(*args)
+
     else:
         raise NotImplemented(f"Loss {loss_name} not implemented")
     
@@ -212,7 +246,10 @@ def estimateRemainingTime(trainTime,testTime,epochs,currentEpoch,testStep):
 
 
 def run_train(args):
-    """Initializes and trains scattering models with different architectures
+    """Launches the training script 
+
+    parameters:
+    args -- namespace of arguments passed from CLI
     """
     torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
     torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
@@ -398,16 +435,13 @@ def run_train(args):
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
         hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
         filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-
         filters_values = hybridModel.scatteringBase.plotFilterValues()
-        filters_value = hybridModel.scatteringBase.plotFilterValue()
         filters_grad = hybridModel.scatteringBase.plotFilterGrads()
-        filter0_grad = hybridModel.scatteringBase.plotFilterGrad()
+        filters_parameters = hybridModel.scatteringBase.plotParameterValues()
     else:
         filters_plots_before = None
         filters_plots_after = None
         filters_values = None
-        filters_value = None
         filters_grad = None
         filter0_grad = None
 
@@ -418,7 +452,8 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filter0_grad, filters_values, filters_value, f_lr,paramDistancePlot, waveletDistancePlot]
+        filter0_grad, filters_values, filters_value, f_lr,paramDistancePlot, waveletDistancePlot],
+        filters_parameters = None
     )
     
     
@@ -479,7 +514,7 @@ def main():
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
 
     #model 
-    subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer'])
+    subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer', 'resnet50'])
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
