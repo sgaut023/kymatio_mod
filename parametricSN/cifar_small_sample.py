@@ -1,14 +1,8 @@
-"""Main module for learnable Scattering Networks
+"""Main module for Learnable Scattering Networks
 
 Authors: Benjamin Therien, Shanel Gauthier
 
 Functions: 
-    schedulerFactory -- get selected scheduler
-    optimizerFactory -- get selected optimizer
-    datasetFactory -- get selected dataset
-    test -- test loop
-    train -- train loop per epoch
-    override_params -- override defaults from command line
     run_train -- callable functions for the program
     main -- parses arguments an calls specified callable
 
@@ -20,236 +14,28 @@ sys.path.append(str(Path.cwd()))
 import time
 import argparse
 import torch
+import math
 import random
 
-import torch.nn.functional as F
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
-from numpy.random import RandomState
-from parametricSN.utils.helpers import get_context
-from parametricSN.utils.helpers import visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot
-from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
-from parametricSN.data_loading.kth_loader import kth_getDataloaders
-from parametricSN.data_loading.xray_loader import xray_getDataloaders
+from parametricSN.utils.helpers import get_context, visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot, override_params, setAllSeeds, estimateRemainingTime
+from parametricSN.utils.optimizer_factory import optimizerFactory
+from parametricSN.utils.scheduler_factory import schedulerFactory
+from parametricSN.data_loading.dataset_factory import datasetFactory
 
-from parametricSN.utils import cosine_training, cross_entropy_training, cross_entropy_training_accumulation
-from parametricSN.models.sn_top_models import topModelFactory
-from parametricSN.models.sn_base_models import baseModelFactory
+from parametricSN.models.models_factory import topModelFactory, baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
-from parametricSN.utils.optimizer_loader import *
-#from parametricSN.glico.glico_model.glico_frontend import GlicoController, trainGlico
+from parametricSN.training.training_factory import train_test_factory
 
-
-def schedulerFactory(optimizer, params, steps_per_epoch):
-    """Factory for OneCycle, CosineAnnealing, Lambda, Cyclic, and step schedulers
-
-    parameters: 
-    params -- dict of input parameters
-    optimizer -- the optimizer paired with the scheduler
-    steps_per_epoch -- number of steps the scheduler takes each epoch
-    """
-
-    if params['optim']['alternating']: 
-        return Scheduler(
-                    optimizer, params['optim']['scheduler'], 
-                    steps_per_epoch, epochs=optimizer.epoch_alternate[0], 
-                    div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 2, three_phase=params['optim']['three_phase']
-                )
-
-    if params['optim']['scheduler'] =='OneCycleLR':
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=params['optim']['max_lr'], 
-            steps_per_epoch=steps_per_epoch, epochs=params['model']['epoch'], 
-            three_phase=params['optim']['three_phase'],
-            div_factor=params['optim']['div_factor']
-        )
-
-        for group in optimizer.param_groups:
-            if 'maxi_lr' in group .keys():
-                group['max_lr'] = group['maxi_lr']
-
-    elif params['optim']['scheduler'] =='CosineAnnealingLR':
-        scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max = params['optim']['T_max'], eta_min = 1e-8)
-
-    elif params['optim']['scheduler'] =='LambdaLR':
-        lmbda = lambda epoch: 0.95
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lmbda)
-
-    elif params['optim']['scheduler'] =='CyclicLR':
-        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, 
-                                            step_size_up=params['optim']['T_max']*2,
-                                             mode="triangular2")
-
-    elif params['optim']['scheduler'] =='StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=steps_per_epoch * int(params['model']['epoch']/2), 
-                                                    gamma=0.5)
-
-    elif params['optim']['scheduler'] == 'NoScheduler':
-        scheduler = None
-
-    else:
-        raise NotImplemented(f"Scheduler {params['optim']['scheduler']} not implemented")
-
-    return scheduler
-
-
-def optimizerFactory(hybridModel, params):
-    """Factory for adam, sgd, and a custom alternating optimizer
-
-    parameters: 
-    params -- dict of input parameters
-    hybridModel -- the model used during training 
-    """
-    if params['optim']['alternating']:
-        return Optimizer(
-                    model=hybridModel.top, scatteringModel=hybridModel.scatteringBase, 
-                    optimizer_name=params['optim']['name'], lr=params['optim']['lr'], 
-                    weight_decay=params['optim']['weight_decay'], momentum=params['optim']['momentum'], 
-                    epoch=params['model']['epoch'], num_phase=params['optim']['phase_num'],
-                    phaseEnds=params['optim']['phase_ends'],scattering_max_lr=params['scattering']['max_lr'],
-                    scattering_div_factor=params['scattering']['div_factor'],scattering_three_phase = params['scattering']['three_phase']
-                )
-
-    if params['optim']['name'] == 'adam':
-        return torch.optim.Adam(
-            hybridModel.parameters(),lr=params['optim']['lr'], 
-            betas=(0.9, 0.999), eps=1e-08, 
-            weight_decay=params['optim']['weight_decay'], amsgrad=False
-        )
-    elif params['optim']['name'] == 'sgd': 
-        return torch.optim.SGD(
-            hybridModel.parameters(), lr=params['optim']['lr'], 
-            momentum=params['optim']['momentum'], weight_decay=params['optim']['weight_decay']
-        )
-        
-    else:
-        raise NotImplemented(f"Optimizer {params['optim']['name']} not implemented")
-
-
-def datasetFactory(params, dataDir, use_cuda):
-    """ Factory for Cifar-10, kth-tips2, and COVID-CRX2 datasets
-
-    Creates and returns different dataloaders and datasets based on input
-
-    parameters: 
-    params -- dict of input parameters
-    dataDir -- path to the dataset
-
-    returns:
-        train_loader, test_loader, seed
-    """
-
-    if params['dataset']['name'].lower() == "cifar":
-        return cifar_getDataloaders(
-                    trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
-                    trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
-                    multiplier=1, trainAugmentation=params['dataset']['augment'],
-                    seed=params['general']['seed'], dataDir=dataDir, 
-                    num_workers=params['general']['cores'], use_cuda=use_cuda,
-                    glico=params['dataset']['glico']
-                )
-    elif params['dataset']['name'].lower() == "kth":
-        return kth_getDataloaders(
-                    trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
-                    trainAugmentation=params['dataset']['augment'], height= params['dataset']['height'] , 
-                    width = params['dataset']['width'], sample = params['dataset']['sample'] , 
-                    seed=params['general']['seed'], dataDir=dataDir, num_workers=params['general']['cores'], 
-                    use_cuda=use_cuda, glico=params['dataset']['glico']
-                )
-    elif params['dataset']['name'].lower() == "x-ray":
-        return xray_getDataloaders(
-            trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
-            trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
-            multiplier=1, trainAugmentation=params['dataset']['augment'],
-            height= params['dataset']['height'] , width = params['dataset']['width'],
-            seed=params['general']['seed'], dataDir=dataDir, 
-            num_workers=params['general']['cores'], use_cuda=use_cuda, 
-            glico=params['dataset']['glico']
-        )
-    else:
-        raise NotImplemented(f"Dataset {params['dataset']['name']} not implemented")
-
-
-
-def override_params(args, params):
-    """override passed params dict with any CLI arguments
-    
-    parameters: 
-    args -- namespace of arguments passed from CLI
-    params -- dict of default arguments list    
-    """
-
-    # print("Overriding parameters:")
-    for k,v in args.__dict__.items():
-        if v != None and k != "param_file":
-            tempSplit = k.split('_')
-            prefix = tempSplit[0]
-            key = "_".join(tempSplit[1:])
-            try:
-                params[prefix][key] = v
-            except KeyError:
-                pass
-
-    return params
-
-def get_train_test_functions(loss_name):
-    """ Factory for different train and test Functions
-
-    parameters: 
-    loss_name -- the name of the loss function to use
-    """
-            
-    if loss_name == 'cross-entropy':
-        train = lambda *args, **kwargs : cross_entropy_training.train(*args,**kwargs)
-        test = lambda *args : cross_entropy_training.test(*args)
-
-    elif loss_name == 'cross-entropy-accum':
-        train = lambda *args, **kwargs : cross_entropy_training_accumulation.train(*args,**kwargs)
-        test = lambda *args : cross_entropy_training_accumulation.test(*args)    
-    
-    elif loss_name == 'cosine':
-        train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
-        test = lambda *args : cosine_training.test(*args)
-
-    else:
-        raise NotImplemented(f"Loss {loss_name} not implemented")
-    
-    return train, test
-
-
-def setAllSeeds(seed):
-    """Helper for setting seeds"""
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-
-
-def estimateRemainingTime(trainTime,testTime,epochs,currentEpoch,testStep):
-    meanTrain = np.mean(trainTime)
-    meanTest = np.mean(testTime)
-
-    remainingEpochs = epochs - currentEpoch
-
-    remainingTrain = (meanTrain *  remainingEpochs) / 60
-    remainingTest = (meanTest * (int(remainingEpochs / testStep) + 1)) / 60
-    remainingTotal = remainingTest + remainingTrain
-
-    print("[INFO] ~{:.2f} m remaining. Mean train epoch duration: {:.2f} s. Mean test epoch duration: {:.2f} s.".format(
-        remainingTotal, meanTrain, meanTest
-    ))
-
-    return remainingTotal
 
 
 def run_train(args):
     """Launches the training script 
 
     parameters:
-    args -- namespace of arguments passed from CLI
+        args -- namespace of arguments passed from CLI
     """
     torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
     torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
@@ -268,15 +54,14 @@ def run_train(args):
     if params['optim']['alternating'] and params['scattering']['learnable']:
         params['model']['epoch'] = params['model']['epoch'] + int(params['optim']['phase_ends'][-1])
 
-    train_loader, test_loader, params['general']['seed'], glico_dataset = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
-    
-    if glico_dataset != None:
-        setAllSeeds(seed=params['general']['seed'])
-        nag = trainGlico(glico_dataset,params['dataset']['num_classes'],epochs=750)
-        glicoController = GlicoController(nag,steps=5,replaceProb=0.075)
-    else:
-        glicoController = None
 
+    ssc = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
+
+    train_loader, test_loader, params['general']['seed'] = ssc.generateNewSet(#Sample from datasets
+        device, workers=params['general']['cores'],
+        seed=params['general']['seed'],
+        load=False
+    ) 
 
     setAllSeeds(seed=params['general']['seed'])
 
@@ -306,11 +91,11 @@ def run_train(args):
         use_cuda=use_cuda
     )
 
-
-    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top, use_cuda=use_cuda)
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top, use_cuda=use_cuda) #creat hybrid model
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
+    #use gradient accumulation if VRAM is constrained
     if params['model']['loss'] == 'cross-entropy-accum':
         if params['dataset']['accum_step_multiple'] % params['dataset']['train_batch_size'] != 0:
             print("Incompatible batch size and accum step multiple")
@@ -321,7 +106,7 @@ def run_train(args):
         params['dataset']['accum_step_multiple']
         scheduler = schedulerFactory(
             optimizer=optimizer, params=params, 
-            steps_per_epoch=math.ceil(params['dataset']['train_sample_num']/params['dataset']['accum_step_multiple'])
+            steps_per_epoch=math.ceil(ssc.trainSampleCount/params['dataset']['accum_step_multiple'])
         )
     else:
         scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
@@ -330,8 +115,6 @@ def run_train(args):
     
     if params['optim']['alternating']:
         optimizer.scheduler = scheduler
-
-
 
 
     test_acc = []
@@ -350,6 +133,8 @@ def run_train(args):
     
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
+
+    train, test = train_test_factory(params['model']['loss'])
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
@@ -375,10 +160,10 @@ def run_train(args):
         except Exception:
             pass
 
-        train, test = get_train_test_functions(params['model']['loss'])
+        
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
                                            epoch+1, alternating=params['optim']['alternating'],
-                                           glicoController=glicoController, accum_step_multiple=steppingSize)
+                                           glicoController=None, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))

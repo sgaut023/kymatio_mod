@@ -1,3 +1,26 @@
+"""Helper functions for regenerating the scattering filters on the fly
+
+Authors: Benjamin Therien, Shanel Gauthier, Laurent Alsene-Racicot, Michael Eickenberg
+
+TODO Laurent
+TODO Shanel
+
+Functions: 
+    construct_scattering -- 
+    update_psi -- 
+    get_total_num_filters -- 
+    periodize_filter_fft_v1 -- 
+    periodize_filter_fft -- 
+    create_filters_params_random -- 
+    create_filters_params -- 
+    raw_morlets -- 
+    morlets -- 
+
+
+
+"""
+
+
 import sys
 from pathlib import Path 
 import numpy as np
@@ -8,6 +31,10 @@ import torch
 
 
 def construct_scattering(input, scattering, psi):
+    """
+    TODO Laurent
+    TODO Shanel
+    """
     if not torch.is_tensor(input):
         raise TypeError('The input should be a PyTorch Tensor.')
 
@@ -48,6 +75,10 @@ def construct_scattering(input, scattering, psi):
     return S
 
 def update_psi(J, psi, wavelets,  initialization , device):
+    """
+    TODO Laurent
+    TODO Shanel
+    """
     wavelets = wavelets.real.contiguous().unsqueeze(3)
     
     if J == 2:
@@ -145,6 +176,8 @@ def periodize_filter_fft(x, res, device):
 def create_filters_params_random(n_filters, is_scattering_dif, device):
     """
     a 'random' initialization
+    TODO Laurent
+    TODO Shanel
     """
     #n_filters = J*L
     #sigmas = np.log(np.random.uniform(np.exp(0), np.exp(3), n_filters ))
@@ -172,11 +205,12 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     return  params
 
 def create_filters_params(J, L, is_scattering_dif, device):
-    '''
+    """
         Create reusable filters parameters: orientations, xis, sigmas, sigmas
 
-        mimicking the kymatio initialization
-    '''
+    TODO Laurent
+    TODO Shanel
+    """
     orientations = []
     xis = []
     sigmas = []
@@ -217,7 +251,7 @@ def create_filters_params(J, L, is_scattering_dif, device):
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):
     """Helper funciton for morlets
 
-    --long description TODO pour laurent
+    TODO Laurent
     """
     n_filters, n_dim = wave_vectors.shape
     assert gaussian_bases.shape == (n_filters, n_dim, n_dim)
@@ -256,7 +290,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
 def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True, ifftshift=True, fft=True):
     """Creates morlet wavelet filters from input
 
-    --long description TODO pour laurent
+    TODO Laurent
     """
     if device is None:
         device = theta.device

@@ -76,18 +76,7 @@ def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
                        num_workers=num_workers, seed=seed, 
                        sample=sample)
 
-    train_loader, test_loader = loader.get_dataloaders()
-
-    if use_cuda:
-        for batch,target in train_loader:
-            batch.cuda()
-            target.cuda()
-
-        for batch,target in test_loader:
-            batch.cuda()
-            target.cuda()
-    
-    return train_loader, test_loader, loader.seed, None
+    return loader
 
 class KTHLoader():
     """Class for loading the KTH texture dataset"""
@@ -108,7 +97,12 @@ class KTHLoader():
         self.num_workers =num_workers
         self.sample = sample
 
-    def get_dataloaders(self):
+    def get_dataloaders(self, device, workers=5, seed=None, load=False):
+        """ TODO @Shanel add Comment
+
+        returns:
+            train_loader, test_loader, seed
+        """
         datasets_val = []
         for s in ['a', 'b', 'c', 'd']:
             if self.sample == s:
@@ -135,4 +129,15 @@ class KTHLoader():
                                                   shuffle=True, num_workers=self.num_workers, 
                                                   pin_memory=True)
 
-        return train_loader, test_loader
+        self.trainSampleCount, self.valSampleCount = sum([len(x) for x in train_loader]), sum([len(x) for x in test_loader])
+
+        if load:
+            for batch,target in train_loader:
+                batch.cuda()
+                target.cuda()
+
+            for batch,target in test_loader:
+                batch.cuda()
+                target.cuda()    
+
+        return train_loader, test_loader, self.seed

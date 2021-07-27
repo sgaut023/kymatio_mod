@@ -24,38 +24,7 @@ import torch.nn as nn
 from .sn_models_exceptions import InvalidInitializationException, InvalidArchitectureError
 
 
-class InvalidInitializationException(Exception):
-    """Error thrown when an invalid initialization scheme is passed"""
-    pass
 
-class InvalidArchitectureError(Exception):
-    """Error thrown when an invalid architecture name is passed"""
-    pass
-
-def topModelFactory(base,architecture,num_classes, width=8, average=False, use_cuda=True):
-    """factory for the creation of different model architectures associated to a scattering base"""
-
-    if architecture.lower() == 'cnn':
-        return sn_CNN(
-            base.n_coefficients, k=width, num_classes=num_classes, standard=False
-        )
-    elif architecture.lower() == 'mlp':
-        return sn_MLP(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
-            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            use_cuda=use_cuda
-        )
-    elif architecture.lower() == 'linear_layer':
-        return sn_LinearLayer(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
-            M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
-            average=average
-        )
-    elif architecture.lower() == 'resnet50':
-        return sn_Resnet50(num_classes=num_classes)
-    else:
-        print("In modelFactory() incorrect module name for architecture={}".format(architecture))
-        raise InvalidArchitectureError()
 
 
 class sn_MLP(nn.Module):

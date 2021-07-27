@@ -24,33 +24,12 @@ from numpy.core.numeric import False_
 from kymatio import Scattering2D
 from .create_filters import *
 from .wavelet_visualization import get_filters_visualization
-from .sn_models_exceptions import InvalidInitializationException, InvalidArchitectureError
+from .sn_models_exceptions import InvalidInitializationException
 from scipy.optimize import linear_sum_assignment
 import pprint
 
 
-def baseModelFactory(architecture,J,N,M,second_order,initialization,seed,device,learnable=True,lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
-    """factory for the creation of different model architectures associated to a scattering base"""
 
-    if architecture.lower() == 'identity':
-        return sn_Identity()
-    elif architecture.lower() == 'scattering':
-        return sn_ScatteringBase( #create learnable of non-learnable scattering
-            J=J,
-            N=N,
-            M=M,
-            second_order=second_order,
-            initialization=initialization,
-            seed=seed,
-            learnable=learnable,
-            lr_orientation=lr_orientation,
-            lr_scattering=lr_scattering,
-            device=device ,
-            use_cuda=use_cuda
-        )
-    else:
-        print("In modelFactory() incorrect module name for architecture={}".format(architecture))
-        raise InvalidArchitectureError()
 
 def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization

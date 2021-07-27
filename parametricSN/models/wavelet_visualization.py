@@ -1,15 +1,24 @@
+"""Contains all the funcitons related to visualizing the different scattering filters
+
+Functions:  
+    get_filters_visualization -- 
+
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-def get_filters_visualization(psi, J,L, mode ='fourier'):
-    '''
-        Function that logs the metrics on MLFLOW
-        Params: 
-        filters: psi filters
-        num_row: number of rows in the visualization
-        num_col: number of columns in the visualization
-        mode: fourier, real or imag
-    '''
+def get_filters_visualization(psi, J, L, mode ='fourier'):
+    """visualizes the scattering filters input for different modes
+
+    TODO Shanel
+
+    parameters:
+        psi -- 
+        L -- 
+        J -- 
+        mode -- 
+    """
     n_filters =0
     for j in range(2, J+1):
         n_filters+=  j* L

@@ -1,4 +1,4 @@
-"""Wrapper for the cifar dataset with various options 
+"""Wrapper for subsampling the cifar-10 based on given input parameters
 
 Author: Benjamin Therien
 
@@ -15,8 +15,6 @@ Functions:
 Classes: 
     SmallSampleController -- class used to sample a small portion from an existing dataset
 """
-
-
 
 import torch
 import gc
@@ -108,10 +106,11 @@ def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
 
     ssc = SmallSampleController(
         trainSampleNum=trainSampleNum, valSampleNum=valSampleNum, 
-        trainBatchSize=trainBatchSize, valBatchSize=valBatchSize, 
-        multiplier=multiplier, trainDataset=dataset_train, 
-        valDataset=dataset_val 
-    )  
+        trainBatchSize=trainBatchSize, valBatchSize=valBatchSize,  
+        trainDataset=dataset_train, valDataset=dataset_val 
+    ) 
+
+    return ssc
 
     train_loader_in_list, test_loader_in_list, seed = ssc.generateNewSet(#Sample from datasets
         device,workers=num_workers,
@@ -130,8 +129,9 @@ def cifar_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
     return train_loader_in_list[0], test_loader_in_list[0], seed, glico_train
 
 class SmallSampleController:
-    """
-    Class that holds one instance of the cifar 10 dataset, one test set generator
+    """Interface for subsampling dataset of different classes.
+
+    Class that holds one instance of a dataset, one test set generator
     and one train set generator. The test and train sets are managed by the controller
     who ensures they do not overlap. This class always provides class balanced samples
     """
@@ -142,7 +142,7 @@ class SmallSampleController:
         def __str__(self):
             return "Class Sampler"
 
-        def __init__(self,numClasses,sampleNum,batchSize,multiplier):
+        def __init__(self,numClasses,sampleNum,batchSize):
             if sampleNum < numClasses:
                 print(self,"Impossible train sample number passed.")
                 raise ImpossibleSampleNumException
@@ -156,13 +156,26 @@ class SmallSampleController:
             self.batchSize = batchSize
             self.classBatchCount = int((self.sampleNum/self.numClasses)/self.batchSize)
             self.samplesPerClass = int(sampleNum/numClasses)
-            self.multiplier = multiplier
             self.dataLoaders = None
             self.indexes = None
 
 
-        def sample(self,dataset,offset,workers,RP,shuffle=True):
-            """Creates a list of dataloaders based on input"""
+        def getDataloader(self):
+            """returns the first dataloder in the list"""
+            return self.dataLoaders[0]
+
+
+
+        def sample(self, dataset, offset, workers, RP, shuffle=True):
+            """Creates a list of dataloaders based on input
+            
+            parameters:
+                dataset -- The torch dataset object to sample from
+                offset -- The offset position for used samples
+                workers -- number of cores to use
+                RP -- the index of random permutation (allows for seed based subsampling),
+                shuffle -- boolean for shuffling the datasets
+            """
 
 
             if self.dataLoaders != None:
@@ -177,19 +190,20 @@ class SmallSampleController:
             
             self.indexes = []
             self.dataLoaders = []
-            for x in range(self.multiplier):
-                end = int(offset + self.samplesPerClass)
-                indx = np.concatenate([np.where(np.array(dataset.targets) == class_)[0][RP[offset:end]]\
-                     for class_ in range(0, self.numClasses)])
+            end = int(offset + self.samplesPerClass)
+            indx = np.concatenate([np.where(np.array(dataset.targets) == class_)[0][RP[offset:end]]\
+                    for class_ in range(0, self.numClasses)])
 
-                subset = Subset(dataset, indx)
-                self.indexes.append(indx)
-                tempLoader = torch.utils.data.DataLoader(subset,
-                                           batch_size=self.batchSize, shuffle=shuffle,
-                                           num_workers = workers, pin_memory = True)
-                   
-                self.dataLoaders.append(tempLoader)
-                offset = end
+            subset = Subset(dataset, indx)
+            self.indexes.append(indx)
+            tempLoader = torch.utils.data.DataLoader(subset,
+                                        batch_size=self.batchSize, shuffle=shuffle,
+                                        num_workers = workers, pin_memory = True)
+                
+            self.dataLoaders.append(tempLoader)
+            return len(indx)
+
+
 
 
         def load(self,device):
@@ -227,26 +241,26 @@ class SmallSampleController:
 
             
     def __str__(self):
-        return "[SmallSampleController] num classes:{}, train batch size:{}".format(self.numClasses,self.trainSampler.batchSize)
+        return "[SmallSampleController]"
 
 
-    def __init__(self, trainSampleNum, valSampleNum, trainBatchSize, valBatchSize, multiplier, trainDataset, valDataset):
+    def __init__(self, trainSampleNum, valSampleNum, trainBatchSize, valBatchSize, trainDataset, valDataset):
 
         self.numClasses = len(trainDataset.classes)
 
         if self.numClasses != len(valDataset.classes):
-            print("[SmallSampleController] Incompatble number of classes for validation and train datasets")
+            print("{} Incompatible number of classes for validation and train datasets".format(self))
             raise IncompatibleClassNumberException
 
         
         self.trainSampler = SmallSampleController.Sampler(
             numClasses=self.numClasses, sampleNum=trainSampleNum,
-            batchSize=trainBatchSize, multiplier=1
+            batchSize=trainBatchSize
             )
 
         self.valSampler = SmallSampleController.Sampler(
             numClasses=self.numClasses, sampleNum=valSampleNum,
-            batchSize=valBatchSize, multiplier=multiplier
+            batchSize=valBatchSize
             )
 
         self.trainDataset = SmallSampleController.DatasetContainer(trainDataset)
@@ -255,18 +269,15 @@ class SmallSampleController:
 
 
 
-    def sample(self,workers=5,valMultiplier=None,seed=None):
+    def sample(self,workers=5,seed=None):
         """Samples a new random permutaiton of class balanced 
         training and validation samples from the dataset
         
         keyword arguments:
         workers -- the number of cpu cores to allocate
-        valMultiplier -- the number of validation sets to sample
         seed -- the seed to sample with
         """
 
-        if valMultiplier != None:
-            self.valSampler.multiplier = valMultiplier
 
         if seed == None:
             seed = int(time.time()) #generate random seed
@@ -274,7 +285,7 @@ class SmallSampleController:
         prng = RandomState(seed)
         RP = prng.permutation(np.arange(0, self.trainDataset.maxIndex))
 
-        self.trainSampler.sample(
+        trainSampleCount = self.trainSampler.sample(
             dataset=self.trainDataset.dataset,offset=0,
             RP=RP,workers=workers,shuffle=True
             )
@@ -282,7 +293,7 @@ class SmallSampleController:
 
         if self.valDataset == self.trainDataset: #offset to prevent train-test overlap
 
-            self.valSampler.sample(
+            valSampleCount = self.valSampler.samples(
                 dataset=self.valDataset.dataset,
                 offset=self.trainSampler.samplesPerClass,
                 RP=RP,workers=workers,shuffle=False
@@ -292,47 +303,48 @@ class SmallSampleController:
             prng = RandomState(seed)
             RP = prng.permutation(np.arange(0, self.valDataset.maxIndex))
 
-            self.valSampler.sample(
+            valSampleCount = self.valSampler.sample(
                 dataset=self.valDataset.dataset,offset=0,
                 RP=RP,workers=workers,shuffle=False
             )
 
-        return seed
+        return trainSampleCount, valSampleCount, seed
         
         
-
-
     def load(self,device):
         """loads each sampler's data to the device"""
 
         self.trainSampler.load(device=device)
         self.valSampler.load(device=device)
 
-    def getDatasets(self):
+    def getDataloaders(self):
         """returns dataloader list for each sampler"""
 
-        return self.trainSampler.dataLoaders,self.valSampler.dataLoaders
+        return self.trainSampler.getDataloader(), self.valSampler.getDataloader()
 
-    def generateNewSet(self,device,workers=5,valMultiplier=None,seed=None):
+    def generateNewSet(self, device, workers=5, seed=None, load=False):
         """Generates a new random permutation of train and test data and returns it
 
         Samples new train and test loaders from their corresponding datasets using
         the seed, workers, and val multiplier passed. Then, we move these datasets to the 
         passed device. Finally, they are returned along with the seed used to create them
 
-        arguments: 
-        device -- torch device we want to more the data to
-        workers -- cpu cores allocated to this task
-        valMultiplier -- the number of validation sets to sample
-        seed -- the seed to sample with
+        parameters: 
+            device -- torch device we want to more the data to
+            workers -- cpu cores allocated to this task
+            seed -- the seed to sample with
+            load -- boolean indicating whether to load dataset onto device
         """
-        seed = self.sample(workers=workers,valMultiplier=valMultiplier,seed=seed)
-        self.load(device)
-        trainDL,valDL = self.getDatasets()
-        # print("Generated new permutation of the dataset with seed:{}, train sample num: {}, test sample num: {}".format(
-        #         seed,self.trainSampler.sampleNum,self.valSampler.sampleNum))
+        self.trainSampleCount, self.valSampleCount, seed = self.sample(workers=workers,seed=seed)
 
-        return trainDL,valDL,seed
+        if load:
+            self.load(device)
+
+        trainDL, valDL = self.getDataloaders()
+        print("{} sumbsampled dataset with seed: {}, train sample num: {}, test sample num: {}".format(
+                self, seed, self.trainSampleCount, self.valSampleCount))
+
+        return trainDL, valDL, seed
 
 
 
