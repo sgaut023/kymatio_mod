@@ -1,4 +1,4 @@
-""" SN+CNN 100 Samples Xray
+"""SN+CNN 500 samples Cifar-10
 """
 
 import os
@@ -10,37 +10,41 @@ import numpy as np
 
 from multiprocessing import Process
 
+os.environ['MKL_THREADING_LAYER'] = 'GNU' # Fix a bug : mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible with libgomp.so.1 library.
+        #Try to import numpy first or set the threading layer accordingly. Set MKL_SERVICE_FORCE_INTEL to force it.
+
 PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"ONLY CNN 100 Samples Xray\""
-PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+mlflow_exp_name = "\"SN+CNN 100 samples Cifar-10\""
+
+PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.01
-LRS = 0.01
-LRO = 0.01
-LRMAX = 0.01
+LR = 0.1
+LRS = 0.1
+LRO = 0.1
+LRMAX = 0.1
 DF = 25
+THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 100
+EPOCHS = 3000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
-TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
-TEST_BATCH_SIZE = 16
-TRAIN_BATCH_SIZE = 16
-AUGMENT = "original-cifar"
+TRAIN_BATCH_SIZE = 128
+AUGMENT = "autoaugment"
 ALTERNATING = 0
-SECOND_ORDER = 0
-MODEL = 'cnn'
+MODEL = "cnn"
+PHASE_ENDS = " ".join(["100","200"])
 
-MODEL_WIDTH = 8
-SCATT_ARCH = 'identity'
 
-MODEL_LOSS = 'cross-entropy-accum'
+MODEL_LOSS = 'cross-entropy'
+SCATT_LRMAX = 0.2
+SCATT_DF = 25
+SCATT_THREE_PHASE = 1
+
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -67,26 +71,31 @@ if __name__ == '__main__':
 
     commands = []
 
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
+
+    for SEED in [207715039]:#491659600,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]:
+        for aa in [(1,"Random"),(1,"Kymatio")]:#,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
-            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
-                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
+            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
+                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
+            )
 
-            args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
+            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
+                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
+            )
 
-            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {}".format(
-                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE)
-            
-            command = "{} {} run-train {} {} {}".format(
-                PYTHON,RUN_FILE,args1,args2,args3)
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
+            )
+
+            command = "{} {} run-train {} {} {} {}".format(
+                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
 
             commands.append(command)
 
+    
 
     for cmd in commands:
         print(cmd)
@@ -100,13 +109,14 @@ if __name__ == '__main__':
 
         for process in batch:
             process.start()
-            time.sleep(10)
+            time.sleep(5)
 
         for process in batch:
             process.join()
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
+
 
 
 

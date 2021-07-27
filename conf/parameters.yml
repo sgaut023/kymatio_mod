@@ -23,6 +23,7 @@ dataset:
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
   glico: 0
+  accum_step_multiple: 128
 # kymatio 
 
 scattering:
@@ -57,5 +58,10 @@ model:
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine', 'cross-entropy-accum']
   average: False
-  
+  save: False
+
+
+
+
+
 

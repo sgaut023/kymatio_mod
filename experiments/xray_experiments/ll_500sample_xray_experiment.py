@@ -1,4 +1,4 @@
-""" SN+LL 1000 Samples Xray
+""" SN+LL 500 Samples Xray
 """
 
 import os
@@ -10,17 +10,17 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"SN+LL 1000 Samples Xray\""
+mlflow_exp_name = "\"SN+LL 500 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/cifar_small_sample.py"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.1
-LRO = 0.1
-LRMAX = 0.06
+LR = 0.01
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
@@ -29,7 +29,7 @@ INIT = "Kymatio"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 1000
+TRAIN_SAMPLE_NUM = 500
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 ALTERNATING = 0
@@ -59,11 +59,10 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commandsL = []
-    commandsNL = []
+    commands = []
 
-    for SEED in [1121912626,980318438,939207048,782047964]:#1274534694,729356706,1161505729,1092247892,725267588,1109890709,
-
+    # for x in range(RUNS_PER_SEED):
+    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
         # SEED = int(time.time() * np.random.rand(1))
         for aa in [(1,"Random"),(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
@@ -80,12 +79,8 @@ if __name__ == '__main__':
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)
 
-            if LEARNABLE == 1:
-                commandsL.append(command)
-            else:
-                commandsNL.append(command)
-    
-    commands = commandsL + commandsNL
+            commands.append(command)
+
 
     for cmd in commands:
         print(cmd)
@@ -106,9 +101,3 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
-
-
-
-
-
-

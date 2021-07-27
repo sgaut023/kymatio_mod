@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.append(str(Path.cwd()))
 
-def get_context(parameters_file):
+def get_context(parameters_file, full_path = False):
     # Get the current project path (where you open the notebook)
     # and go up two levels to get the project path
     current_dir = Path.cwd()
@@ -22,11 +22,16 @@ def get_context(parameters_file):
     sys.path.append(os.path.join(proj_path, 'kymatio'))
 
     #Catalog contains all the paths related to datasets
-    with open(os.path.join(proj_path, 'conf/data_catalog.yml'), "r") as f:
+    if full_path:
+        params_path = parameters_file
+    else:
+        params_path = os.path.join(proj_path, f'conf/{parameters_file}')
+    
+    catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
+    with open(catalog_path, "r") as f:
         catalog = yaml.safe_load(f)
-        
     # Params contains all of the dataset creation parameters and model parameters
-    with open(os.path.join(proj_path, f'conf/{parameters_file}'), "r") as f:
+    with open(params_path, "r") as f:
         params = yaml.safe_load(f)
 
         
@@ -108,8 +113,9 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_params(params['general'])
         mlflow.log_param('Duration', duration)
         mlflow.log_metric('Final Accuracy', test_acc[-1])
-        #mlflow.pytorch.log_model(model, artifact_path = 'model')
-
+        if params['model']['save']:
+            mlflow.pytorch.log_model(model, artifact_path = 'model')
+            mlflow.log_dict(params, "model/parameters.yml")
         #save filters 
         try:
             for key in filters_plots_before:
@@ -125,15 +131,14 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         
         try:
             mlflow.log_figure(misc_plots[3], f'learnable_parameters/filters_grad.pdf')
-            mlflow.log_figure(misc_plots[4], f'learnable_parameters/filter_0_grad.pdf')
-            mlflow.log_figure(misc_plots[5], f'learnable_parameters/filter_values.pdf')
-            mlflow.log_figure(misc_plots[6], f'learnable_parameters/filter_0_value.pdf')
+            mlflow.log_figure(misc_plots[4], f'learnable_parameters/filter_values.pdf')
+            mlflow.log_figure(misc_plots[5], f'learnable_parameters/filter_parameters.pdf')
         except:
             pass
 
-        mlflow.log_figure(misc_plots[7], f'plot/lr.pdf')
-        mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_distance.pdf')
-        mlflow.log_figure(misc_plots[9], f'learnable_parameters/wavelet_distance.pdf')
+        mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
+        mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
+        mlflow.log_figure(misc_plots[8], f'learnable_parameters/wavelet_distance.pdf')
 
         # saving all accuracies
         log_csv_file('test_acc.csv', test_acc)

@@ -28,12 +28,11 @@ from torch.utils.data import Subset
 
 def xray_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices"""
-    downsample = (128,128)
+    downsample = (260,260)
 
     if augmentation == 'autoaugment':
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
-            transforms.Resize(downsample),
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
@@ -43,7 +42,7 @@ def xray_augmentationFactory(augmentation, height, width):
         # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.Resize(downsample),
-            transforms.RandomCrop((height, width)),
+            transforms.RandomCrop(size=(height, width)),
             transforms.RandomHorizontalFlip(),
         ]
     elif augmentation == 'noaugment':
@@ -61,6 +60,10 @@ def xray_augmentationFactory(augmentation, height, width):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
+    #normalize = transforms.Normalize(mean=[0.5888, 0.5888, 0.5889],
+                                     #std=[0.1882, 0.1882, 0.1882])
+
+    #return transforms.Compose(transform + [transforms.ToTensor()])
     return transforms.Compose(transform + [transforms.ToTensor(), normalize])
 
 def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize, 

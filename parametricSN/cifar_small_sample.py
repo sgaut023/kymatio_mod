@@ -443,19 +443,15 @@ def run_train(args):
         filters_plots_after = None
         filters_values = None
         filters_grad = None
-        filter0_grad = None
 
-    # save metrics and params in mlflow
     log_mlflow(
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
         test_loss=np.array(test_losses).round(2), train_acc=np.array(train_accuracies).round(2), 
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
-        misc_plots=[f_loss,f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filter0_grad, filters_values, filters_value, f_lr,paramDistancePlot, waveletDistancePlot],
-        filters_parameters = None
+        misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
+        filters_values, filters_parameters, f_lr, paramDistancePlot, waveletDistancePlot]
     )
-    
     
 
 
