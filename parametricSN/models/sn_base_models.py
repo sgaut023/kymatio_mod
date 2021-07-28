@@ -23,10 +23,9 @@ import torch.nn as nn
 from numpy.core.numeric import False_
 from kymatio import Scattering2D
 from .create_filters import *
-from .wavelet_visualization import get_filters_visualization
+from .wavelet_visualization import get_filters_visualization, getOneFilter
 from .sn_models_exceptions import InvalidInitializationException
 from scipy.optimize import linear_sum_assignment
-import pprint
 
 
 
@@ -196,6 +195,9 @@ class sn_ScatteringBase(nn.Module):
             filter_viz[mode] = f  
 
         return filter_viz
+
+    def getOneFilter(self, count, scale, mode):
+        return getOneFilter(self.psi, count, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  device, learnable=True, lr_orientation=0.1, 

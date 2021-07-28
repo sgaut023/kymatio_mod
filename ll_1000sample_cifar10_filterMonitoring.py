@@ -33,7 +33,7 @@ LRMAX = 0.2
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 10
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     for SEED in [207715039]:#491659600]:#,207715039]:#,491659600,493572006,737523103]:#,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Random"),(1,"Kymatio")]:#,(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
+        for aa in [(1,"Kymatio")]:#,(1,"Random")]:#,(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
             command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
