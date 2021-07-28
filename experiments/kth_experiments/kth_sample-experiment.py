@@ -16,7 +16,7 @@ PROCESS_BATCH_SIZE = 1
 mlflow_exp_name = "\"KTH all orders + normalization\""
 
 PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
 LR = 0.1

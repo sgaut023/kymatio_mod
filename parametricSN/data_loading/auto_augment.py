@@ -1,3 +1,9 @@
+"""Code taken from https://www.kaggle.com/shaoeric/auto-augment?select=auto_augment.py
+
+All credit to Shao Eric and the AutoAugment authors https://arxiv.org/abs/1805.09501
+
+"""
+
 import random
 import numpy as np
 import scipy

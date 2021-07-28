@@ -1,17 +1,6 @@
-"""Main module for learnable Scattering Networks
-
-Authors: Benjamin Therien, Shanel Gauthier
-
-Functions: 
-    schedulerFactory -- get selected scheduler
-    optimizerFactory -- get selected optimizer
-    datasetFactory -- get selected dataset
-    test -- test loop
-    train -- train loop per epoch
-    override_params -- override defaults from command line
-    run_train -- callable functions for the program
-    main -- parses arguments an calls specified callable
-
+"""
+TODO Shanel 
+TODO Laurent
 """
 import sys
 from pathlib import Path
@@ -34,6 +23,10 @@ from parametricSN.cifar_small_sample import datasetFactory
 from parametricSN.utils.helpers import rename_params, log_csv_file
 
 def apply_transformation(max_value, name, hybridModel, img,x,y,titles,transformation_names,imgs_deformed, transform = None, device = None, num_data = 15):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     if max_value > num_data:
         deformation_levels = torch.arange(0,max_value, max_value/ num_data,dtype = int)#.to(device)
     else:
@@ -46,6 +39,10 @@ def apply_transformation(max_value, name, hybridModel, img,x,y,titles,transforma
     append_to_list(x, y, l2_norm, deformations)
 
 def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_data = 15):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     hybridModel= load_models_weights(model_path,device)
     _, params = get_context(os.path.join(model_path,'parameters.yml'), True) 
     
@@ -126,12 +123,20 @@ def evaluate_deformed_repressentation(models):
     log_mlflow(params, model_values, figures, img)
 
 def load_models_weights(model_path, device ):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     hybridModel = mlflow.pytorch.load_model(model_path)
     hybridModel.to(device)
     hybridModel.eval()
     return hybridModel
 
 def get_test_loader(params, use_cuda):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
 
     if params['dataset']['data_root'] != None:
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
@@ -142,6 +147,10 @@ def get_test_loader(params, use_cuda):
 
 
 def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, device = None):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     deformations= []
     l2_norm = []
     first_transformation = True
@@ -190,6 +199,10 @@ def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, 
     return l2_norm, deformations, img_deformed
 
 def append_to_list(x, y, l2_norm, deformations):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     x.append(deformations)
     y.append(l2_norm)
 
@@ -220,6 +233,10 @@ def get_baseline(img, it, hybridModel,  device, num_images=50):
 
     
 def visualize_l2norm(model_values, num_transformations = 4):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     plt.rcParams.update({'font.size': 20})
     colors = ['#ff0000','#0000ff', '#008000','#ffd700', '#800000', '#ff00ff' ]
     figures = []
@@ -241,6 +258,10 @@ def visualize_l2norm(model_values, num_transformations = 4):
 
 # Deforms the image given a function \tau.
 def diffeo(img,tau,device):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     img = img
     # Number of pixels. Suppose square image.
     dim = img.shape[-1]
@@ -256,6 +277,10 @@ def diffeo(img,tau,device):
 
 # Calculate the deformation size : sup |J_{tau}(u)| over u.
 def deformation_size(tau):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     # Set a precision. This is arbitrary.
     precision = 128
     # Create a (flatten) grid of points between (-1,-1) and (1,1). This is the same grid as in the previous
@@ -271,6 +296,10 @@ def deformation_size(tau):
     return torch.max(norm_jac)
 
 def log_mlflow(params, model_values, figures, img):
+    """
+    TODO Shanel 
+    TODO Laurent
+    """
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment('Exp Deformation')
 
