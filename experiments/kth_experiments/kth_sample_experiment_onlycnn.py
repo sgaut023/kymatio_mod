@@ -7,7 +7,7 @@ from multiprocessing import Process
 PROCESS_BATCH_SIZE = 1
 mlflow_exp_name = "\"KTH Only CNN V2\""
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
 LR = 0.001

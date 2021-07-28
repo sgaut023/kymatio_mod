@@ -1,12 +1,7 @@
-"""Contains all the pytorch NN.modules for this project
+"""Contains all the hybrid pytorch nn.modules for this project
 
 Authors: Benjamin Therien, Shanel Gauthier
 
-Exceptions:
-    InvalidInitializationException --
-    InvalidArchitectureError --
-
-Functions: 
 
 Classes: 
     sn_Identity -- computes the identity function in forward pass
@@ -16,16 +11,24 @@ Classes:
 
 import torch.nn as nn
 
-from numpy.core.numeric import False_
-
-
 class sn_HybridModel(nn.Module):
-    """An nn.Module incorporating scattering an a learnable network"""
+    """An nn.Module combining two nn.Modules 
+    
+    This hybrid model was created to connect a scattering model to another
+    nn.Module, but can also combine any other two modules. 
+    """
 
     def __str__(self):
         return str(self.scatteringBase)
 
-    def __init__(self,scatteringBase,top,use_cuda=True):
+    def __init__(self, scatteringBase, top, use_cuda=True):
+        """Constructor for a HybridModel
+
+        scatteringBase -- the scattering nn.Module
+        top -- the nn.Module used after scatteringBase
+        use_cuda -- True if using GPU
+
+        """
         super(sn_HybridModel,self).__init__()
         if use_cuda:
             self.scatteringBase = scatteringBase.cuda()

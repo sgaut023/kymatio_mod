@@ -1,54 +1,50 @@
-"""Contains classes and functions for loading and sampling from the kth texture dataset.
+"""Contains classes and functions for loading and sampling the KTH-TIPS2 dataset
 
 Author: Benjamin Therien, Shanel Gauthier
 
 Functions: 
-    kth_augmentationFactory -- factory of kth augmentations 
-    kth_getDataloaders -- returns dataloaders for kth
+    kth_augmentationFactory -- factory of KTH-TIPS2 augmentations 
+    kth_getDataloaders -- returns dataloaders for KTH-TIPS2
 
 class:
-    KTHLoder -- loads and tracks parameters from the kth dataset
+    KTHLoader -- loads KTH-TIPS2 from disk and creates dataloaders
 """
 
 import torch
 import time
 import os
 
-from torchvision.transforms.transforms import Resize
-
 from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 from torchvision import datasets, transforms
 
 def kth_augmentationFactory(augmentation, height, width):
-    """Factory for different augmentation choices"""
+    """Factory for different augmentation choices for KTH-TIPS2"""
 
     if augmentation == 'autoaugment':
-        # print("\n[get_dataset(params, use_cuda)] Augmenting data with AutoAugment augmentation")
         transform = [
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
             AutoAugment(),
             Cutout()
         ]
+
     elif augmentation == 'original-cifar':
-        # print("\n[get_dataset(params, use_cuda)] Augmenting data with original-cifar augmentation")
         transform = [
             transforms.Resize((200,200)),
             transforms.RandomRotation(degrees=10),
-            # transforms.RandomAffine(degrees=40,
-            #                     translate=(0.25, 0.5),
-            #                     scale=(1.2, 2.0)), 
             transforms.RandomCrop((height, width)),
             transforms.RandomHorizontalFlip(),
         ]
+
     elif augmentation == 'noaugment':
-        # print("\n[get_dataset(params, use_cuda)] No data augmentation")
         transform = [
             transforms.Resize((200,200)),
             transforms.CenterCrop((height, width))
         ]
+
     elif augmentation == 'glico':
         NotImplemented(f"augment parameter {augmentation} not implemented")
+
     else: 
         NotImplemented(f"augment parameter {augmentation} not implemented")
 
@@ -60,55 +56,39 @@ def kth_augmentationFactory(augmentation, height, width):
 
 
 def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
-                       height, width, sample, seed=None, dataDir=".", 
-                       num_workers=4, use_cuda=True, glico=False):
-    """Samples a specified class balanced number of samples form the kth dataset
+                       height, width, sample, dataDir="."):
+    """Samples a specified class balanced number of samples form the KTH-TIPS2 dataset
     
     returns:
-        train_loader, test_loader, seed, glico_loader
+        loader
     """
     transform_train = kth_augmentationFactory(trainAugmentation, height, width)
     transform_val = kth_augmentationFactory('noaugment', height, width)
 
     loader = KTHLoader(data_dir=dataDir, train_batch_size=trainBatchSize, 
                        val_batch_size=valBatchSize, transform_train=transform_train, 
-                       transform_val=transform_val, 
-                       num_workers=num_workers, seed=seed, 
-                       sample=sample)
+                       transform_val=transform_val, sample=sample)
 
-    train_loader, test_loader = loader.get_dataloaders()
-
-    if use_cuda:
-        for batch,target in train_loader:
-            batch.cuda()
-            target.cuda()
-
-        for batch,target in test_loader:
-            batch.cuda()
-            target.cuda()
-    
-    return train_loader, test_loader, loader.seed, None
+    return loader
 
 class KTHLoader():
     """Class for loading the KTH texture dataset"""
-    def __init__(self, data_dir, train_batch_size, 
-                 val_batch_size, transform_train, transform_val, 
-                 num_workers, seed=None, sample='a'):
+    def __init__(self, data_dir, train_batch_size, val_batch_size, 
+                 transform_train, transform_val, sample='a'):
 
         self.data_dir = data_dir
-        if seed == None:
-            self.seed = int(time.time()) #generate random seed
-        else:
-            self.seed = seed
-
         self.train_batch_size = train_batch_size
         self.val_batch_size = val_batch_size
         self.transform_train =  transform_train
         self.transform_val = transform_val
-        self.num_workers =num_workers
         self.sample = sample
 
-    def get_dataloaders(self):
+    def get_dataloaders(self, device, workers=5, seed=None, load=False):
+        """ TODO Shanel add Comment
+
+        returns:
+            train_loader, test_loader, seed
+        """
         datasets_val = []
         for s in ['a', 'b', 'c', 'd']:
             if self.sample == s:
@@ -128,11 +108,27 @@ class KTHLoader():
         dataset_val = torch.utils.data.ConcatDataset(datasets_val)
 
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=self.train_batch_size, 
-                                                   shuffle=True, num_workers=self.num_workers,
+                                                   shuffle=True, num_workers=workers,
                                                    pin_memory=True)
 
         test_loader = torch.utils.data.DataLoader(dataset_val, batch_size=self.val_batch_size, 
-                                                  shuffle=True, num_workers=self.num_workers, 
+                                                  shuffle=True, num_workers=workers, 
                                                   pin_memory=True)
 
-        return train_loader, test_loader
+        self.trainSampleCount, self.valSampleCount = sum([len(x) for x in train_loader]), sum([len(x) for x in test_loader])
+
+        if load:
+            for batch,target in train_loader:
+                batch.cuda()
+                target.cuda()
+
+            for batch,target in test_loader:
+                batch.cuda()
+                target.cuda()    
+
+        if seed == None:
+            seed = int(time.time()) #generate random seed
+        else:
+            seed = seed
+
+        return train_loader, test_loader, seed

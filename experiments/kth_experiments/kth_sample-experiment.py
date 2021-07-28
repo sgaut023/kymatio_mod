@@ -16,7 +16,8 @@ PROCESS_BATCH_SIZE = 2
 mlflow_exp_name = "\"CNN + KTH all orders\""
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
+
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
 LR = 0.1

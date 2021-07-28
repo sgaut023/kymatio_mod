@@ -24,7 +24,7 @@ PROCESS_BATCH_SIZE = 4
 mlflow_exp_name = "\"new Cifar-10 500 Samples + batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1

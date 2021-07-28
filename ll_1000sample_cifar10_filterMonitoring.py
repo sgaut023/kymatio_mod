@@ -1,4 +1,4 @@
-"""CNN Cifar-10 1000 sample experiment script
+"""Cifar-10 1000 sample experiment script
 
 This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
 
@@ -19,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"All Data Cifar-10 CNN No SCATT\""
+mlflow_exp_name = "\"Tracking filters Cifar-10 all data \""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
@@ -29,30 +29,18 @@ OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.1
+LRMAX = 0.2
 DF = 25
-THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 50
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TEST_BATCH_SIZE = 256
-TRAIN_SAMPLE_NUM = 50000
-TRAIN_BATCH_SIZE = 256
+TRAIN_SAMPLE_NUM = 1000
+TRAIN_BATCH_SIZE = 1000
 AUGMENT = "autoaugment"
 ALTERNATING = 0
-MODEL = "cnn"
-PHASE_ENDS = " ".join(["100","200"])
-
-MODEL_WIDTH = 8
-SCATT_ARCH = 'identity'
-
-MODEL_LOSS = 'cross-entropy'
-SCATT_LRMAX = 0.2
-SCATT_DF = 25
-SCATT_THREE_PHASE = 1
 
 
 def runCommand(cmd):
@@ -80,28 +68,15 @@ if __name__ == '__main__':
 
     commands = []
 
-
     # for x in range(RUNS_PER_SEED):
-    for SEED in [491659600,207715039,737523103,493572006,827192296]:#,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [207715039]:#491659600]:#,207715039]:#,491659600,493572006,737523103]:#,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
 
         # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]: #,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
+        for aa in [(1,"Kymatio")]:#,(1,"Random")]:#,(0,"Random"),(1,"Kymatio"),(0,"Kymatio")]:
             LEARNABLE, INIT = aa
 
-            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
-            )
-
-            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
-                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
-            )
-
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -mw {} -dtstbs {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,MODEL_WIDTH,TEST_BATCH_SIZE
-            )
-
-            command = "{} {} run-train {} {} {} {}".format(
-                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
 
             commands.append(command)
     
