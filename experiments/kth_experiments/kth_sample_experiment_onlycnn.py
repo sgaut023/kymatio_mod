@@ -49,7 +49,7 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
     commands = []
-    for SEED in [432857963]:
+    for SEED in [1390666426,432857963,1378328753,1118756524]:
         #SEED = int(time.time() * np.random.rand(1))
         for sample in ['c']:
             for x in range(TOTALRUNS):
