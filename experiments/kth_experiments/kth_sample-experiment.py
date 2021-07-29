@@ -13,7 +13,7 @@ os.environ['MKL_THREADING_LAYER'] = 'GNU' # Fix a bug : mkl-service + Intel(R) M
 
 PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"CNN + KTH all orders\""
+mlflow_exp_name = "\"CNN Scattering + KTH \""
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/main.py"

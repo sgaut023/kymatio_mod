@@ -6,7 +6,7 @@ general:
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'June 7, 2021'
+  experiment_name: 'KTH Experiments'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']

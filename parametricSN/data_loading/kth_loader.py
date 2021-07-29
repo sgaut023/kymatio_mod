@@ -83,7 +83,7 @@ class KTHLoader():
         self.transform_val = transform_val
         self.sample = sample
 
-    def get_dataloaders(self, device, workers=5, seed=None, load=False):
+    def generateNewSet(self, device, workers=5, seed=None, load=False):
         """ TODO Shanel add Comment
 
         returns:
