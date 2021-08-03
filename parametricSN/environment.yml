@@ -13,11 +13,11 @@ dependencies:
 - pandas
 - mlflow
 - tqdm
-- pytorch>=1.6
+- pytorch-gpu>=1.6
 - torchvision
 - tensorflow==1.14.0
+- opencv
 - pip:
-  #- kymatio==0.2.0
   - graphviz
   - ipywidgets
   - nbdev>=0.2.12

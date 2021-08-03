@@ -15,7 +15,7 @@ import time
 import argparse
 import torch
 import math
-
+import cv2
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
@@ -170,7 +170,7 @@ def run_train(args):
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
         wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
-        videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
+        #videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
