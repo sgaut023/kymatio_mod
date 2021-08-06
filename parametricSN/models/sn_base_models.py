@@ -81,7 +81,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
     
-    psi = update_psi(J, psi, wavelets, initialization , device) #update psi to reflect the new conv filters
+    psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
 
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
@@ -488,7 +488,7 @@ class sn_ScatteringBase(nn.Module):
                                     self.params_filters[3], device=self.device)
                                     
             self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
-                                  self.initialization, self.device) 
+                                  self.device) 
         else:
             pass
 

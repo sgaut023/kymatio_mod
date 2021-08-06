@@ -5,8 +5,8 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'June 7, 2021'
+  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  experiment_name: 'KTH Experiments'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
@@ -18,14 +18,14 @@ dataset:
   data_root: '/NOBACKUP/gauthiers/'
   data_folder: 'KTH'
   height: 128  # ultrasound image dimension
-  width:  128  # ultrasound image dimension
+  width:  128 # ultrasound image dimension
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
   glico: 0
 
 # kymatio 
 scattering:
-  J: 3
+  J: 4
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
@@ -52,12 +52,13 @@ optim:
   phase_ends: #["50", "100", "200"]
 
 model:
-  name: 'cnn' # choices=['c', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
   epoch: 50
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   average: False
+  save: False
   
 
 

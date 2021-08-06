@@ -1,17 +1,19 @@
-"""Helpers for the main
+"""Helpers for the main script
 
 Authors: Benjamin Therien, Shanel Gauthier
 
 Functions:
-    get_context -- TODO Shanel
-    visualize_loss --
-    visualize_learning_rates --
-    getSimplePlot -- 
-    log_csv_file -- 
-    log_mlflow --
-    override_params -- 
-    setAllSeeds --
-    estimateRemainingTime --
+    get_context              -- Create dictionnaries from yaml files
+    visualize_loss           -- Plot Loss/accuracy   
+    visualize_learning_rates -- Plot learning rates
+    getSimplePlot            -- Generic function to generate simple plots  
+    log_csv_file             -- Save dictionnary into a csv file using mlflow
+    rename_params            -- Rename the name of the keys of a dictionnary by 
+                                adding a prefix to the existing name
+    log_mlflow               -- Log statistics in mlflow
+    override_params          -- Override passed params dict with any CLI arguments
+    setAllSeeds              -- Helper for setting seeds
+    estimateRemainingTime    -- Estimates the remaining training time based on imput
 """
 
 import random
@@ -30,49 +32,48 @@ from pathlib import Path
 sys.path.append(str(Path.cwd()))
 
 def get_context(parameters_file, full_path = False):
-    """ TODO Shanel """
-    # Get the current project path (where you open the notebook)
-    # and go up two levels to get the project path
+    """ Read yaml file that contains experiment parameters and 
+        read second yaml file that contains paths. 
+        Create dictionnaries from the two yaml files.         
+        
+        Parameters:
+            parameters_file -- the name of yaml file that contains the parameters
+                                or the full path to the yaml file
+            full_path       -- boolean that indicates if parameters_file is the name 
+                                of the yaml file or the full path  
+        Returns:
+            catalog         -- dictionnary that contains paths
+            params          -- dictionnary that contains experiment parameters
+    """
     current_dir = Path.cwd()
-    #proj_path = current_dir.parent
     proj_path = current_dir
-    # make the code in src available to import in this notebook
     sys.path.append(os.path.join(proj_path, 'kymatio'))
-
-    #Catalog contains all the paths related to datasets
     if full_path:
         params_path = parameters_file
     else:
         params_path = os.path.join(proj_path, f'conf/{parameters_file}')
-    
     catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
     with open(catalog_path, "r") as f:
         catalog = yaml.safe_load(f)
-    # Params contains all of the dataset creation parameters and model parameters
     with open(params_path, "r") as f:
-        params = yaml.safe_load(f)
-
-        
+        params = yaml.safe_load(f)     
     return catalog, params
 
 
-def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss', num_samples =100, benchmark =False):
-    """Plot Loss/accuracy"""
+def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss'):
+    """ Plot Loss/accuracy       
+        
+        Parameters:
+            loss_train -- list that contains all the train loss for each epoch
+            loss_test  -- list that contains test loss for every 'step_test' epoch
+            step_test  -- epoch interval that was used to save the test loss
+            y_label    -- label to be displayed on the y axis
+
+        Returns:
+            f         -- figure (loss over epoch)
+    """
     f = plt.figure (figsize=(7,7))
     plt.plot(np.arange(len(loss_test)*step_test, step=step_test), loss_test, label=f'Test {y_label}') 
-
-    if y_label == 'accuracy' and benchmark:
-        if num_samples == 100:
-            benchmark = 38.9
-        elif num_samples == 500:
-            benchmark = 54.7
-        elif num_samples == 1000:
-            benchmark = 62.0
-        else: 
-            benchmark = None
-
-        if benchmark is not None:
-            plt.axhline(y=benchmark, color='r', linestyle='-')
     plt.plot(np.arange(len(loss_train)), loss_train, label= f'Train {y_label}')
     plt.ylabel(y_label)
     plt.xlabel('Epoch')
@@ -80,7 +81,18 @@ def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss', num_sa
     return f  
 
 def visualize_learning_rates(lrs, lrs_orientation, lrs_scattering):
-    """Plot learning rates"""
+    """ Plot learning rates     
+        
+        Parameters:
+            lrs              -- list that contains the learning rates used per epoch for the top model
+            lrs_orientation  -- list that contains the learning rate used per epoch for the wavelet
+                                orientation parameter (scattering model)
+            lrs_scattering   -- list that contains the learning rates used per epoch for the wavelet
+                                xis, sigmas and slants parameters (scattering model)
+
+        Returns:
+            f -- figure (learning rate over epoch)
+    """
     f = plt.figure (figsize=(7,7))
     epochs = np.arange(len(lrs))
     plt.plot(epochs, lrs, label='Linear Layer LR') 
@@ -97,6 +109,18 @@ def visualize_learning_rates(lrs, lrs_orientation, lrs_scattering):
     return f  
 
 def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7)):
+    """ Generic function to generate simple plots    
+        
+        Parameters:
+            xlab    -- label for x axis
+            ylab    -- label for y axis
+            title   -- title of the plot
+            xvalue  -- list or numpy array that contains the data points for x axis
+            yvalues -- list or numpy array that contains the data points for x axis
+            figsize -- figure size
+        Returns:
+            plot -- figure
+    """
     plot = plt.figure(figsize=figsize)
     plt.title(title)
     plt.plot(xvalues, yvalues, label=label) 
@@ -106,12 +130,24 @@ def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7)):
     return plot
 
 def log_csv_file(name, file):
-    """ TODO Shanel"""
+    """ Save dictionnary into a csv file and log the csv file using mlflow.
+        Once the file is saved in mlflow, the file is deleted. 
+
+        Parameters:
+            name    -- name of the file
+            file    -- dictionnary 
+    """
     np.savetxt(name,  file, delimiter=",")
     mlflow.log_artifact(name, 'metrics')
     os.remove(name)
 
 def rename_params(prefix, params):
+    """ Rename the name of the keys of a dictionnary by adding a 
+        prefix to the existing name
+        Parameters:
+            prefix   -- prefix
+            file    -- dictionnary 
+    """
     return {f'{prefix}-' + str(key): val for key, val in  params.items()}
 
 def log_mlflow(params, model, test_acc, test_loss, train_acc, 
@@ -120,16 +156,16 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     """Log stats in mlflow
     
     parameters: 
-        params -- the parameters passed to the program
-        model -- the hybrid model used during training 
-        test_acc -- list of test accuracies over epochs
-        test_loss --  list of test losses over epochs
-        train_acc --  list of train accuracies over epochs
-        train_loss --  list of train losses over epochs
-        start_time -- the time at which the current run was started 
+        params               -- the parameters passed to the program
+        model                -- the hybrid model used during training 
+        test_acc             -- list of test accuracies over epochs
+        test_loss            --  list of test losses over epochs
+        train_acc            --  list of train accuracies over epochs
+        train_loss           --  list of train losses over epochs
+        start_time           -- the time at which the current run was started 
         filters_plots_before -- plots of scattering filter values before training 
-        filters_plots_after -- plots of scattering filter values after training 
-        misc_plots -- a list of miscelaneous plots to log in mlflow
+        filters_plots_after  -- plots of scattering filter values after training 
+        misc_plots           -- a list of miscelaneous plots to log in mlflow
     """
 
     duration = (time.time() - start_time)
@@ -178,8 +214,6 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         log_csv_file('test_loss.csv', test_loss)
         log_csv_file('train_loss.csv', train_loss)
         print(f"finish logging{params['mlflow']['tracking_uri']}")
-
-
 
 
 def override_params(args, params):
