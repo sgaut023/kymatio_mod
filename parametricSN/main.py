@@ -15,6 +15,7 @@ import time
 import argparse
 import torch
 import math
+import cv2
 
 import kymatio.datasets as scattering_datasets
 import numpy as np
@@ -132,7 +133,7 @@ def run_train(args):
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
-    videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
+    #videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
 
     train, test = train_test_factory(params['model']['loss'])
 
