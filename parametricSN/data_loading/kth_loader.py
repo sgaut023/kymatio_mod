@@ -4,7 +4,7 @@ Author: Benjamin Therien, Shanel Gauthier
 
 Functions: 
     kth_augmentationFactory -- factory of KTH-TIPS2 augmentations 
-    kth_getDataloaders -- returns dataloaders for KTH-TIPS2
+    kth_getDataloaders      -- returns dataloaders for KTH-TIPS2
 
 class:
     KTHLoader -- loads KTH-TIPS2 from disk and creates dataloaders
@@ -84,10 +84,20 @@ class KTHLoader():
         self.sample = sample
 
     def generateNewSet(self, device, workers=5, seed=None, load=False):
-        """ TODO Shanel add Comment
+        """ 
+        Generates train and test loader for KTH dataset
+        KTH-TIPS2 is a dataset that has 4 different samples (a, b c and d)
+        See dataset details here: https://www.csc.kth.se/cvap/databases/kth-tips/credits.html
+        Parameters:
+                device  -- cuda or cupu
+                workers -- number of workers
+                seed    -- seed
+                load    -- boolean to indicates if we want to load the dataset      
 
         returns:
-            train_loader, test_loader, seed
+            train_loader -- train_loader
+            test_loader  -- test_loader
+            seed         -- seed
         """
         datasets_val = []
         for s in ['a', 'b', 'c', 'd']:

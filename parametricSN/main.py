@@ -19,7 +19,11 @@ import cv2
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
-from parametricSN.utils.helpers import get_context, visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot, override_params, setAllSeeds, estimateRemainingTime
+from parametricSN.utils.helpers import get_context, visualize_loss
+from parametricSN.utils.helpers import visualize_learning_rates
+from parametricSN.utils.helpers import  log_mlflow, getSimplePlot
+from parametricSN.utils.helpers import  override_params, setAllSeeds
+from parametricSN.utils.helpers import estimateRemainingTime
 from parametricSN.utils.optimizer_factory import optimizerFactory
 from parametricSN.utils.scheduler_factory import schedulerFactory
 from parametricSN.data_loading.dataset_factory import datasetFactory
@@ -132,7 +136,7 @@ def run_train(args):
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
-    videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
+    #videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
 
     train, test = train_test_factory(params['model']['loss'])
 
@@ -184,25 +188,24 @@ def run_train(args):
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
 
-    videoWriter.release()
+    #videoWriter.release()
 
 
     #MLFLOW logging below
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
-        y_label='loss', num_samples=int(params['dataset']['train_sample_num'])
+        y_label='loss'
     )
                              
     f_accuracy = visualize_loss(
         train_accuracies ,test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num'])
+        y_label='accuracy'
     )
                              
     f_accuracy_benchmark = visualize_loss(
         train_accuracies, test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num']),
-        benchmark =True
+        y_label='accuracy'
     )
 
     #visualize learning rates
