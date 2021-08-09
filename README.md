@@ -29,6 +29,7 @@ Our empirical evaluations are based on three image datasets, illustrated in the 
 To create the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset folder, run this command where target_path is the path to the target folder.
 ```
 python parametricSN/datasets/create_kth_dataset.py target_path
+```
 
 ### 1. COVIDx CRX-2
 To create the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset folder, run this command where target_path is the path to the target folder.
