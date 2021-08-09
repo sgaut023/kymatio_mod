@@ -20,21 +20,33 @@ To active the `parametricSN` conda environment, enter the following:
 ```
 conda activate parametricSN
 ```
-
-Experiments
+Datasets
 ------------
 Our empirical evaluations are based on three image datasets, illustrated in the Figure below. We subsample each dataset at various sample sizes in order to showcase the performance of scattering-based architectures in the small data regime. CIFAR-10 and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) are natural image and texture recognition datasets (correspondingly). They are often used as general-purpose benchmarks in similar image analysis settings. [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) is a dataset of X-ray scans for COVID-19 diagnosis; its use here demonstrates the viability of our parametric scattering approach in practice, e.g., in medical imaging applications.
 ![Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png)
 
+#### 1. KTH-TIPS2
+To create the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset folder, run this command where target_path is the path to the target folder.
+```
+python parametricSN/datasets/create_kth_dataset.py target_path
+```
+
+#### 2. COVIDx CRX-2
+To create the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset folder, run this command where target_path is the path to the target folder.
+```
+python parametricSN/datasets/create_xray_dataset.py target_path
+```
+Experiments
+------------
 To run an experiment with the CIFAR-10 dataset, run the command below:
 ```
 python parametricSN/main.py run-train -pf parameters.yml
 ```
-To run an experiment with the KTH-TIPS2 dataset, run the command below:
+To run an experiment with the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run the command below:
 ```
 python parametricSN/main.py run-train -pf parameters_texture.yml
 ```
-To run an experiment with the COVIDx CRX-2 dataset, run the command below:
+To run an experiment with the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, run the command below:
 ```
 python parametricSN/main.py run-train -pf parameters_xray.yml
 ```
@@ -57,7 +69,7 @@ We consider an architecture inspired by [Edouard Oyallon et al.](https://arxiv.o
 
 Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)  and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) using J=3. For COVIDx CRX-2, we use the same evaluation protocol as CIFAR-10.  We observe that the WRN alone performs worse than the other architectures, demonstrating the effectiveness of the scattering prior in the small data regime. For KTH-TIPS2, following the [standard protocol](https://openaccess.thecvf.com/content_ICCV_2017/papers/Song_Locally-Transferred_Fisher_Vectors_ICCV_2017_paper.pdf), we train the model on one of the four physical samples of 11 different materials (1188 images), while the rest are used for testing. Out of all the WRN hybrid models, the random learnable model achieves the highest accuracy and is the only one to improve over its linear counterpart. 
 
-| Init. | Arch.           | C-100 samples           | C-500 samples           | C-1000 samples          | KTH                     |
+| Init. | Arch.           | CIFAR-100 samples       | CIFAR-500 samples       | CIFAR-1000 samples      | KTH                     |
 |-------|-----------------|-------------------------|-------------------------|-------------------------|-------------------------|
 | TF    | LS+LL           | 74.80±1.65              | 83.10±0.84              | 84.58±0.79              | 66.83±0.94              |
 | TF    | S +LL           | 75.48±1.77              | 83.58±0.91              | 86.18±0.49              | 63.91±0.57              |
@@ -67,7 +79,7 @@ Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andy
 | TF    | S +WRN          | 76.23±2                 | 86.5±0.66               | 89.13±0.36              | 63.77±0.59              |
 | Rand  | LS+WRN          | 74.86±1.22              | 84.15±0.79              | 87.63±0.55              | 67.35±0.51              |
 | Rand  | S +WRN          | 75.4±1.03               | 83.75±0.58              | 87.48±0.61              | 65.05±0.38              |
-|       | WRN             | 69.15±1.13              | 80.04±2.41              | 87.81±1.37              | $51.24±1.37              |
+|       | WRN             | 69.15±1.13              | 80.04±2.41              | 87.81±1.37              | $51.24±1.37             |
 
 
 
@@ -83,10 +95,11 @@ Project Organization
     ├── parametricSN 
     │   ├── data_loading        <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
     │   ├── models              <- Contains all the  pytorch NN.modules for this project.
+    │   ├── datasets            <- Script to download KTH-TPIS2 and COVIDx CRX-2 datasets.
     │   └── notebooks           <- Jupyter notebooks.
-    │   └── training            <- Contains train et test functions.
+    │   └── training            <- Contains train and test functions.
     │   └── utils               <- Helpers Functions.
-    │   └── main.py             <- Source code for use in this project.
+    │   └── main.py             <- Source code.
     │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
     
 
