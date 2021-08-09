@@ -25,13 +25,13 @@ Datasets
 Our empirical evaluations are based on three image datasets, illustrated in the Figure below. We subsample each dataset at various sample sizes in order to showcase the performance of scattering-based architectures in the small data regime. CIFAR-10 and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) are natural image and texture recognition datasets (correspondingly). They are often used as general-purpose benchmarks in similar image analysis settings. [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) is a dataset of X-ray scans for COVID-19 diagnosis; its use here demonstrates the viability of our parametric scattering approach in practice, e.g., in medical imaging applications.
 ![Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png)
 
-### 1. KTH-TIPS2
+#### 1. KTH-TIPS2
 To create the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset folder, run this command where target_path is the path to the target folder.
 ```
 python parametricSN/datasets/create_kth_dataset.py target_path
 ```
 
-### 1. COVIDx CRX-2
+#### 2. COVIDx CRX-2
 To create the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset folder, run this command where target_path is the path to the target folder.
 ```
 python parametricSN/datasets/create_xray_dataset.py target_path
