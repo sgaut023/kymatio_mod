@@ -58,7 +58,7 @@ We consider an architecture inspired by [Edouard Oyallon et al.](https://arxiv.o
 
 Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)  and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) using J=3. For COVIDx CRX-2, we use the same evaluation protocol as CIFAR-10.  We observe that the WRN alone performs worse than the other architectures, demonstrating the effectiveness of the scattering prior in the small data regime. For KTH-TIPS2, following the [standard protocol](https://openaccess.thecvf.com/content_ICCV_2017/papers/Song_Locally-Transferred_Fisher_Vectors_ICCV_2017_paper.pdf), we train the model on one of the four physical samples of 11 different materials (1188 images), while the rest are used for testing. Out of all the WRN hybrid models, the random learnable model achieves the highest accuracy and is the only one to improve over its linear counterpart. 
 
-| Init. | Arch.           | C-100 samples           | C-500 samples           | C-1000 samples          | KTH                     |
+| Init. | Arch.           | CIFAR-100 samples       | CIFAR-500 samples       | CIFAR-1000 samples      | KTH                     |
 |-------|-----------------|-------------------------|-------------------------|-------------------------|-------------------------|
 | TF    | LS+LL           | 74.80±1.65              | 83.10±0.84              | 84.58±0.79              | 66.83±0.94              |
 | TF    | S +LL           | 75.48±1.77              | 83.58±0.91              | 86.18±0.49              | 63.91±0.57              |
@@ -68,7 +68,7 @@ Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andy
 | TF    | S +WRN          | 76.23±2                 | 86.5±0.66               | 89.13±0.36              | 63.77±0.59              |
 | Rand  | LS+WRN          | 74.86±1.22              | 84.15±0.79              | 87.63±0.55              | 67.35±0.51              |
 | Rand  | S +WRN          | 75.4±1.03               | 83.75±0.58              | 87.48±0.61              | 65.05±0.38              |
-|       | WRN             | 69.15±1.13              | 80.04±2.41              | 87.81±1.37              | $51.24±1.37              |
+|       | WRN             | 69.15±1.13              | 80.04±2.41              | 87.81±1.37              | $51.24±1.37             |
 
 
 
