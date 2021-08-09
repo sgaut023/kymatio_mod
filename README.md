@@ -97,9 +97,9 @@ Project Organization
     │   ├── models              <- Contains all the  pytorch NN.modules for this project.
     │   ├── datasets            <- Script to download KTH-TPIS2 and COVIDx CRX-2 datasets.
     │   └── notebooks           <- Jupyter notebooks.
-    │   └── training            <- Contains train et test functions.
+    │   └── training            <- Contains train and test functions.
     │   └── utils               <- Helpers Functions.
-    │   └── main.py             <- Source code for use in this project.
+    │   └── main.py             <- Source code.
     │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
     
 
