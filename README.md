@@ -34,7 +34,7 @@ python parametricSN/datasets/create_kth_dataset.py target_path
 #### 2. COVIDx CRX-2
 To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run this command where target_path is the path to the target folder.
 ```
-python parametricSN/datasets/create_xray_dataset.py target_path
+bash parametricSN/datasets/create_xray_dataset.sh target_path
 ```
 Experiments
 ------------
