@@ -33,6 +33,7 @@ def extract_zip(dataset_path, target_path):
         file_name -- file name of the dataset
     """
     dataset_path = os.path.join(dataset_path,'covidx-cxr2.zip')
+    print(f'Extracting zip file: {dataset_path}')
     with ZipFile(file=dataset_path) as zip_file:
         for file in tqdm(iterable=zip_file.namelist(), total=len(zip_file.namelist())):
             zip_file.extract(member=file, path=os.path.join(target_path, 'xray'))
@@ -46,6 +47,7 @@ def create_train_folder(df_train, target_path):
         target_path -- path to the new dataset folder
     """
     folder_path = os.path.join(target_path, 'xray_preprocess/train')
+    print(f'Create train set at: {folder_path}')
     for _, row in tqdm(df_train.iterrows(), total=df_train.shape[0]):
         if row['class']=='negative':
             destination_path = os.path.join(folder_path, 'negative')
@@ -63,7 +65,8 @@ def create_test_folder(df_test, target_path):
                        ('patient_id', 'filename', 'class', 'data_source')
         target_path -- path to the new dataset folder
     """
-    folder_path = os.path.join(target_path, 'xray_preprocess/train')
+    folder_path = os.path.join(target_path, 'xray_preprocess/test')
+    print(f'Create test set at: {folder_path}')
     for _, row in tqdm(df_test.iterrows(), total=df_test.shape[0]):
         if row['class']=='negative':
             destination_path = os.path.join(folder_path, 'negative')
@@ -96,7 +99,7 @@ def create_train_test_df(target_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Paths to folders')
-    parser.add_argument("-- target_path", "-tp", type=str, help='Path to target folder', required=True)
+    parser.add_argument("--target_path", "-tp", type=str, help='Path to target folder', required=True)
     parser.add_argument("--dataset_path", "-dp", type=str, help='Path to dataset zip', required=True)
     args = parser.parse_args()  
     extract_zip(args.dataset_path, args.target_path)
@@ -105,7 +108,7 @@ if __name__ == '__main__':
     create_test_folder(df_test, args.target_path)
     
     # remove extracted folder (not necessary)
-    mydir = os.path.join(args.target_path,'KTH-TIPS2-b')
+    mydir = os.path.join(args.target_path,'xray')
     try:
         shutil.rmtree( mydir)
     except OSError as e:

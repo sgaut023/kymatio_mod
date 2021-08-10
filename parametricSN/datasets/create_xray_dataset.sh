@@ -7,6 +7,8 @@ echo "Please make sure that you put it in the location ~/.kaggle/kaggle.json"
 echo
 echo "The target folder is: $1"
 echo "The current folder is: $PWD"
-#kaggle datasets download -d andyczhao/covidx-cxr2
+kaggle datasets download -d andyczhao/covidx-cxr2 --force
 echo
 python parametricSN/datasets/create_xray_dataset.py -dp $PWD -tp $1
+echo
+echo "Done creating xray dataset"
