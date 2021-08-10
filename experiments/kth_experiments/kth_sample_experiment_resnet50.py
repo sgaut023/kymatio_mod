@@ -4,18 +4,18 @@ import time
 import argparse
 import numpy as np
 from multiprocessing import Process
-PROCESS_BATCH_SIZE = 1
-mlflow_exp_name = "\"KTH Only CNN V2\""
+PROCESS_BATCH_SIZE = 4
+mlflow_exp_name = "\"KTH Only Resnet\""
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
-RUN_FILE = "parametricSN/main.py"
+RUN_FILE = "parametricSN/cifar_small_sample.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
-LR = 0.001
+LR = 0.0001
 LRS = 0.1
-LRO = 0.7
+LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-EPOCHS = 150
+EPOCHS = 100
 RUNS_PER_SEED = 4
 TOTALRUNS = 1
 SCHEDULER = "OneCycleLR"
@@ -24,7 +24,7 @@ ACCUM_STEP_MULTIPLE = 128
 TEST_BATCH_SIZE = 128
 TRAIN_BATCH_SIZE = 16
 SECOND_ORDER = 0
-MODEL = 'cnn'
+MODEL = 'resnet50'
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
 MODEL_LOSS = 'cross-entropy-accum'
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     commands = []
     for SEED in [1390666426,432857963,1378328753,1118756524]:
         for sample in ['a', 'b', 'c', 'd']:
-            args1 = "-oname {} -olr {} -gseed {} -me {} -odivf {} -os {} -daug {} -en {} -pf {} -dsam {} {}".format(
+            args1 = "-oname {} -olr {} -gseed {} -me {} -odivf {}  -os {} -daug {} -en {} -pf {} -dsam {} {}".format(
                 OPTIM,LR,SEED,EPOCHS,DF,SCHEDULER,AUGMENT,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG
             )
             args2 = "-mw {} -mloss {} -sa {} -dtstbs {} -dtbs {} -mname {} -dasm {}".format(

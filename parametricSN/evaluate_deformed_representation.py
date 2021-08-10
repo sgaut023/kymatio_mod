@@ -2,25 +2,31 @@
 
 Authors: Laurent Alsene-Racicot, Shanel Gauthier
 
+This script computes distances between scattering representations from image and transformed versions
+of the original image. The figures generated from this script are saved in mlflow.
+
+To run the script, you to pass as command line arguments one or multiple paths to the model folder such as:
+"/NOBACKUP/gauthiers/kymatio_mod/mlruns/5/03f1f015288f47dc81d0529b23c25bf1/artifacts/model" 
+
 Functions: 
-    append_to_list -- Append element to lists
-    apply_transformation -- Defines the transformation levels and calls
-                            compute_l2norm function
+    append_to_list         -- Append element to lists
+    apply_transformation   -- Defines the transformation levels and calls
+                              compute_l2norm function
     get_l2norm_deformation -- Call apply_transformation for various deformations and get the 
                               baseline for a given model
-    load_models_weights -- Loads model weigths
-    get_loaders -- Get test and train loaders
-    get_baseline -- Create baselines by computing the distances between representations from the
-                    original image and random images.
-    compute_l2norm -- Computed distances between representations from image and transformed versions
-                      of the original image      
-    visualize_distances -- Creates figures for each transformation
-    diffeo -- Apply a custom transformation of the form x(u-tau(u)) to the image
-    deformation_size -- Compute the deformation size of a given transformation : sup |J_{tau}(u)| 
-                        over u for J the jacobian
-    log_mlflow -- Logs parameters, metrics and figures to MLFLOW
-    main -- Computes the distance between scattering representations of an image and transformed
-            versions of the same image
+    load_models_weights    -- Loads model weigths
+    get_loaders            -- Get test and train loaders
+    get_baseline           -- Create baselines by computing the distances between representations from the
+                              original image and random images.
+    compute_l2norm         -- Computed distances between representations from image and transformed versions
+                              of the original image      
+    visualize_distances    -- Creates figures for each transformation
+    diffeo                 -- Apply a custom transformation of the form x(u-tau(u)) to the image
+    deformation_size       -- Compute the deformation size of a given transformation : sup |J_{tau}(u)| 
+                              over u for J the jacobian
+    log_mlflow             -- Logs parameters, metrics and figures to MLFLOW
+    main                   -- Computes the distance between scattering representations of an image and transformed
+                              versions of the same image
 """
 import sys
 from pathlib import Path

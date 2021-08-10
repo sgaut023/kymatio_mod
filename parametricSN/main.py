@@ -16,11 +16,14 @@ import argparse
 import torch
 import math
 import cv2
-
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
-from parametricSN.utils.helpers import get_context, visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot, override_params, setAllSeeds, estimateRemainingTime
+from parametricSN.utils.helpers import get_context, visualize_loss
+from parametricSN.utils.helpers import visualize_learning_rates
+from parametricSN.utils.helpers import  log_mlflow, getSimplePlot
+from parametricSN.utils.helpers import  override_params, setAllSeeds
+from parametricSN.utils.helpers import estimateRemainingTime
 from parametricSN.utils.optimizer_factory import optimizerFactory
 from parametricSN.utils.scheduler_factory import schedulerFactory
 from parametricSN.data_loading.dataset_factory import datasetFactory
@@ -50,9 +53,6 @@ def run_train(args):
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
-    if params['optim']['alternating'] and params['scattering']['learnable']:
-        params['model']['epoch'] = params['model']['epoch'] + int(params['optim']['phase_ends'][-1])
 
 
     ssc = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
@@ -112,11 +112,6 @@ def run_train(args):
         scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
         steppingSize = None
 
-    
-    if params['optim']['alternating']:
-        optimizer.scheduler = scheduler
-
-
     test_acc = []
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
@@ -141,37 +136,24 @@ def run_train(args):
         t1 = time.time()
 
         try:
-            if params['optim']['alternating']:
-                if optimizer.phase % 2 == 0:
-                    lrs.append(optimizer.param_groups[0]['lr'])
-                    if params['scattering']['learnable']:
-                        lrs_orientation.append(0)
-                        lrs_scattering.append(0)
-                else:
-                    lrs.append(0)
-                    if params['scattering']['learnable']:
-                        lrs_orientation.append(optimizer.param_groups[0]['lr'])
-                        lrs_scattering.append(optimizer.param_groups[1]['lr'])
-
-            else:
-                lrs.append(optimizer.param_groups[0]['lr'])
-                if params['scattering']['learnable']:
-                    lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                    lrs_scattering.append(optimizer.param_groups[2]['lr'])
+            lrs.append(optimizer.param_groups[0]['lr'])
+            if params['scattering']['learnable']:
+                lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                lrs_scattering.append(optimizer.param_groups[2]['lr'])
         except Exception:
             pass
 
         
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
-                                           epoch+1, alternating=params['optim']['alternating'],
-                                           glicoController=None, accum_step_multiple=steppingSize)
+                                           epoch+1,glicoController=None, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+        
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
         wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
-        videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
+        #videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -185,25 +167,24 @@ def run_train(args):
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
 
-    videoWriter.release()
+    #videoWriter.release()
 
 
     #MLFLOW logging below
     # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
-        y_label='loss', num_samples=int(params['dataset']['train_sample_num'])
+        y_label='loss'
     )
                              
     f_accuracy = visualize_loss(
         train_accuracies ,test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num'])
+        y_label='accuracy'
     )
                              
     f_accuracy_benchmark = visualize_loss(
         train_accuracies, test_acc, step_test=params['model']['step_test'], 
-        y_label='accuracy', num_samples=int(params['dataset']['train_sample_num']),
-        benchmark =True
+        y_label='accuracy'
     )
 
     #visualize learning rates
@@ -230,6 +211,7 @@ def run_train(args):
         filters_plots_after = None
         filters_values = None
         filters_grad = None
+        filters_parameters = None
 
     log_mlflow(
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
@@ -275,7 +257,7 @@ def main():
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
-    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
+    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Tight-Frame','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
@@ -283,7 +265,7 @@ def main():
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     #optim
-    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
+    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
     subparser.add_argument("--optim-weight-decay", "-owd", type=float)
     subparser.add_argument("--optim-momentum", "-omo", type=float)
@@ -291,7 +273,6 @@ def main():
     subparser.add_argument("--optim-div-factor", "-odivf", type=int)
     subparser.add_argument("--optim-three-phase", "-otp", type=int, choices=[0,1])
     subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])    
-    subparser.add_argument("--optim-alternating", "-oalt", type=int, choices=[0,1])
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
     subparser.add_argument("--optim-phase-ends", "-ope", nargs="+", default=None)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
@@ -308,8 +289,8 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
-                'scattering_second_order','scattering_three_phase','dataset_glico']:
+    for key in ['optim_three_phase','scattering_learnable','scattering_second_order',
+                'scattering_three_phase','dataset_glico']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

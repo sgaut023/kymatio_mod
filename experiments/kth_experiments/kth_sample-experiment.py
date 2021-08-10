@@ -8,9 +8,6 @@ import numpy as np
 
 from multiprocessing import Process
 
-os.environ['MKL_THREADING_LAYER'] = 'GNU' # Fix a bug : mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible with libgomp.so.1 library.
-        #Try to import numpy first or set the threading layer accordingly. Set MKL_SERVICE_FORCE_INTEL to force it.
-
 PROCESS_BATCH_SIZE = 2
 
 mlflow_exp_name = "\"CNN Scattering + KTH \""
@@ -26,13 +23,12 @@ LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
-INIT = "Kymatio"
+INIT = "Tight-Frame"
 EPOCHS = 100
 RUNS_PER_SEED = 1
 TOTALRUNS = 4
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
-ALTERNATING = 0
 MODEL = 'cnn'
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -54,17 +50,16 @@ if __name__ == '__main__':
         DATA_ARG = ""
 
     commands = []
-    print('test')
     for SEED in [1390666426,432857963,1378328753,1118756524]:
         for sample in ['d', 'c', 'b', 'a']:
             for x in range(TOTALRUNS):
 
                 LEARNABLE = 0 if LEARNABLE == 1 else 1
                 if x % 2 == 0  and x != 0:
-                    INIT = "Random" if INIT == "Kymatio" else "Kymatio"
+                    INIT = "Random" if INIT == "Tight-Frame" else "Tight-Frame"
 
-                command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -mname {} -pf {} -dsam {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name, MODEL, PARAMS_FILE, sample, DATA_ARG)
+                command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -en {} -mname {} -pf {} -dsam {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,mlflow_exp_name, MODEL, PARAMS_FILE, sample, DATA_ARG)
 
                 commands.append(command)
         

@@ -3,19 +3,18 @@
 Authors: Benjamin Therien, Shanel Gauthier, Laurent Alsene-Racicot, Michael Eickenberg
 
 Functions: 
-    construct_scattering -- Construct the scattering object
-    update_psi -- Update the psi dictionnary with the new wavelets
-    get_total_num_filters -- Compute the total number of filters
-    periodize_filter_fft -- Periodize the filter in fourier space
+    construct_scattering         -- Construct the scattering object
+    update_psi                   -- Update the psi dictionnary with the new wavelets
+    get_total_num_filters        -- Compute the total number of filters
+    periodize_filter_fft         -- Periodize the filter in fourier space
     create_filters_params_random -- Create reusable randomly initialized filter parameters:
                                     orientations, xis, sigmas, sigmas
-    create_filters_params -- Create reusable tight frame initialized filter parameters: 
-                             orientations, xis, sigmas, sigmas
-    raw_morlets -- Helper function for creating morlet filters 
-    morlets -- Creates morlet wavelet filters from inputs
+    create_filters_params        -- Create reusable tight frame initialized filter parameters: 
+                                    orientations, xis, sigmas, sigmas
+    raw_morlets                  -- Helper function for creating morlet filters 
+    morlets                      -- Creates morlet wavelet filters from inputs
 
 """
-
 
 import sys
 from pathlib import Path 
@@ -30,13 +29,11 @@ def construct_scattering(input, scattering, psi):
     """ Construct the scattering object
 
         Parameters:
-            input -- 
-            scattering -- 
-            psi -- dictionnary of filters
-
+            input      -- input data
+            scattering -- Kymatio (https://www.kymat.io/) scattering object
+            psi        -- dictionnary of filters that is used in the kymatio code
         Returns:
-            s -- the scattering object
-    TODO Shanel
+            S -- output of the scattering network
     """
     if not torch.is_tensor(input):
         raise TypeError('The input should be a PyTorch Tensor.')
