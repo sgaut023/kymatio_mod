@@ -54,9 +54,6 @@ def run_train(args):
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
 
-    if params['optim']['alternating'] and params['scattering']['learnable']:
-        params['model']['epoch'] = params['model']['epoch'] + int(params['optim']['phase_ends'][-1])
-
 
     ssc = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
 
@@ -115,11 +112,6 @@ def run_train(args):
         scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
         steppingSize = None
 
-    
-    if params['optim']['alternating']:
-        optimizer.scheduler = scheduler
-
-
     test_acc = []
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
@@ -144,30 +136,16 @@ def run_train(args):
         t1 = time.time()
 
         try:
-            if params['optim']['alternating']:
-                if optimizer.phase % 2 == 0:
-                    lrs.append(optimizer.param_groups[0]['lr'])
-                    if params['scattering']['learnable']:
-                        lrs_orientation.append(0)
-                        lrs_scattering.append(0)
-                else:
-                    lrs.append(0)
-                    if params['scattering']['learnable']:
-                        lrs_orientation.append(optimizer.param_groups[0]['lr'])
-                        lrs_scattering.append(optimizer.param_groups[1]['lr'])
-
-            else:
-                lrs.append(optimizer.param_groups[0]['lr'])
-                if params['scattering']['learnable']:
-                    lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                    lrs_scattering.append(optimizer.param_groups[2]['lr'])
+            lrs.append(optimizer.param_groups[0]['lr'])
+            if params['scattering']['learnable']:
+                lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                lrs_scattering.append(optimizer.param_groups[2]['lr'])
         except Exception:
             pass
 
         
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
-                                           epoch+1, alternating=params['optim']['alternating'],
-                                           glicoController=None, accum_step_multiple=steppingSize)
+                                           epoch+1,glicoController=None, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
@@ -277,7 +255,7 @@ def main():
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
-    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Kymatio','Random'])
+    subparser.add_argument("--scattering-init-params", "-sip", type=str,choices=['Tight-Frame','Random'])
     subparser.add_argument("--scattering-learnable", "-sl", type=int, choices=[0,1])
     subparser.add_argument("--scattering-second-order", "-sso", type=int, choices=[0,1])
     subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
@@ -285,7 +263,7 @@ def main():
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     #optim
-    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
+    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
     subparser.add_argument("--optim-weight-decay", "-owd", type=float)
     subparser.add_argument("--optim-momentum", "-omo", type=float)
@@ -293,7 +271,6 @@ def main():
     subparser.add_argument("--optim-div-factor", "-odivf", type=int)
     subparser.add_argument("--optim-three-phase", "-otp", type=int, choices=[0,1])
     subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])    
-    subparser.add_argument("--optim-alternating", "-oalt", type=int, choices=[0,1])
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
     subparser.add_argument("--optim-phase-ends", "-ope", nargs="+", default=None)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
@@ -310,8 +287,8 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
-                'scattering_second_order','scattering_three_phase','dataset_glico']:
+    for key in ['optim_three_phase','scattering_learnable','scattering_second_order',
+                'scattering_three_phase','dataset_glico']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

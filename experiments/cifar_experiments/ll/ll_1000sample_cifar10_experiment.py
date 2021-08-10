@@ -1,4 +1,13 @@
-"""CNN No-SCAT 1000 samples Cifar-10
+"""Cifar-10 1000 sample experiment script
+
+This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Tight-Frame"),(Not Leanable,"Tight-Frame")
+
+Experiment: learnable vs non-learnable scattering for cifar-10 1000 samples 
+
+example command:
+
+    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
+
 """
 
 import os
@@ -10,9 +19,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"CNN No-SCAT 1000 samples Cifar-10\""
+mlflow_exp_name = "\"new Cifar-10 1000 batch norm affine\""
 
 PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
@@ -20,30 +29,17 @@ OPTIM = "sgd"
 LR = 0.1
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.1
+LRMAX = 0.2
 DF = 25
-THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 1000
-INIT = "Kymatio"
+EPOCHS = 500
+INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TEST_BATCH_SIZE = 256
 TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 128
+TRAIN_BATCH_SIZE = 1000
 AUGMENT = "autoaugment"
-ALTERNATING = 0
-MODEL = "cnn"
-PHASE_ENDS = " ".join(["100","200"])
-
-MODEL_WIDTH = 8
-SCATT_ARCH = 'identity'
-
-MODEL_LOSS = 'cross-entropy'
-SCATT_LRMAX = 0.2
-SCATT_DF = 25
-SCATT_THREE_PHASE = 1
 
 
 def runCommand(cmd):
@@ -71,27 +67,12 @@ if __name__ == '__main__':
 
     commands = []
 
-
-    for SEED in [491659600,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
-
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]: #,(0,"Kymatio"),(1,"Random"),(0,"Random")]:
+    for SEED in [207715039,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+        for aa in [(1,"Random"),(0,"Random"),(1,"Tight-Frame"),(0,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
-            )
-
-            args2 = "-os {} -daug {} -oalt {} -en {} -dtbs {} -mname {} -ope {}".format(
-                SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
-            )
-
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -mw {} -dtstbs {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,MODEL_WIDTH,TEST_BATCH_SIZE
-            )
-
-            command = "{} {} run-train {} {} {} {}".format(
-                PYTHON,RUN_FILE,args1,args2,args3,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
 
             commands.append(command)
     

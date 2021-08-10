@@ -42,7 +42,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     J -- scale of scattering (always 2 for now)
     N -- height of the input image
     M -- width of the input image
-    initilization -- the type of init: ['kymatio' or 'random']
+    initilization -- the type of init: ['Tight-Frame' or 'Random']
     seed -- the seed used for creating randomly initialized filters
     requires_grad -- boolean idicating whether we want to learn params
     """
@@ -63,7 +63,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     
     params_filters = []
 
-    if initialization == "Kymatio":
+    if initialization == "Tight-Frame":
         params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
     elif initialization == "Random":
         #num_filters = get_total_num_filters(J,L)
@@ -178,13 +178,13 @@ class sn_ScatteringBase(nn.Module):
         J -- scale of scattering (always 2 for now)
         N -- height of the input image
         M -- width of the input image
-        initilization -- the type of init: ['kymatio' or 'random']
+        initilization -- the type of init: ['Tight-Frame' or 'Random']
         seed -- the random seed used to initialize the parameters
     """
 
     def __str__(self):
         tempL = " L" if self.learnable else "NL"
-        tempI = "K" if self.initialization == "Kymatio" else "R"
+        tempI = "K" if self.initialization == 'Tight-Frame' else "R"
         return f"{tempI} {tempL}"
 
     def getFilterViz(self):
@@ -211,7 +211,7 @@ class sn_ScatteringBase(nn.Module):
             N -- height of the input image
             M -- width of the input image
             second_order -- 
-            initilization -- the type of init: ['kymatio' or 'random']
+            initilization -- the type of init: ['Tight-Frame' or 'Random']
             seed -- the random seed used to initialize the parameters
             device -- the device to place weights on
             learnable -- should the filters be learnable parameters of this model
@@ -249,7 +249,7 @@ class sn_ScatteringBase(nn.Module):
 
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
-                J,N,M,second_order, initialization="Kymatio",seed=seed,
+                J,N,M,second_order, initialization='Tight-Frame',seed=seed,
                 requires_grad=False,use_cuda=self.use_cuda,device=self.device
             )
 

@@ -30,7 +30,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True, glicoController=None, accum_step_multiple=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, glicoController=None, accum_step_multiple=None):
     """training method for accumulating gradients"""
 
     model.train()
@@ -51,15 +51,9 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         tracker += len(target)
 
         if (batch_idx + 1) % accum_step_multiple == 0:
-            # print("step 1 at batch_idx:", batch_idx, "after: ", tracker, "examples")
-            if alternating:
-                model.scatteringBase.saveFilterGrads(scatteringActive=optimizer.scatteringActive) 
-                optimizer.step(epoch)
-                model.scatteringBase.saveFilterValues(scatteringActive=True)
-            else:
-                model.scatteringBase.saveFilterGrads(scatteringActive=True) 
-                optimizer.step()
-                model.scatteringBase.saveFilterValues(scatteringActive=True) 
+            model.scatteringBase.saveFilterGrads(scatteringActive=True) 
+            optimizer.step()
+            model.scatteringBase.saveFilterValues(scatteringActive=True) 
             
             optimizer.zero_grad()
 
@@ -70,14 +64,9 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
             correct += pred.eq(target.view_as(pred)).sum().item()
             train_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
         
-    if alternating:
-        model.scatteringBase.saveFilterGrads(scatteringActive=optimizer.scatteringActive) 
-        optimizer.step(epoch)
-        model.scatteringBase.saveFilterValues(scatteringActive=True)
-    else:
-        model.scatteringBase.saveFilterGrads(scatteringActive=True) 
-        optimizer.step()
-        model.scatteringBase.saveFilterValues(scatteringActive=True) 
+    model.scatteringBase.saveFilterGrads(scatteringActive=True) 
+    optimizer.step()
+    model.scatteringBase.saveFilterValues(scatteringActive=True) 
 
     if scheduler != None:
         scheduler.step()

@@ -35,7 +35,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=True, glicoController=None, accum_step_multiple=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, glicoController=None, accum_step_multiple=None):
     """training method"""
 
     model.train()
@@ -54,14 +54,9 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, alternating=
         loss = (1 - cos(target_one_hot, output)).mean()
         loss.backward()
 
-        if alternating:
-            model.scatteringBase.saveFilterGrads(scatteringActive=optimizer.scatteringActive) 
-            optimizer.step(epoch)
-            model.scatteringBase.saveFilterValues(scatteringActive=True)
-        else:
-            model.scatteringBase.saveFilterGrads(scatteringActive=True) 
-            optimizer.step()
-            model.scatteringBase.saveFilterValues(scatteringActive=True) 
+        model.scatteringBase.saveFilterGrads(scatteringActive=True) 
+        optimizer.step()
+        model.scatteringBase.saveFilterValues(scatteringActive=True) 
 
         if scheduler != None:
             scheduler.step()
