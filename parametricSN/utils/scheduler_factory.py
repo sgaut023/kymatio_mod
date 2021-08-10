@@ -8,9 +8,6 @@ functions:
 
 import torch
 
-from .alternating_optimization import Scheduler
-
-
 def schedulerFactory(optimizer, params, steps_per_epoch):
     """Factory for OneCycle, CosineAnnealing, Lambda, Cyclic, and step schedulers
 
@@ -19,14 +16,6 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
         optimizer -- the optimizer paired with the scheduler
         steps_per_epoch -- number of steps the scheduler takes each epoch
     """
-
-    if params['optim']['alternating']: 
-        return Scheduler(
-                    optimizer, params['optim']['scheduler'], 
-                    steps_per_epoch, epochs=optimizer.epoch_alternate[0], 
-                    div_factor=params['optim']['div_factor'], max_lr=params['optim']['max_lr'], 
-                    T_max = params['optim']['T_max'], num_step = 2, three_phase=params['optim']['three_phase']
-                )
 
     if params['optim']['scheduler'] =='OneCycleLR':
         scheduler = torch.optim.lr_scheduler.OneCycleLR(

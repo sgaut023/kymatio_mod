@@ -29,7 +29,7 @@ scattering:
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Kymatio' # 'Kymatio' or 'Random'
+  init_params: 'Tight-Frame' # 'Tight-Frame' or 'Random'
   learnable: True # True if learnable
   second_order: False
   # max_lr: 0.1

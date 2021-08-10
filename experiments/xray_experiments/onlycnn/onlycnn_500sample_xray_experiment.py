@@ -1,13 +1,4 @@
-"""Cifar-10 1000 sample experiment script
-
-This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Kymatio"),(Not Leanable,"Kymatio")
-
-Experiment: learnable vs non-learnable scattering for cifar-10 1000 samples 
-
-example command:
-
-    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
-
+""" SN+CNN 100 Samples Xray
 """
 
 import os
@@ -19,29 +10,34 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"All data Cifar-10 LL + BNA\""
-
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
+mlflow_exp_name = "\"04-only cnn 500 Samples Xray\""
+PARAMS_FILE = "parameters_xray.yml"
+PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
-LR = 0.2
-LRS = 0.2
-LRO = 0.2
-LRMAX = 0.2
+LR = 0.1
+LRS = 0.01
+LRO = 0.01
+LRMAX = 0.001
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-LEARNABLE = 1
-EPOCHS = 500
-INIT = "Kymatio"
+EPOCHS = 300
 RUNS_PER_SEED = 10
+TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 50000
-TRAIN_BATCH_SIZE = 1024
-AUGMENT = "autoaugment"
-ALTERNATING = 0
+TRAIN_SAMPLE_NUM = 500
+TEST_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 16
+AUGMENT = "original-cifar"
+SECOND_ORDER = 0
+MODEL = 'resnet50'
+MODEL_WIDTH = 8
+SCATT_ARCH = 'identity'
 
+ACCUM_STEP_MULTIPLE = 128
+MODEL_LOSS = 'cross-entropy-accum'
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -68,18 +64,21 @@ if __name__ == '__main__':
 
     commands = []
 
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [493572006,737523103,827192296]:#,,877498678,1103100946,1210393663,1277404878,1377264326]:207715039,491659600
+    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
+        args1 = "-daug {} -en {} -pf {} -sso {} -mname {} {}".format(
+        AUGMENT,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio"),(0,"Kymatio"),(1,"Random"),(0,"Random")]:
-            LEARNABLE, INIT = aa
+        args2 = "-oname {} -olr {} -gseed {} -me {} -omaxlr {} -odivf {} -dtsn {} -dtbs {} -os {}".format(
+            OPTIM,LR,SEED,EPOCHS,LRMAX,DF,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -oalt {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+        args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {}".format(
+            LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE)
+        
+        command = "{} {} run-train {} {} {}".format(
+            PYTHON,RUN_FILE,args1,args2,args3)
 
-            commands.append(command)
-    
+        commands.append(command)
+
 
     for cmd in commands:
         print(cmd)
@@ -93,16 +92,10 @@ if __name__ == '__main__':
 
         for process in batch:
             process.start()
-            time.sleep(5)
+            time.sleep(10)
 
         for process in batch:
             process.join()
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
-
-
-
-
-
-

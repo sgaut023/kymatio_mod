@@ -1,4 +1,13 @@
-""" SN+CNN 100 Samples Xray
+"""Cifar-10 1000 sample experiment script
+
+This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Tight-Frame"),(Not Leanable,"Tight-Frame")
+
+Experiment: learnable vs non-learnable scattering for cifar-10 1000 samples 
+
+example command:
+
+    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
+
 """
 
 import os
@@ -10,38 +19,28 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"04-only cnn 1000 Samples Xray\""
-PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+mlflow_exp_name = "\"new Cifar-10 1000 batch norm affine\""
+
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
-LRS = 0.01
-LRO = 0.01
-LRMAX = 0.001
+LRS = 0.1
+LRO = 0.1
+LRMAX = 0.2
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 300
-INIT = "Kymatio"
+EPOCHS = 500
+INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
-TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
-TEST_BATCH_SIZE = 16
-TRAIN_BATCH_SIZE = 16
-AUGMENT = "original-cifar"
-ALTERNATING = 0
-SECOND_ORDER = 0
-MODEL = 'resnet50'
+TRAIN_BATCH_SIZE = 1000
+AUGMENT = "autoaugment"
 
-MODEL_WIDTH = 8
-SCATT_ARCH = 'identity'
-
-ACCUM_STEP_MULTIPLE = 128
-MODEL_LOSS = 'cross-entropy-accum'
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -68,26 +67,15 @@ if __name__ == '__main__':
 
     commands = []
 
-    # for x in range(RUNS_PER_SEED):
-    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]:
+    for SEED in [207715039,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+        for aa in [(1,"Random"),(0,"Random"),(1,"Tight-Frame"),(0,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
-                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
-
-            args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
-
-            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {} -dasm {}".format(
-                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE,ACCUM_STEP_MULTIPLE)
-            
-            command = "{} {} run-train {} {} {}".format(
-                PYTHON,RUN_FILE,args1,args2,args3)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
 
             commands.append(command)
-
+    
 
     for cmd in commands:
         print(cmd)
@@ -101,10 +89,16 @@ if __name__ == '__main__':
 
         for process in batch:
             process.start()
-            time.sleep(10)
+            time.sleep(5)
 
         for process in batch:
             process.join()
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
+
+
+
+
+
+

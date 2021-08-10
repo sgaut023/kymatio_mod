@@ -21,7 +21,7 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             N -- height of the input image
             M -- width of the input image
             second_order -- 
-            initilization -- the type of init: ['kymatio' or 'random']
+            initilization -- the type of init: ['Tight-Frame' or 'Random']
             seed -- the random seed used to initialize the parameters
             device -- the device to place weights on
             learnable -- should the filters be learnable parameters of this model

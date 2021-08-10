@@ -1,4 +1,4 @@
-""" SN+CNN 100 Samples Xray
+""" SN+CNN 500 Samples Xray
 """
 
 import os
@@ -10,37 +10,30 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 1
+PROCESS_BATCH_SIZE = 3
 
-mlflow_exp_name = "\"ONLY CNN 100 Samples Xray\""
+mlflow_exp_name = "\"SN+CNN 500 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.01
 LRS = 0.01
 LRO = 0.01
-LRMAX = 0.001
+LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
 EPOCHS = 200
-INIT = "Kymatio"
+INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 100
-TEST_BATCH_SIZE = 8
-TRAIN_BATCH_SIZE = 8
+TRAIN_SAMPLE_NUM = 500
+TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-ALTERNATING = 0
 SECOND_ORDER = 0
 MODEL = 'cnn'
-
-MODEL_WIDTH = 8
-SCATT_ARCH = 'identity'
-
-MODEL_LOSS = 'cross-entropy-accum'
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -65,29 +58,26 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
 
-    commands = []
-
-    # for x in range(RUNS_PER_SEED):
+    commands =[]
     for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
-        # SEED = int(time.time() * np.random.rand(1))
-        for aa in [(1,"Kymatio")]:
+        for aa in [(1,"Tight-Frame"),(0,"Tight-Frame"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
-            args1 = "-daug {} -oalt {} -en {} -pf {} -sso {} -mname {} {}".format(
-                AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
+            args1 = "-daug {} -en {} -pf {} -sso {} -mname {} {}".format(
+                AUGMENT,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
             args2 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {}".format(
                 OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
 
-            args3 = "-slrs {} -slro {} -mw {} -mloss {} -sa {} -dtstbs {}".format(
-                LRS,LRO,MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE)
+            args3 = "-slrs {} -slro {}".format(
+                LRS,LRO)
             
             command = "{} {} run-train {} {} {}".format(
                 PYTHON,RUN_FILE,args1,args2,args3)
 
             commands.append(command)
 
-
+    
     for cmd in commands:
         print(cmd)
 
@@ -107,3 +97,9 @@ if __name__ == '__main__':
 
         print("\n\nRunning Took {} seconds".format(time.time() - startTime))
         time.sleep(1)
+
+
+
+
+
+

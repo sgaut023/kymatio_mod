@@ -15,14 +15,11 @@ LRS = 0.1
 LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-LEARNABLE = 0
-INIT = "Kymatio"
 EPOCHS = 100
 RUNS_PER_SEED = 4
 TOTALRUNS = 1
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
-ALTERNATING = 0
 ACCUM_STEP_MULTIPLE = 128
 TEST_BATCH_SIZE = 128
 TRAIN_BATCH_SIZE = 16
@@ -51,8 +48,8 @@ if __name__ == '__main__':
     commands = []
     for SEED in [1390666426,432857963,1378328753,1118756524]:
         for sample in ['a', 'b', 'c', 'd']:
-            args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
-                OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG
+            args1 = "-oname {} -olr {} -gseed {} -me {} -odivf {}  -os {} -daug {} -en {} -pf {} -dsam {} {}".format(
+                OPTIM,LR,SEED,EPOCHS,DF,SCHEDULER,AUGMENT,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG
             )
             args2 = "-mw {} -mloss {} -sa {} -dtstbs {} -dtbs {} -mname {} -dasm {}".format(
             MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE,TRAIN_BATCH_SIZE,MODEL,ACCUM_STEP_MULTIPLE)
