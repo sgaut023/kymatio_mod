@@ -1,5 +1,12 @@
 """Script to download and generate KTH dataset 
 The generated dataset contains 4 folders per sample (a,b,c and d)
+
+Dataset folder organization
+├── a    <- Folder contains 11 folders (one per material)   
+├── b    <- Folder contains 11 folders (one per material) 
+├── c    <- Folder contains 11 folders (one per material) 
+├── d    <- Folder contains 11 folders (one per material)         
+
 Author: Shanel Gauthier
 
 Functions:
