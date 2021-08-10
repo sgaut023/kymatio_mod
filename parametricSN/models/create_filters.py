@@ -181,14 +181,11 @@ def create_filters_params(J, L, is_scattering_dif, device):
 
     for j in range(J):
         for theta in range(L):
-            sigma = 0.8 * 2**j
             sigmas.append(0.8 * 2**j)
             t = ((int(L-L/2-1)-theta) * np.pi / L)
             xis.append(3.0 / 4.0 * np.pi /2**j)
             slant = 4.0/L
             slants.append(slant)
-            D = np.array([[1, 0], [0, slant * slant]])
-            R_inv = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]], np.float32)
             orientations.append(t) 
      
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
