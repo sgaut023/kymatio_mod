@@ -189,7 +189,7 @@ class sn_ScatteringBase(nn.Module):
 
     def __str__(self):
         tempL = " L" if self.learnable else "NL"
-        tempI = "K" if self.initialization == 'Tight-Frame' else "R"
+        tempI = "TF" if self.initialization == 'Tight-Frame' else "R"
         return f"{tempI} {tempL}"
 
     def getFilterViz(self):
