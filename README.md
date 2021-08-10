@@ -6,7 +6,7 @@ This repository contains our implementation of learnable scattering networks: ht
 
 Explore The Mortlet Wavelet Filters we Optimize
 ------------
-The following gifs are a visualizaiton of the morlet wavelet filters of our scattering network as they are optimized a 1000 sample subset of CIFAR-10.
+The following gifs are a visualizaiton of the morlet wavelet filters initialized with tight frame of our scattering network as they are optimized a 1000 sample subset of CIFAR-10. (left) Wavelet filters in the Fourier domain (middle) Real part of wavelet filters (right) Imaginary part of wavelet filters 
 
 
 <img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
@@ -100,8 +100,14 @@ Project Organization
     ├── conf                    <- Configuration folder
     ├── experiments        
     │   ├── cifar_experiments   <- All scripts to reproduce cifar experiments.
+    |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll              <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn         <- Scripts tp run all experiments of cnn without scattering priors.
     │   ├── kth_experiments     <- All scripts to reproduce KTH-TPIS2 experiments.
     │   └── xray_experiments    <- All scripts to reproduce Covidx CRX-2 experiments.
+    |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll              <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn         <- Scripts tp run all experiments of cnn without scattering priors.
     ├── kymatio                 <- Folder copied from: https://github.com/kymatio/kymatio.
     ├── parametricSN 
     │   ├── data_loading        <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
