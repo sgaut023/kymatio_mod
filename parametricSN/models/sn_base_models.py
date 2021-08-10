@@ -166,9 +166,14 @@ class sn_Identity(nn.Module):
     
     def checkFilterDistance(self):
         return 0
+    
+    def checkParamDistance(self):
+        pass
+
+    def checkDistance(self,compared):
+        pass
+    
         
-
-
 class sn_ScatteringBase(nn.Module):
     """A learnable scattering nn.module 
 

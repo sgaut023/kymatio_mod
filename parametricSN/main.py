@@ -149,6 +149,7 @@ def run_train(args):
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
+        
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
         wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
