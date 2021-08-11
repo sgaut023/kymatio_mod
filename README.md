@@ -13,7 +13,7 @@ The following gifs are a visualizaiton of the morlet wavelet filters initialized
 
 
 You can use the following notebook to explore the parameters used to create the filters.
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/sgaut023/kymatio_mod/blob/master/parametricSN/notebooks/FilterParamsEffect.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/sgaut023/kymatio_mod/blob/master/parametricSN/notebooks/FilterParamsEffectColab.ipynb)
 
 Get Setup
 ------------
