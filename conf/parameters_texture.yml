@@ -32,9 +32,6 @@ scattering:
   init_params: 'Tight-Frame' # 'Tight-Frame' or 'Random'
   learnable: True # True if learnable
   second_order: False
-  # max_lr: 0.1
-  # div_factor: 25
-  # three_phase: Falsde
   architecture: 'scattering'
 
 optim: 
@@ -57,7 +54,6 @@ model:
   epoch: 50
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
-  average: False
   save: False
   
 

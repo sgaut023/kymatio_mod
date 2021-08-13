@@ -87,7 +87,6 @@ def run_train(args):
         architecture=params['model']['name'],
         num_classes=params['dataset']['num_classes'], 
         width= params['model']['width'], 
-        average=params['model']['average'], 
         use_cuda=use_cuda
     )
 
@@ -283,6 +282,7 @@ def main():
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
     subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy','cross-entropy-accum'])
+    subparser.add_argument("--model-save", "-msave", type=int, choices=[0,1])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
                         help="YML Parameter File Name")
