@@ -106,6 +106,7 @@ Project Organization
 ------------
 
     ├── conf                    <- Configuration folder
+    ├── data                    <- Contains datasets - to create the different datasets please see section Datasets
     ├── experiments        
     │   ├── cifar_experiments   <- All scripts to reproduce cifar experiments.
     |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
@@ -127,7 +128,5 @@ Project Organization
     │   └── main.py             <- Source code.
     │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
     
-
-
 
 
