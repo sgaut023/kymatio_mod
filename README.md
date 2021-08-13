@@ -61,9 +61,9 @@ To run an experiment with the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/co
 ```
 python parametricSN/main.py run-train -pf parameters_xray.yml
 ```
-To run an experiment to evaluate the robustness of some models to different deformations, run the command below which is an example for two models with paths to the model folder path1 and path2:
+To run an experiment to evaluate the robustness of some models to different deformations, run the command below where which is an example for two models with paths to the model folder path1 and path2:
 ```
-python parametricSN/evaluate_deformed_representation.py path1 path2
+python parametricSN/evaluate_deformed_representation.py <path1> <path2>
 ```
 One example of such path would be "/.../kymatio_mod/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model".
 
