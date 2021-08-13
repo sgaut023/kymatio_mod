@@ -61,12 +61,15 @@ To run an experiment with the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/co
 ```
 python parametricSN/main.py run-train -pf parameters_xray.yml
 ```
-To run an experiment to evaluate the robustness of some models to different deformations, run the command below where which is an example for two models with paths to the model folder path1 and path2:
+To run an experiment to evaluate the robustness of some scattering network models (as much as one wants, but it is recommanded to stay at a reasonnable number for clarity) to different deformations, run the command below which is an example for two models with paths to the model folder path1 and path2:
 ```
 python parametricSN/evaluate_deformed_representation.py <path1> <path2>
 ```
 One example of such path would be "/.../kymatio_mod/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model".
 
+The resulting figures will be automatically logged in mlflow and below is an example of the result for 4 models and the rotation deformation. You can see, in order, the image before the deformation, the image after the deformation and the plot of the relative distance in the representations with respect to the rotation size (its angle).  The horizontal lines are a baseline that indicates the level of deformation one could expect from random other images in the dataset.
+
+![image](https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png) ![image](https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png) ![image](https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png)
 
 Results
 ------------
