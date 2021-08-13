@@ -15,13 +15,12 @@ Functions:
     create_test_folder    -- Create test set in the target folder
 
 """
-from typing import Optional
+from pathlib import Path
 import pandas as pd
 import argparse
 import shutil
 import os
 from tqdm import tqdm
-import sys
 import shutil
 from zipfile import ZipFile
 
@@ -98,17 +97,17 @@ def create_train_test_df(target_path):
     return df_train, df_test
 
 if __name__ == '__main__':
+    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
+    target_path.mkdir(parents=True, exist_ok= True)
+    
     parser = argparse.ArgumentParser(description='Paths to folders')
-    parser.add_argument("--target_path", "-tp", type=str, help='Path to target folder', required=True)
     parser.add_argument("--dataset_path", "-dp", type=str, help='Path to dataset zip', required=True)
     args = parser.parse_args()  
-    extract_zip(args.dataset_path, args.target_path)
-    df_train, df_test = create_train_test_df(args.target_path)
-    create_train_folder(df_train, args.target_path)
-    create_test_folder(df_test, args.target_path)
-    
-    # remove extracted folder (not necessary)
-    mydir = os.path.join(args.target_path,'xray')
+    extract_zip(args.dataset_path, target_path)
+    df_train, df_test = create_train_test_df(target_path)
+    create_train_folder(df_train, target_path)
+    create_test_folder(df_test, target_path)
+    mydir = os.path.join(target_path,'xray')
     try:
         shutil.rmtree( mydir)
     except OSError as e:
