@@ -10,9 +10,9 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 3
+PROCESS_BATCH_SIZE = 1
 
-mlflow_exp_name = "\"04-only cnn 1000 Samples Xray\""
+mlflow_exp_name = "\"Only cnn 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/main.py"
@@ -23,16 +23,16 @@ LRO = 0.01
 LRMAX = 0.001
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-EPOCHS = 300
+EPOCHS = 100
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
-TEST_BATCH_SIZE = 16
-TRAIN_BATCH_SIZE = 16
+TEST_BATCH_SIZE = 4
+TRAIN_BATCH_SIZE = 4
 AUGMENT = "original-cifar"
 SECOND_ORDER = 0
-MODEL = 'resnet50'
+MODEL = 'cnn'
 
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'

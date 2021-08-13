@@ -4,10 +4,10 @@ import time
 import argparse
 import numpy as np
 from multiprocessing import Process
-PROCESS_BATCH_SIZE = 4
-mlflow_exp_name = "\"KTH Only Resnet\""
+PROCESS_BATCH_SIZE = 1
+mlflow_exp_name = "\"KTH Only Resnet50\""
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
-RUN_FILE = "parametricSN/cifar_small_sample.py"
+RUN_FILE = "parametricSN/main.py"
 PARAMS_FILE = "parameters_texture.yml"
 OPTIM = "sgd"
 LR = 0.0001
@@ -15,19 +15,19 @@ LRS = 0.1
 LRO = 0.1
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-EPOCHS = 100
+EPOCHS = 50
 RUNS_PER_SEED = 4
 TOTALRUNS = 1
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 ACCUM_STEP_MULTIPLE = 128
 TEST_BATCH_SIZE = 128
-TRAIN_BATCH_SIZE = 16
+TRAIN_BATCH_SIZE = 128
 SECOND_ORDER = 0
 MODEL = 'resnet50'
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
-MODEL_LOSS = 'cross-entropy-accum'
+MODEL_LOSS = 'cross-entropy'
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
     os.system(cmd)

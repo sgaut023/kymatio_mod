@@ -259,6 +259,7 @@ class sn_Resnet50(nn.Module):
         self.model_ft = models.resnet50(pretrained=True)
         num_ftrs = self.model_ft.fc.in_features
         self.model_ft.fc =  nn.Linear(num_ftrs, num_classes)
+        self.num_classes = num_classes
 
         
     def forward(self, x):

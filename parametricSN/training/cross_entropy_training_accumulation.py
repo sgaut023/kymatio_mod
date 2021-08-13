@@ -56,8 +56,8 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
             model.scatteringBase.saveFilterValues(scatteringActive=True) 
             
             optimizer.zero_grad()
-
-
+            if scheduler != None:
+                scheduler.step()
 
         with torch.no_grad():
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
