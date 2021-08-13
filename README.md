@@ -4,7 +4,8 @@
 
 <p align="center">
 (left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
- 
+ </p>
+ <p align="center">
 <img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
 </p>
 
