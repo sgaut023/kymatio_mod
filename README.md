@@ -3,15 +3,19 @@ Parametric Scattering Networks
 
 
 Parametric Scattering Networks is a repository our implementation of learnable scattering networks as introduced in [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539).
+
+
+<img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
+(left) Wavelet filters in the Fourier domain (middle) Real part of wavelet filters (right) Imaginary part of wavelet filters 
+
 <!--- 
 ![Screen Shot 2021-08-09 at 9 39 37 AM](https://user-images.githubusercontent.com/23482039/128716737-95fe42fa-32b7-4234-bc63-7d500a092636.png)
 ---> 
 Explore The Mortlet Wavelet Filters we Optimize
 ------------
-The following gifs visually depict the optimizaiton of our scattering network's morlet wavelet filters. Each frame corresponds to one SGD step over gradient calculated over our model's predictions on a 1000 samples subset of CIFAR-10. (left) Wavelet filters in the Fourier domain (middle) Real part of wavelet filters (right) Imaginary part of wavelet filters 
+The following gifs visually depict the optimizaiton of our scattering network's morlet wavelet filters. Each frame corresponds to one batch gradient descent step using a 1000-sample subset of CIFAR-10 for training. For instance, the 30th frame corresponds to the positions of the filters after 30 steps of batch gradient descent. 
 
 
-<img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
 
 
 You can use the following notebook to explore the parameters used to create the filters.
