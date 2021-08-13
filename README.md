@@ -2,10 +2,10 @@
 ==============================
 
 
-(left) Wavelet filters in the Fourier domain (middle) Real part of wavelet filters (right) Imaginary part of wavelet filters 
+(left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters 
 <img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
 
-The Parametric Scattering Networks repository makes our code for learnable scattering networks as introduced in [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) available to the public. It also contains code to run and test new hybrid architectures for the small sample regime. When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy.
+This repository makes our code for [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) available to the public. It also contains code to run and test new hybrid architectures for the small sample regime. When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy.
 
 We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. 
 
