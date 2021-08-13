@@ -69,7 +69,7 @@ One example of such path would be "/.../kymatio_mod/mlruns/1/03f1f015288f47dc81d
 
 The resulting figures will be automatically logged in mlflow and below is an example of the result for 4 models and the rotation deformation. You can see, in order, the image before the deformation, the image after the deformation and the plot of the relative distance in the representations with respect to the rotation size (its angle).  The horizontal lines are a baseline that indicates the level of deformation one could expect from random other images in the dataset.
 
-![image](https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png =100x) ![image](https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png =100x) ![image](https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png =100x)
+<img src="https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png" width="225" height="225">            <img src="https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png" width="225" height="225">                <img src="https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png" width="225" height="225">      
 
 Results
 ------------
