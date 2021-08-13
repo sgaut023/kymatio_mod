@@ -9,9 +9,9 @@ This repository makes our code for [Parameteric Scattering Networks](https://arx
 
 
 100 Sample CIFAR-10 Challenge
+----------------
 
-When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy. We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. 
-
+When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy. We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. To obtian comparable results when subsampling from such a large training set, it is important to use the same seeds and to control for deterministic computation. Our repository does both. By running the competition/cifar-10_100sample.py script, users can generate our state of the art result on CIFAR-10. The results will automatically be logged to mlflow. By modifying the same script, users can 
 
 
 
