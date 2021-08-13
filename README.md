@@ -37,15 +37,15 @@ Our empirical evaluations are based on three image datasets, illustrated in the 
 ![Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png)
 
 #### 1. KTH-TIPS2
-To download the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run this command where target_path is the path to the target folder.
+To download the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run this command:
 ```
-python parametricSN/datasets/create_kth_dataset.py <target_path>
+python parametricSN/datasets/create_kth_dataset.py 
 ```
 
 #### 2. COVIDx CRX-2
-To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run this command where target_path is the path to the target folder. Please make sure that you have enough space. The dataset is 11.6 GB. 
+To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run the command below. Please make sure that you have enough space. The dataset is 11.6 GB. 
 ```
-bash parametricSN/datasets/create_xray_dataset.sh <target_path>
+bash parametricSN/datasets/create_xray_dataset.sh 
 ```
 Experiments
 ------------
