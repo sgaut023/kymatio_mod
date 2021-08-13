@@ -2,7 +2,7 @@ Parametric Scattering Networks
 ==============================
 
 
-This repository contains our implementation of learnable scattering networks preseted in [Parameteric Scattering Netorks](https://arxiv.org/abs/2107.09539).
+This repository contains our implementation of learnable scattering networks preseted in [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539).
 <!--- 
 ![Screen Shot 2021-08-09 at 9 39 37 AM](https://user-images.githubusercontent.com/23482039/128716737-95fe42fa-32b7-4234-bc63-7d500a092636.png)
 ---> 
