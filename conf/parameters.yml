@@ -5,8 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  
-  #tracking_uri: "sqlite:////home/mila/b/benjamin.therien/github/kymatio_mod/runs_ben/mlruns/store.db" #'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: #'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  
   experiment_name: 'test2'
 
 dataset:
@@ -22,7 +21,6 @@ dataset:
   width:  32   # ultrasound image dimension
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
-  glico: 0
   accum_step_multiple: 128
 # kymatio 
 

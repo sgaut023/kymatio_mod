@@ -15,7 +15,6 @@ import time
 import argparse
 import torch
 import math
-import cv2
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
@@ -33,7 +32,6 @@ from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.training.training_factory import train_test_factory
 
 
-
 def run_train(args):
     """Launches the training script 
 
@@ -43,7 +41,7 @@ def run_train(args):
     torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
     torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
 
-    catalog, params = get_context(args.param_file) #parse params
+    params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
     use_cuda = torch.cuda.is_available()
@@ -131,8 +129,6 @@ def run_train(args):
 
     train, test = train_test_factory(params['model']['loss'])
 
-    print(hybridModel.__dict__.keys())
-
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
         hybridModel.scatteringBase.setEpoch(epoch)
@@ -147,14 +143,11 @@ def run_train(args):
 
         
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
-                                           epoch+1,glicoController=None, accum_step_multiple=steppingSize)
+                                           epoch+1, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
-        # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
         
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
-        wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
-
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -172,7 +165,6 @@ def run_train(args):
 
 
     #MLFLOW logging below
-    # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
         y_label='loss'
@@ -195,9 +187,6 @@ def run_train(args):
         title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
         xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
 
-    waveletDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF wavelets',
-        title='Learnable wavelet filters progress towards the TF wavelet filters', label='Dist to TF wavelets',
-        xvalues=[x+1 for x in range(len(wavelet_distance))], yvalues=wavelet_distance)
 
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
@@ -220,7 +209,7 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot, waveletDistancePlot]
+        filters_values, filters_parameters, f_lr, paramDistancePlot]
     )
     
 
@@ -250,8 +239,7 @@ def main():
     subparser.add_argument("--dataset-data-folder", "-ddf", type=str)
     subparser.add_argument("--dataset-height", "-dh", type=int)
     subparser.add_argument("--dataset-width", "-dw", type=int)
-    subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument("--dataset-glico", "-dg", type=int, choices=[0,1])
+    subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment'])
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
@@ -292,8 +280,8 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
-                'scattering_second_order','scattering_three_phase','dataset_glico',
+    for key in ['optim_three_phase','scattering_learnable',
+                'scattering_second_order','scattering_three_phase',
                 'scattering_filter_video']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans

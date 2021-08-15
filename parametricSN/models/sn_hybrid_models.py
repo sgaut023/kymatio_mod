@@ -2,11 +2,8 @@
 
 Authors: Benjamin Therien, Shanel Gauthier
 
-
 Classes: 
-    sn_Identity -- computes the identity function in forward pass
     sn_HybridModel -- combinations of a scattering and other nn.modules
-    sn_ScatteringBase -- a scattering network
 """
 
 import torch.nn as nn
@@ -27,7 +24,6 @@ class sn_HybridModel(nn.Module):
         scatteringBase -- the scattering nn.Module
         top -- the nn.Module used after scatteringBase
         use_cuda -- True if using GPU
-
         """
         super(sn_HybridModel,self).__init__()
         if use_cuda:
@@ -53,6 +49,9 @@ class sn_HybridModel(nn.Module):
     def eval(self):
         self.scatteringBase.eval()
         self.top.eval()
+
+    def setEpoch(self, epoch):
+        self.scatteringBase.setEpoch(epoch)
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""

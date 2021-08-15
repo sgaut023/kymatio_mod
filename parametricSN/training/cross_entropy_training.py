@@ -33,11 +33,12 @@ def test(model, device, test_loader):
     accuracy = 100. * correct / len(test_loader.dataset)
     print('\nTest set: [Model -- {}] Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         model, test_loss, correct, len(test_loader.dataset),accuracy ))
-    print(classification_report(y_true, y_pred))
+
+    # print(classification_report(y_true, y_pred))
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, glicoController=None, accum_step_multiple=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_multiple=None):
     """training method"""
 
     model.train()
@@ -46,8 +47,6 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
 
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
-        if glicoController != None:
-            data, target = glicoController(data,target)
 
         optimizer.zero_grad()
         output = model(data)
