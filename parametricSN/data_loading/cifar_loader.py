@@ -317,7 +317,7 @@ class SmallSampleController:
             self.load(device)
 
         trainDL, valDL = self.getDataloaders()
-        print("{} sumbsampled dataset with seed: {}, train sample num: {}, test sample num: {}".format(
+        print("\n{} sumbsampled dataset with seed: {}, train sample num: {}, test sample num: {}\n".format(
                 self, seed, self.trainSampleCount, self.valSampleCount))
 
         return trainDL, valDL, seed

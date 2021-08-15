@@ -42,7 +42,6 @@ def get_context(parameters_file, full_path = False):
             full_path       -- boolean that indicates if parameters_file is the name 
                                 of the yaml file or the full path  
         Returns:
-            catalog         -- dictionnary that contains paths
             params          -- dictionnary that contains experiment parameters
     """
     current_dir = Path.cwd()
@@ -52,12 +51,9 @@ def get_context(parameters_file, full_path = False):
         params_path = parameters_file
     else:
         params_path = os.path.join(proj_path, f'conf/{parameters_file}')
-    catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
-    with open(catalog_path, "r") as f:
-        catalog = yaml.safe_load(f)
     with open(params_path, "r") as f:
         params = yaml.safe_load(f)     
-    return catalog, params
+    return params
 
 
 def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss'):
@@ -159,9 +155,9 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         params               -- the parameters passed to the program
         model                -- the hybrid model used during training 
         test_acc             -- list of test accuracies over epochs
-        test_loss            --  list of test losses over epochs
-        train_acc            --  list of train accuracies over epochs
-        train_loss           --  list of train losses over epochs
+        test_loss            -- list of test losses over epochs
+        train_acc            -- list of train accuracies over epochs
+        train_loss           -- list of train losses over epochs
         start_time           -- the time at which the current run was started 
         filters_plots_before -- plots of scattering filter values before training 
         filters_plots_after  -- plots of scattering filter values after training 
@@ -169,6 +165,13 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     """
 
     duration = (time.time() - start_time)
+
+    if params['mlflow']['tracking_uri'] is None:
+        temp = str(os.path.join(os.getcwd(),'mlruns'))
+        if not os.path.isdir(temp):
+            os.mkdir(temp)
+        params['mlflow']['tracking_uri'] = 'sqlite:///' + os.path.join(temp,'store.db')
+    
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment(params['mlflow']['experiment_name'])
 
@@ -206,14 +209,13 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
 
         mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
         mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
-        mlflow.log_figure(misc_plots[8], f'learnable_parameters/wavelet_distance.pdf')
 
         # saving all accuracies
         log_csv_file('test_acc.csv', test_acc)
         log_csv_file('train_acc.csv', train_acc)
         log_csv_file('test_loss.csv', test_loss)
         log_csv_file('train_loss.csv', train_loss)
-        print(f"finish logging{params['mlflow']['tracking_uri']}")
+        print(f"finish logging to {params['mlflow']['tracking_uri']}")
 
 
 def override_params(args, params):

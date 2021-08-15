@@ -2,7 +2,8 @@
 
 Functions:  
     get_filters_visualization -- Visualizes the scattering filters input for different modes
-    getOneFilter              -- Methdod used to visualize one filter
+    getOneFilter              -- Function used to visualize one filter
+    getAllFilters             -- Function used to concatenate filters, creating frames for a video
 
 """
 
