@@ -35,6 +35,7 @@ scattering:
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
+  filter_video: True
 
 
 optim: 

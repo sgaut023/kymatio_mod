@@ -16,14 +16,15 @@ Classes:
     sn_ScatteringBase -- a scattering network
 """
 
-import torch 
+import torch
+import cv2
 
 import torch.nn as nn
 
 from numpy.core.numeric import False_
 from kymatio import Scattering2D
 from .create_filters import *
-from .wavelet_visualization import get_filters_visualization, getOneFilter
+from .wavelet_visualization import get_filters_visualization, getOneFilter, getAllFilters
 from .sn_models_exceptions import InvalidInitializationException
 from scipy.optimize import linear_sum_assignment
 
@@ -118,6 +119,9 @@ class sn_HybridModel(nn.Module):
         self.scatteringBase.eval()
         self.top.eval()
 
+    def setEpoch(self, epoch):
+        self.scatteringBase.setEpoch(epoch)
+
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
         return self.scatteringBase.countLearnableParams() \
@@ -166,6 +170,12 @@ class sn_Identity(nn.Module):
     
     def checkFilterDistance(self):
         return 0
+    
+    def setEpoch(self, epoch):
+        self.epoch = epoch
+
+    def releaseVideoWriters(self):
+        pass
         
 
 
@@ -199,9 +209,13 @@ class sn_ScatteringBase(nn.Module):
     def getOneFilter(self, count, scale, mode):
         return getOneFilter(self.psi, count, scale, mode)
 
+    def getAllFilters(self, totalCount, scale, mode):
+        return getAllFilters(self.psi, totalCount, scale, mode)
+
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  device, learnable=True, lr_orientation=0.1, 
-                 lr_scattering=0.1, monitor_filters=True, use_cuda=True):
+                 lr_scattering=0.1, monitor_filters=True, use_cuda=True,
+                 filter_video=False):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -218,6 +232,8 @@ class sn_ScatteringBase(nn.Module):
             lr_orientation -- learning rate for the orientation of the scattering parameters
             lr_scattering -- learning rate for scattering parameters other than orientation                 
             monitor_filters -- boolean indicating whether to track filter distances from initialization
+            filter_video -- whether to create filters from 
+
             use_cuda -- True if using GPU
 
         """
@@ -235,6 +251,8 @@ class sn_ScatteringBase(nn.Module):
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
         self.monitor_filters = monitor_filters
+        self.filter_video = filter_video
+        self.epoch = 0
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
             J,N,M,second_order, initialization=self.initialization,seed=seed,
@@ -259,6 +277,42 @@ class sn_ScatteringBase(nn.Module):
             self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
 
 
+        if self.filter_video:
+            self.videoWriters = {}
+            self.videoWriters['real'] = cv2.VideoWriter('videos/scatteringFilterProgressionReal{}epochs.avi'.format("--"),
+                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+            self.videoWriters['imag'] = cv2.VideoWriter('videos/scatteringFilterProgressionImag{}epochs.avi'.format("--"),
+                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+            self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
+                                                 cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+
+
+        print(self.params_filters[0].shape,type((self.params_filters[0])))
+    
+        if True:
+            self.params_filters[0] = torch.tensor([np.pi/12 + np.random.rand(1)[0]*np.pi/360 for x in range(self.params_filters[0].size(0))], device=device, requires_grad=True, dtype=torch.float32)
+            print(self.params_filters[0].shape,type((self.params_filters[0])))
+            # self.params_filters[0] = self.params_filters[0].clone().requires_grad_(True)
+            # self.params_filters[0].requires_grad = True
+
+
+    def writeVideoFrame(self):
+        """Writes frames to the appropriate video writer objects"""
+        if self.filter_video:
+            for vizType in self.videoWriters.keys():
+                temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
+                temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                self.videoWriters[vizType].write(temp)
+
+    def releaseVideoWriters(self):
+        if self.filter_video:
+            for vizType in self.videoWriters.keys():
+                self.videoWriters[vizType].release()
+
+    def setEpoch(self, epoch):
+        self.epoch = epoch
+
+
     def checkParamDistance(self):
         """Method to checking the minimal distance between initialized filters and learned ones
         
@@ -266,6 +320,9 @@ class sn_ScatteringBase(nn.Module):
         for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
         these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
         algorithm to compute the optimal match (I.E. the one that minizes total distance)        
+
+        return: 
+            minimal distance
         """
 
         def getAngleDistance(one,two):
@@ -312,7 +369,9 @@ class sn_ScatteringBase(nn.Module):
 
 
     def checkDistance(self,compared="wavelets"):
-        """Method to checking the minimal distance between filter params of one matrix and another"""
+        """DEPRECATED
+        
+        Method to checking the minimal distance between filter params of one matrix and another"""
         with torch.no_grad():
             if compared == 'wavelets':
                 numCompared = self.wavelets.size(0)
@@ -489,6 +548,7 @@ class sn_ScatteringBase(nn.Module):
                                     
             self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
                                   self.initialization, self.device) 
+            self.writeVideoFrame()
         else:
             pass
 
