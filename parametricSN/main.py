@@ -76,6 +76,7 @@ def run_train(args):
         learnable=params['scattering']['learnable'],
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
+        filter_video=params['scattering']['filter_video'],
         device=device,
         use_cuda=use_cuda
     )
@@ -128,12 +129,13 @@ def run_train(args):
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
-    #videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
-
     train, test = train_test_factory(params['model']['loss'])
+
+    print(hybridModel.__dict__.keys())
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
+        hybridModel.scatteringBase.setEpoch(epoch)
 
         try:
             lrs.append(optimizer.param_groups[0]['lr'])
@@ -153,7 +155,6 @@ def run_train(args):
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
         wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
 
-        #videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -166,8 +167,8 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
-
-    #videoWriter.release()
+    if params['scattering']['filter_video']:
+        hybridModel.scatteringBase.releaseVideoWriters()
 
 
     #MLFLOW logging below
@@ -264,6 +265,8 @@ def main():
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
+
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
@@ -289,8 +292,9 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_three_phase','scattering_learnable','scattering_second_order',
-                'scattering_three_phase','dataset_glico']:
+    for key in ['optim_alternating','optim_three_phase','scattering_learnable',
+                'scattering_second_order','scattering_three_phase','dataset_glico',
+                'scattering_filter_video']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

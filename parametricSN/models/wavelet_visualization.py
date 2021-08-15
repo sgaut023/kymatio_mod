@@ -76,11 +76,31 @@ def getOneFilter(psi, count, scale, mode):
         x = np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).imag
     else:
         raise NotImplemented(f"Model {params['name']} not implemented")
-    print(x.shape)
-    exit(0)
+    # print(x.shape)
+    # exit(0)
     a = np.abs(x).max()
     temp = np.array((x+a)/(a/225), dtype=np.uint8)
     # print([y for y in x]) 
     # print([y for y in temp])
     # exit(0)
+    return np.stack([temp for x in range(3)],axis=2)
+
+
+def getAllFilters(psi, totalCount, scale, mode):
+    rows = []
+    tempRow = None
+    for count in range(totalCount):
+        if count % 4 == 0:
+            if type(tempRow) != np.ndarray:
+                tempRow = getOneFilter(psi, count, scale, mode)
+            else:
+                rows.append(tempRow)
+                tempRow = getOneFilter(psi, count, scale, mode)
+        else:
+            tempRow = np.concatenate([tempRow, getOneFilter(psi, count, scale, mode)], axis=1)
+
+    rows.append(tempRow)
+
+
+    temp = np.concatenate(rows, axis=0)
     return temp
