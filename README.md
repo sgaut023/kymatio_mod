@@ -6,7 +6,7 @@
 (left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
  </p>
  <p align="center">
-<img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
+<img src="gifs/scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="gifs/scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="gifs/scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
 </p>
 
 This repository makes our code for [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) available to the public. It also contains code to run and test new hybrid architectures for the small sample regime. 
