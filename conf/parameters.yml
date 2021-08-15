@@ -31,7 +31,7 @@ scattering:
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Kymatio' # 'Random' or 'Kymatio'
+  init_params: 'Tight-Frame' # 'Random' or 'Tight-Frame'
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
@@ -48,7 +48,6 @@ optim:
   div_factor: 25 # so far, best results with 25 and maxlr = 0.05
   three_phase: False 
   phase_num:
-  alternating: True
   T_max: 
   phase_ends:
 

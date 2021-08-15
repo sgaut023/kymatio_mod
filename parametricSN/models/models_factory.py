@@ -22,7 +22,7 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             N -- height of the input image
             M -- width of the input image
             second_order -- 
-            initilization -- the type of init: ['kymatio' or 'random']
+            initilization -- the type of init: ['Tight-Frame' or 'Random']
             seed -- the random seed used to initialize the parameters
             device -- the device to place weights on
             learnable -- should the filters be learnable parameters of this model
@@ -61,12 +61,13 @@ def topModelFactory(base, architecture, num_classes, width=8, average=False, use
     """Factory for the creation of seconds part of a hybrid model
     
     parameters:
-        base -- (Pytorch nn.Module) the first part of a hybrid model
+        base         -- (Pytorch nn.Module) the first part of a hybrid model
         architecture -- the name of the top model to select
-        num_classes -- number of classes in dataset
-        width -- the width of the model
-        average -- (TODO Shanel)
-        use_cuda -- boolean indicating whether to use GPU
+        num_classes  -- number of classes in dataset
+        width        -- the width of the model
+        average      -- boolean indicating whether to average the spatial information 
+                        of the scattering coefficients
+        use_cuda     -- boolean indicating whether to use GPU
     """
 
     if architecture.lower() == 'cnn':

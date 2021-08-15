@@ -2,16 +2,16 @@
 
 Authors: Benjamin Therien, Shanel Gauthier
 
-TODO Shanel  -- can you comment everything here please?
-
 Functions: 
-    conv3x3 -- 3x3 convolution with padding
+    conv3x3              -- 3x3 convolution with padding
+    countLearnableParams -- returns the amount of learnable parameters in this model
 
 Classes: 
-    sn_CNN -- CNN fitted for scattering input
+    sn_CNN         -- CNN fitted for scattering input
     sn_LinearLayer -- Linear layer fitted for scattering input
-    sn_MLP -- multilayer perceptron fitted for scattering input
-    BasicBlock -- standard wideresnet basicblock
+    sn_MLP         -- Multilayer perceptron fitted for scattering input
+    BasicBlock     -- Standard wideresnet basicblock
+    Resnet50       --Pretrained resnet-50 on ImageNet
 """
 
 from numpy.core.numeric import False_
@@ -22,7 +22,7 @@ import torch.nn as nn
 
 class sn_MLP(nn.Module):
     """
-    Multilayer Perceptron.
+       Multilayer perceptron fitted for scattering input
     """
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_MLP,self).__init__()
@@ -51,7 +51,7 @@ class sn_MLP(nn.Module):
         return self.layers(x)
 
     def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
+        """Returns the amount of learnable parameters in this model"""
         count = 0
         for t in self.parameters():
             count += t.numel()
@@ -60,6 +60,9 @@ class sn_MLP(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
+    """
+    Linear layer fitted for scattering input
+    """
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
@@ -77,7 +80,6 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        # x = x[:,:, -self.n_coefficients:,:,:]
         x = self.bn0(x)
         if self.average:
             x = x.mean(dim=(2,3))
@@ -87,7 +89,6 @@ class sn_LinearLayer(nn.Module):
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
-
         count = 0
         for t in self.parameters():
             count += t.numel()
@@ -101,6 +102,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 class BasicBlock(nn.Module):
+    """
+    Standard wideresnet basicblock
+    """
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
@@ -131,6 +135,10 @@ class BasicBlock(nn.Module):
 
 
 class sn_CNN(nn.Module):
+    """
+    CNN fitted for scattering input
+    Model from: https://github.com/kymatio/kymatio/blob/master/examples/2d/cifar_small_sample.py 
+    """
     def __init__(self, in_channels, k=8, n=4, num_classes=10, standard=False):
         super(sn_CNN, self).__init__()
 
@@ -186,17 +194,10 @@ class sn_CNN(nn.Module):
     def forward(self, x):
         if not self.standard:
             pass
-            # x = x[:,:, -self.in_channels:,:,:]\
-            # print(x.shape)
-            # x = x.reshape(x.size(0), self.K, x.size(3), x.size(4))
-
-        # print("CNN shape:",x.shape)
         x = self.bn0(x)
         x = self.init_conv(x)
-
         if self.standard:
             x = self.layer1(x)
-
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.avgpool(x)
@@ -213,6 +214,9 @@ class sn_CNN(nn.Module):
 
 
 class sn_LinearLayer(nn.Module):
+    """
+    Linear layer fitted for scattering input
+    """
     def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
@@ -230,7 +234,6 @@ class sn_LinearLayer(nn.Module):
 
 
     def forward(self, x):
-        # x = x[:,:, -self.n_coefficients:,:,:]
         x = self.bn0(x)
         if self.average:
             x = x.mean(dim=(2,3))
@@ -240,7 +243,6 @@ class sn_LinearLayer(nn.Module):
 
     def countLearnableParams(self):
         """returns the amount of learnable parameters in this model"""
-
         count = 0
         for t in self.parameters():
             count += t.numel()
@@ -248,11 +250,13 @@ class sn_LinearLayer(nn.Module):
 
 
 class sn_Resnet50(nn.Module):
+    """
+    Pretrained model on ImageNet
+    Architecture: ResNet-50
+    """
     def __init__(self, num_classes=10):
         super(sn_Resnet50, self).__init__()
-        
         self.model_ft = models.resnet50(pretrained=True)
-        #set_parameter_requires_grad(model_ft, False)
         num_ftrs = self.model_ft.fc.in_features
         self.model_ft.fc =  nn.Linear(num_ftrs, num_classes)
 

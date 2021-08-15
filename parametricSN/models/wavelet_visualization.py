@@ -1,7 +1,8 @@
 """Contains all the funcitons related to visualizing the different scattering filters
 
 Functions:  
-    get_filters_visualization -- 
+    get_filters_visualization -- Visualizes the scattering filters input for different modes
+    getOneFilter              -- Methdod used to visualize one filter
 
 """
 
@@ -9,15 +10,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def get_filters_visualization(psi, J, L, mode ='fourier'):
-    """visualizes the scattering filters input for different modes
-
-    TODO Shanel
+    """ Visualizes the scattering filters input for different modes
 
     parameters:
-        psi -- 
-        L -- 
-        J -- 
-        mode -- 
+        psi  --  dictionnary that contains all the wavelet filters
+        L    --  number of orientation
+        J    --  scattering scale
+        mode -- mode between fourier (in fourier space), real (real part) 
+                or imag (imaginary part)
+    returns:
+        f -- figure/plot
     """
     n_filters =0
     for j in range(2, J+1):
@@ -55,7 +57,16 @@ def get_filters_visualization(psi, J, L, mode ='fourier'):
 
 
 def getOneFilter(psi, count, scale, mode):
-    """Methdod used to visualize one filter
+    """ Methdod used to visualize one filter
+
+    parameters:
+        psi   --  dictionnary that contains all the wavelet filters
+        count --  key to identify one wavelet filter in the psi dictionnary
+        scale --  scattering scale
+        mode  --  mode between fourier (in fourier space), real (real part) 
+                  or imag (imaginary part)
+    returns:
+        f -- figure/plot
     """
     if mode =='fourier':
         x = np.fft.fftshift(psi[count][scale].squeeze().cpu().detach().numpy()).real

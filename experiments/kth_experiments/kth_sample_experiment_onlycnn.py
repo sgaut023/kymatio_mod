@@ -15,14 +15,11 @@ LRS = 0.1
 LRO = 0.7
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
-LEARNABLE = 0
-INIT = "Kymatio"
 EPOCHS = 150
 RUNS_PER_SEED = 4
 TOTALRUNS = 1
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
-ALTERNATING = 0
 ACCUM_STEP_MULTIPLE = 128
 TEST_BATCH_SIZE = 128
 TRAIN_BATCH_SIZE = 16
@@ -49,21 +46,16 @@ if __name__ == '__main__':
     if args.python != None:
         PYTHON = args.python
     commands = []
-    for SEED in [432857963]:
-        #SEED = int(time.time() * np.random.rand(1))
-        for sample in ['c']:
-            for x in range(TOTALRUNS):
-                LEARNABLE = 0 if LEARNABLE == 1 else 1
-                if x % 2 == 0  and x != 0:
-                    INIT = "Random" if INIT == "Kymatio" else "Kymatio"
-                args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -oalt {} -en {} -pf {} -dsam {} {}".format(
-                    OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,ALTERNATING,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG
-                )
-                args2 = "-mw {} -mloss {} -sa {} -dtstbs {} -dtbs {} -mname {} -dasm {}".format(
-                MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE,TRAIN_BATCH_SIZE,MODEL,ACCUM_STEP_MULTIPLE)
-                command = "{} {} run-train {} {}".format(
-                PYTHON,RUN_FILE,args1,args2)
-                commands.append(command)
+    for SEED in [1390666426,432857963,1378328753,1118756524]:
+        for sample in ['a', 'b', 'c', 'd']:
+            args1 = "-oname {} -olr {} -gseed {} -me {} -odivf {} -os {} -daug {} -en {} -pf {} -dsam {} {}".format(
+                OPTIM,LR,SEED,EPOCHS,DF,SCHEDULER,AUGMENT,mlflow_exp_name,PARAMS_FILE, sample, DATA_ARG
+            )
+            args2 = "-mw {} -mloss {} -sa {} -dtstbs {} -dtbs {} -mname {} -dasm {}".format(
+            MODEL_WIDTH,MODEL_LOSS,SCATT_ARCH,TEST_BATCH_SIZE,TRAIN_BATCH_SIZE,MODEL,ACCUM_STEP_MULTIPLE)
+            command = "{} {} run-train {} {}".format(
+            PYTHON,RUN_FILE,args1,args2)
+            commands.append(command)
     for cmd in commands:
         print(cmd)
     processes = [Process(target=runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
