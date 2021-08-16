@@ -71,7 +71,7 @@ def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
         ssc
     """
 
-    if not os.path.isdir(Path(os.path.realpath(__file__)).parent.parent.parent/'data'/'xray'):
+    if not os.path.isdir(Path(os.path.realpath(__file__)).parent.parent.parent/'data'/'xray_preprocess'):
         downloadCOVIDXCRX2()
     
     transform_train = xray_augmentationFactory(trainAugmentation, height, width)

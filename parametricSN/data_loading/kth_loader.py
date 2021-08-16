@@ -37,25 +37,6 @@ from glob import glob
 from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
 
 
-
-def downloadKTH_TIPS2():    
-    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
-    target_path.mkdir(parents=True, exist_ok= True)
-
-    link = 'https://www.csc.kth.se/cvap/databases/kth-tips/kth-tips2-b_col_200x200.tar'
-    file_name ='kth-tips2-b_col_200x200.tar'
-    download_from_url(link, file_name)
-    extract_tar(file_name, target_path)
-    create_dataset(target_path)
-    
-    # remove extracted folder (not necessary)
-    mydir = os.path.join(target_path,'KTH-TIPS2-b')
-    try:
-        shutil.rmtree( mydir)
-    except OSError as e:
-        print ("Error: %s - %s." % (e.filename, e.strerror))
-
-
 def kth_augmentationFactory(augmentation, height, width):
     """Factory for different augmentation choices for KTH-TIPS2"""
 
@@ -102,6 +83,7 @@ def kth_getDataloaders(trainBatchSize, valBatchSize, trainAugmentation,
         loader
     """
     datasetPath = Path(os.path.realpath(__file__)).parent.parent.parent/'data'/'KTH'
+    print(datasetPath)
     
     if not os.path.isdir(datasetPath):
         downloadKTH_TIPS2()
@@ -245,3 +227,21 @@ def create_dataset(target_path):
         pattern = f'{folder}*/*' 
         for img in glob(pattern):
             shutil.copy(img, destination_path)
+
+
+def downloadKTH_TIPS2():    
+    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
+    target_path.mkdir(parents=True, exist_ok= True)
+
+    link = 'https://www.csc.kth.se/cvap/databases/kth-tips/kth-tips2-b_col_200x200.tar'
+    file_name ='kth-tips2-b_col_200x200.tar'
+    download_from_url(link, file_name)
+    extract_tar(file_name, target_path)
+    create_dataset(target_path)
+    
+    # remove extracted folder (not necessary)
+    mydir = os.path.join(target_path,'KTH-TIPS2-b')
+    try:
+        shutil.rmtree( mydir)
+    except OSError as e:
+        print ("Error: %s - %s." % (e.filename, e.strerror))
