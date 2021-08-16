@@ -5,16 +5,6 @@
                                                               
 This repository contains the code for [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539). It also contains code to run and test new hybrid architectures for the small sample regime. 
 
-<p align="center">
-(left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
- </p>
- <p align="center">
-<img src="gifs/scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="gifs/scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="gifs/scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
-</p>
-
-
-
-
 100 Sample CIFAR-10 Challenge
 ----------------
 
@@ -30,6 +20,15 @@ When combined in with a wide residual network, our learnable scattering networks
 ---> 
 Explore The Mortlet Wavelet Filters we Optimize
 ------------
+
+<p align="center">
+(left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
+ </p>
+ <p align="center">
+<img src="gifs/scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="gifs/scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="gifs/scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
+</p>
+
+
 The above gifs visually depict the optimizaiton of our scattering network's morlet wavelet filters. Each frame corresponds to one batch gradient descent step using a 1000 sample subset of CIFAR-10 for training. For instance, the 30th frame corresponds to the positions of the filters after 30 steps of batch gradient descent. The filters were initialized from a tight-frame.
 
 
