@@ -11,19 +11,14 @@ example command:
 """
 
 import os
-import time
 import sys
 sys.path.append(str(os.getcwd()))
 
-import numpy as np
-
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
+mlflow_exp_name = os.path.basename(__file__)
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"Cifar-10 100 Samples batch norm affine\""
-
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
@@ -31,7 +26,6 @@ LRS = 0.1
 LRO = 0.1
 LRMAX = 0.06
 DF = 25
-SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
 EPOCHS = 5000
 INIT = "Tight-Frame"
