@@ -32,9 +32,8 @@ from pathlib import Path
 sys.path.append(str(Path.cwd()))
 
 def get_context(parameters_file, full_path = False):
-    """ Read yaml file that contains experiment parameters and 
-        read second yaml file that contains paths. 
-        Create dictionnaries from the two yaml files.         
+    """ Read yaml file that contains experiment parameters.
+        Create dictionnaries from the yaml file.         
         
         Parameters:
             parameters_file -- the name of yaml file that contains the parameters
@@ -42,7 +41,6 @@ def get_context(parameters_file, full_path = False):
             full_path       -- boolean that indicates if parameters_file is the name 
                                 of the yaml file or the full path  
         Returns:
-            catalog         -- dictionnary that contains paths
             params          -- dictionnary that contains experiment parameters
     """
     current_dir = Path.cwd()
@@ -52,12 +50,9 @@ def get_context(parameters_file, full_path = False):
         params_path = parameters_file
     else:
         params_path = os.path.join(proj_path, f'conf/{parameters_file}')
-    catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
-    with open(catalog_path, "r") as f:
-        catalog = yaml.safe_load(f)
     with open(params_path, "r") as f:
         params = yaml.safe_load(f)     
-    return catalog, params
+    return params
 
 
 def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss'):
@@ -169,11 +164,18 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     """
 
     duration = (time.time() - start_time)
-    mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
-    mlflow.set_experiment(params['mlflow']['experiment_name'])
+    if params['mlflow']['tracking_uri'] is None:
+        tracking_uri_folder = Path(os.path.realpath(__file__)).parent.parent.parent/'mlruns'
+        try:
+            tracking_uri_folder.mkdir(parents=True, exist_ok= True)
+        except:
+            pass
+        mlflow.set_tracking_uri('sqlite:///'+ str(tracking_uri_folder/'store.db'))
+    else:
+        mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
 
+    mlflow.set_experiment(params['mlflow']['experiment_name'])
     with mlflow.start_run():
-        #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
         mlflow.log_params(rename_params('dataset', params['dataset']))

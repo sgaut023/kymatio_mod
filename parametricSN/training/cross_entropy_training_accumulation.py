@@ -69,16 +69,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
         
     model.scatteringBase.saveFilterGrads(scatteringActive=True) 
     optimizer.step()
-    model.scatteringBase.saveFilterValues(scatteringActive=True) 
-
-    if scheduler != None:
-        try:
-            scheduler.step()
-        except:
-            pass
-
-    
-    
+    model.scatteringBase.saveFilterValues(scatteringActive=True)  
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
 

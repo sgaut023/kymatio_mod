@@ -8,6 +8,7 @@ Functions:
 
 """
 import sys
+import os
 from pathlib import Path 
 sys.path.append(str(Path.cwd()))
 
@@ -33,6 +34,25 @@ from parametricSN.models.sn_hybrid_models import sn_HybridModel
 from parametricSN.training.training_factory import train_test_factory
 
 
+def get_data_root(dataset_name, data_root, data_folder):
+    """ Get the path to the dataset.
+        If the path is None, we assume the dataset is in the data folder
+        that was generated automatically using the scripts (in parametricSN/datasets)
+
+    parameters:
+        dataset_name -- the name of the dataset (cifar, x-ray or KTH)
+        data_root    -- path to the dataset folder
+        data_folder  -- dataset folder name
+    """
+    if  data_root != None:
+        DATA_DIR = Path( data_root)/data_folder
+    elif dataset_name=='cifar':
+        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
+    elif dataset_name=='x-ray':
+        DATA_DIR = Path(os.path.realpath(__file__)).parent.parent/'data'/'xray_preprocess'
+    elif dataset_name=='KTH':
+        DATA_DIR = Path(os.path.realpath(__file__)).parent.parent/'data'/'KTH' 
+    return DATA_DIR
 
 def run_train(args):
     """Launches the training script 
@@ -43,17 +63,13 @@ def run_train(args):
     torch.backends.cudnn.deterministic = True #Enable deterministic behaviour
     torch.backends.cudnn.benchmark = False #Enable deterministic behaviour
 
-    catalog, params = get_context(args.param_file) #parse params
+    params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    if params['dataset']['data_root'] != None:
-        DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] #scattering_datasets.get_dataset_dir('CIFAR')
-    else:
-        DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-
+    DATA_DIR = get_data_root(params['dataset']['name'], params['dataset']['data_root'], params['dataset']['data_folder'])
 
     ssc = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
 
