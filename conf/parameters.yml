@@ -8,6 +8,7 @@ mlflow:
   tracking_uri: 
   experiment_name: 'Cifar Experiment'
 
+
 dataset:
   name: 'cifar' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 10
@@ -21,7 +22,6 @@ dataset:
   width:  32  
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
-  glico: 0
   accum_step_multiple: 128
 # kymatio 
 
@@ -34,6 +34,7 @@ scattering:
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
+  filter_video: True
 
 
 optim: 

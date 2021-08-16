@@ -21,7 +21,6 @@ dataset:
   width:  224  
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample:
-  glico: 0
   accum_step_multiple: 128
 
 # kymatio 

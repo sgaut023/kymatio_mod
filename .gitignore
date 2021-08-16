@@ -4,8 +4,8 @@
 #find . -name *.pth -delete
 *.pth
 mlruns/*
+videos/*
 
-#custom
 .vscode/*
 *.swp
 *.swo

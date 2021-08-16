@@ -1,15 +1,34 @@
-Parametric Scattering Networks
+ Welcome to Parametric Scattering Networks
 ==============================
 
-This repository contains our implementation of learnable scattering networks: https://arxiv.org/abs/2107.09539
-![Screen Shot 2021-08-09 at 9 39 37 AM](https://user-images.githubusercontent.com/23482039/128716737-95fe42fa-32b7-4234-bc63-7d500a092636.png)
 
+<p align="center">
+(left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
+ </p>
+ <p align="center">
+<img src="gifs/scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="gifs/scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="gifs/scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
+</p>
+
+This repository contains the code for [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539). It also contains code to run and test new hybrid architectures for the small sample regime. 
+
+
+100 Sample CIFAR-10 Challenge
+----------------
+
+When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy. We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. To obtain comparable results when subsampling from such a large training set, it is important to use the same seeds and to control for deterministic computations. Our repository does both. By running the ```competition/cifar-10_100sample.py``` script, users can generate our state of the art result on CIFAR-10. The results will automatically be logged to mlflow. By modifying the same script and corresponding code under ```parametricSN/```, users can insert their own architectures.
+
+```
+/path/to/your/python competition/cifar-10_100sample.py -p /path/to/your/python
+```
+
+<!--- 
+![Screen Shot 2021-08-09 at 9 39 37 AM](https://user-images.githubusercontent.com/23482039/128716737-95fe42fa-32b7-4234-bc63-7d500a092636.png)
+---> 
 Explore The Mortlet Wavelet Filters we Optimize
 ------------
-The following gifs are a visualizaiton of the morlet wavelet filters initialized with tight frame of our scattering network as they are optimized a 1000 sample subset of CIFAR-10. (left) Wavelet filters in the Fourier domain (middle) Real part of wavelet filters (right) Imaginary part of wavelet filters 
+The above gifs visually depict the optimizaiton of our scattering network's morlet wavelet filters. Each frame corresponds to one batch gradient descent step using a 1000 sample subset of CIFAR-10 for training. For instance, the 30th frame corresponds to the positions of the filters after 30 steps of batch gradient descent. The filters were initialized from a tight-frame.
 
 
-<img src="scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
 
 
 You can use the following notebook to explore the parameters used to create the filters.
@@ -37,15 +56,15 @@ Our empirical evaluations are based on three image datasets, illustrated in the 
 ![Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png)
 
 #### 1. KTH-TIPS2
-To download the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run this command where target_path is the path to the target folder.
+To download the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run this command:
 ```
-python parametricSN/datasets/create_kth_dataset.py target_path
+python parametricSN/datasets/create_kth_dataset.py 
 ```
 
 #### 2. COVIDx CRX-2
-To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run this command where target_path is the path to the target folder. Please make sure that you have enough space. The dataset is 11.6 GB. 
+To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run the command below. Please make sure that you have enough space. The dataset is 11.6 GB. 
 ```
-bash parametricSN/datasets/create_xray_dataset.sh target_path
+bash parametricSN/datasets/create_xray_dataset.sh 
 ```
 Experiments
 ------------
@@ -61,7 +80,17 @@ To run an experiment with the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/co
 ```
 python parametricSN/main.py run-train -pf parameters_xray.yml
 ```
+All the results and plots are automatically saved in MLflow. 
 
+To run an experiment to evaluate the robustness of some scattering network models (as much as one wants, but it is recommanded to stay at a reasonnable number for clarity) to different deformations, run the command below which is an example for two models with paths to the model folder path1 and path2:
+```
+python parametricSN/evaluate_deformed_representation.py <path1> <path2>
+```
+One example of such path would be "/.../kymatio_mod/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model".
+
+The resulting figures will be automatically logged in mlflow and below is an example of the result for 4 models and the rotation deformation. You can see, in order, the image before the deformation, the image after the deformation at its maximal size and the plot of the relative distance in the representations with respect to the rotation size (its angle).  The horizontal lines are a baseline that indicates the level of deformation one could expect from random other images in the dataset.
+
+<img src="https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png" width="225" height="225">            <img src="https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png" width="225" height="225">                <img src="https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png" width="225" height="225">      
 
 Results
 ------------
@@ -98,6 +127,7 @@ Project Organization
 ------------
 
     ├── conf                    <- Configuration folder
+    ├── data                    <- Contains datasets - to create the different datasets please see section Datasets
     ├── experiments        
     │   ├── cifar_experiments   <- All scripts to reproduce cifar experiments.
     |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
@@ -118,8 +148,8 @@ Project Organization
     │   └── utils               <- Helpers Functions.
     │   └── main.py             <- Source code.
     │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
+    ├── mlruns                  <- All the experiment results are automatically saved in thsi folder. 
     
-
-
+    
 
 

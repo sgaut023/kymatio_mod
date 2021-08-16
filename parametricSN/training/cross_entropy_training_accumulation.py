@@ -30,7 +30,7 @@ def test(model, device, test_loader):
 
     return accuracy, test_loss
 
-def train(model, device, train_loader, scheduler, optimizer, epoch, glicoController=None, accum_step_multiple=None):
+def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_multiple=None):
     """training method for accumulating gradients"""
 
     model.train()
@@ -42,9 +42,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
 
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device, dtype=torch.long)
-        if glicoController != None:
-            data, target = glicoController(data,target)
-
+        
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()

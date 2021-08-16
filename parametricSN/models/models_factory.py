@@ -2,18 +2,26 @@
 
 Author: Benjamin Therien
 
-functions: 
+Functions: 
     baseModelFactory -- Factory for the creation of the first part of a hybrid model
     topModelFactory -- Factory for the creation of seconds part of a hybrid model
+
+Exceptions:
+    InvalidArchitectureError -- Error thrown when an invalid architecture name is passed
 """
 
 
 from .sn_base_models import sn_Identity, sn_ScatteringBase
 from .sn_top_models import sn_CNN, sn_MLP, sn_LinearLayer, sn_Resnet50
-from .sn_models_exceptions import InvalidArchitectureError
+
+class InvalidArchitectureError(Exception):
+    """Error thrown when an invalid architecture name is passed"""
+    pass
+
 
 def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, device, 
-                     learnable=True, lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+                     learnable=True, lr_orientation=0.1, lr_scattering=0.1, filter_video=False,
+                     use_cuda=True):
     """Factory for the creation of the first layer of a hybrid model
     
         parameters: 
@@ -45,7 +53,8 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             learnable=learnable,
             lr_orientation=lr_orientation,
             lr_scattering=lr_scattering,
-            device=device ,
+            filter_video=filter_video,
+            device=device,
             use_cuda=use_cuda
         )
 

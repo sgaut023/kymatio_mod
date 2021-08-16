@@ -12,11 +12,11 @@ import os
 from pathlib import Path 
 sys.path.append(str(Path.cwd()))
 
+import os
 import time
 import argparse
 import torch
 import math
-import cv2
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
@@ -92,6 +92,7 @@ def run_train(args):
         learnable=params['scattering']['learnable'],
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
+        filter_video=params['scattering']['filter_video'],
         device=device,
         use_cuda=use_cuda
     )
@@ -136,19 +137,17 @@ def run_train(args):
     trainTime = []
     testTime = []
 
-    # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
-    param_distance.append(hybridModel.scatteringBase.checkParamDistance())
-    wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
+    if params['scattering']['param_distance']: 
+        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
     
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
-
-    #videoWriter = cv2.VideoWriter('scatteringFilterProgression.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (40,40), isColor=False)
 
     train, test = train_test_factory(params['model']['loss'])
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
+        hybridModel.scatteringBase.setEpoch(epoch)
 
         try:
             lrs.append(optimizer.param_groups[0]['lr'])
@@ -157,18 +156,14 @@ def run_train(args):
                 lrs_scattering.append(optimizer.param_groups[2]['lr'])
         except Exception:
             pass
-
         
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
-                                           epoch+1,glicoController=None, accum_step_multiple=steppingSize)
+                                           epoch+1, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
-        # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
         
-        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
-        wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
-
-        #videoWriter.write(np.array(hybridModel.scatteringBase.getOneFilter(count=3, scale=0, mode='fourier'),dtype=np.uint8))
+        if params['scattering']['param_distance']: 
+            param_distance.append(hybridModel.scatteringBase.checkParamDistance())
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -176,17 +171,19 @@ def run_train(args):
             accuracy, test_loss = test(hybridModel, device, test_loader)
             test_losses.append(test_loss)
             test_acc.append(accuracy)
-            
 
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
+    if params['scattering']['filter_video']:
+        hybridModel.scatteringBase.releaseVideoWriters()
 
-    #videoWriter.release()
+    if params['scattering']['param_distance']:
+        torch.save(hybridModel.scatteringBase.params_history,
+                   os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
 
 
     #MLFLOW logging below
-    # plot train and test loss
     f_loss = visualize_loss(
         train_losses, test_losses, step_test=params['model']['step_test'], 
         y_label='loss'
@@ -209,9 +206,6 @@ def run_train(args):
         title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
         xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
 
-    waveletDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF wavelets',
-        title='Learnable wavelet filters progress towards the TF wavelet filters', label='Dist to TF wavelets',
-        xvalues=[x+1 for x in range(len(wavelet_distance))], yvalues=wavelet_distance)
 
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
@@ -234,7 +228,7 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot, waveletDistancePlot]
+        filters_values, filters_parameters, f_lr, paramDistancePlot]
     )
     
 
@@ -264,8 +258,7 @@ def main():
     subparser.add_argument("--dataset-data-folder", "-ddf", type=str)
     subparser.add_argument("--dataset-height", "-dh", type=int)
     subparser.add_argument("--dataset-width", "-dw", type=int)
-    subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment','glico'])
-    subparser.add_argument("--dataset-glico", "-dg", type=int, choices=[0,1])
+    subparser.add_argument("--dataset-augment", "-daug", type=str, choices=['autoaugment','original-cifar','noaugment'])
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
@@ -279,6 +272,10 @@ def main():
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
+
+
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
@@ -305,8 +302,9 @@ def main():
 
     args = parser.parse_args()
 
-    for key in ['optim_three_phase','scattering_learnable','scattering_second_order',
-                'scattering_three_phase','dataset_glico']:
+    for key in ['optim_three_phase','scattering_learnable',
+                'scattering_second_order','scattering_three_phase',
+                'scattering_filter_video','scattering_param_distance']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

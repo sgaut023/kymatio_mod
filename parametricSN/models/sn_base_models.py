@@ -2,13 +2,11 @@
 
 Authors: Benjamin Therien, Shanel Gauthier
 
-Exceptions:
-    InvalidInitializationException --
-    InvalidArchitectureError --
-
 Functions: 
     create_scatteringExclusive -- creates scattering parameters
-    baseModelFactory -- creates different models based on input
+
+Exceptions:
+    InvalidInitializationException -- Error thrown when an invalid initialization scheme is passed
 
 Classes: 
     sn_Identity -- computes the identity function in forward pass
@@ -16,18 +14,21 @@ Classes:
     sn_ScatteringBase -- a scattering network
 """
 
-import torch 
+import torch
+import cv2
 
 import torch.nn as nn
 
-from numpy.core.numeric import False_
 from kymatio import Scattering2D
-from .create_filters import *
-from .wavelet_visualization import get_filters_visualization, getOneFilter
-from .sn_models_exceptions import InvalidInitializationException
 from scipy.optimize import linear_sum_assignment
 
+from .create_filters import *
+from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams
 
+
+class InvalidInitializationException(Exception):
+    """Error thrown when an invalid initialization scheme is passed"""
+    pass
 
 
 def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
@@ -66,13 +67,11 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     if initialization == "Tight-Frame":
         params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
     elif initialization == "Random":
-        #num_filters = get_total_num_filters(J,L)
         num_filters= J*L
         params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
     else:
         raise InvalidInitializationException
 
-    # params_filters = [p.to(device) for p in params_filters]
     shape = (scattering.M_padded, scattering.N_padded,)
     ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
     grid = torch.stack(torch.meshgrid(*ranges), 0).to(device)
@@ -85,52 +84,6 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
 
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
-
-class sn_HybridModel(nn.Module):
-    """An nn.Module incorporating scattering an a learnable network"""
-
-    def __str__(self):
-        return str(self.scatteringBase)
-
-    def __init__(self,scatteringBase,top,use_cuda=True):
-        super(sn_HybridModel,self).__init__()
-        if use_cuda:
-            self.scatteringBase = scatteringBase.cuda()
-            self.top = top.cuda()
-        else:
-            self.scatteringBase = scatteringBase.cpu()
-            self.top = top.cpu()
-
-    def parameters(self):
-        """implements parameters method allowing the use of scatteringBase's method """
-        temp = [{'params': list(self.top.parameters())}]
-        temp.extend(list(self.scatteringBase.parameters()))
-        return temp
-
-    def forward(self,inp):
-        return self.top(self.scatteringBase(inp))
-
-    def train(self):
-        self.scatteringBase.train()
-        self.top.train()
-
-    def eval(self):
-        self.scatteringBase.eval()
-        self.top.eval()
-
-    def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
-        return self.scatteringBase.countLearnableParams() \
-            + self.top.countLearnableParams()
-
-    def showParams(self):
-        """prints shape of all parameters and is_leaf"""
-        for x in self.parameters():
-            if type(x['params']) == list:
-                for tens in x['params']:
-                    print(tens.shape,tens.is_leaf)
-            else:
-                print(x['params'].shape,x['params'].is_leaf)
 
 
 class sn_Identity(nn.Module):
@@ -167,6 +120,12 @@ class sn_Identity(nn.Module):
     def checkFilterDistance(self):
         return 0
     
+    def setEpoch(self, epoch):
+        self.epoch = epoch
+
+    def releaseVideoWriters(self):
+        pass
+        
     def checkParamDistance(self):
         pass
 
@@ -204,9 +163,13 @@ class sn_ScatteringBase(nn.Module):
     def getOneFilter(self, count, scale, mode):
         return getOneFilter(self.psi, count, scale, mode)
 
+    def getAllFilters(self, totalCount, scale, mode):
+        return getAllFilters(self.psi, totalCount, scale, mode)
+
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  device, learnable=True, lr_orientation=0.1, 
-                 lr_scattering=0.1, monitor_filters=True, use_cuda=True):
+                 lr_scattering=0.1, monitor_filters=True, use_cuda=True,
+                 filter_video=False):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -223,6 +186,7 @@ class sn_ScatteringBase(nn.Module):
             lr_orientation -- learning rate for the orientation of the scattering parameters
             lr_scattering -- learning rate for scattering parameters other than orientation                 
             monitor_filters -- boolean indicating whether to track filter distances from initialization
+            filter_video -- whether to create filters from 
             use_cuda -- True if using GPU
 
         """
@@ -240,6 +204,8 @@ class sn_ScatteringBase(nn.Module):
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
         self.monitor_filters = monitor_filters
+        self.filter_video = filter_video
+        self.epoch = 0
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
             J,N,M,second_order, initialization=self.initialization,seed=seed,
@@ -262,6 +228,97 @@ class sn_ScatteringBase(nn.Module):
             self.compared_params_angle = self.compared_params[0] % (2 * np.pi)
             self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
             self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
+            self.params_history = []
+
+        if self.filter_video:
+            self.videoWriters = {}
+            self.videoWriters['real'] = cv2.VideoWriter('videos/scatteringFilterProgressionReal{}epochs.avi'.format("--"),
+                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+            self.videoWriters['imag'] = cv2.VideoWriter('videos/scatteringFilterProgressionImag{}epochs.avi'.format("--"),
+                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+            self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
+                                                 cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+
+
+    
+        # if True:
+        #     self.params_filters[0] = torch.tensor([np.pi/12 + np.random.rand(1)[0]*np.pi/360 for x in range(self.params_filters[0].size(0))], device=device, requires_grad=True, dtype=torch.float32)
+
+
+    def train(self,mode=True):
+        super().train(mode=mode)
+        self.scatteringTrain = True
+
+    def eval(self):
+        super().eval()
+        if self.scatteringTrain:
+            self.updateFilters()
+        self.scatteringTrain = False
+
+    def parameters(self):
+        """ override parameters to include learning rates """
+        if self.learnable:
+            yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
+                              'maxi_lr':self.lr_orientation , 'weight_decay': 0}
+            yield {'params': [ self.params_filters[1],self.params_filters[2],
+                               self.params_filters[3]],'lr': self.lr_scattering,
+                               'maxi_lr':self.lr_scattering , 'weight_decay': 0}
+
+    def updateFilters(self):
+        """if were using learnable scattering, update the filters to reflect 
+        the new parameter values obtained from gradient descent"""
+        if self.learnable:
+            self.wavelets = morlets(self.grid, self.params_filters[0], 
+                                    self.params_filters[1], self.params_filters[2], 
+                                    self.params_filters[3], device=self.device)
+                                    
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device) 
+                                #   self.initialization, 
+            self.writeVideoFrame()
+        else:
+            pass
+
+    def forward(self, ip):
+        """ apply the scattering transform to the input image """
+        if self.scatteringTrain: #update filters if training
+            self.updateFilters()
+            
+        x = construct_scattering(ip, self.scattering, self.psi)
+        x = x[:,:, -self.n_coefficients:,:,:]
+        x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
+        return x
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        if not self.learnable:
+            return 0
+
+        count = 0
+        for t in self.parameters():
+            if type(t["params"]) == list:
+                for tens in t["params"]: 
+                    count += tens.numel()
+            else:
+                count += t["params"].numel()
+
+        print("Scattering learnable parameters: {}".format(count))
+        return count
+
+    def writeVideoFrame(self):
+        """Writes frames to the appropriate video writer objects"""
+        if self.filter_video:
+            for vizType in self.videoWriters.keys():
+                temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
+                temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                self.videoWriters[vizType].write(temp)
+
+    def releaseVideoWriters(self):
+        if self.filter_video:
+            for vizType in self.videoWriters.keys():
+                self.videoWriters[vizType].release()
+
+    def setEpoch(self, epoch):
+        self.epoch = epoch
 
 
     def checkParamDistance(self):
@@ -271,8 +328,23 @@ class sn_ScatteringBase(nn.Module):
         for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
         these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
         algorithm to compute the optimal match (I.E. the one that minizes total distance)        
-        """
 
+        return: 
+            minimal distance
+        """
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
+        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+        self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
+
+        return compareParams(
+            params1=tempParamsGrouped,
+            angles1=tempParamsAngle, 
+            params2=self.compared_params_grouped,
+            angles2=self.compared_params_angle,
+            device=self.device
+        )
+
+        
         def getAngleDistance(one,two):
             """returns the angle of arc between two points on the unit circle"""
             if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
@@ -314,40 +386,6 @@ class sn_ScatteringBase(nn.Module):
             return distNumpy[row_ind, col_ind].sum()
 
 
-
-
-    def checkDistance(self,compared="wavelets"):
-        """Method to checking the minimal distance between filter params of one matrix and another"""
-        with torch.no_grad():
-            if compared == 'wavelets':
-                numCompared = self.wavelets.size(0)
-                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
-                distances = torch.cdist(tempWavelets.real,self.compared_wavelets.real)
-            elif compared == 'params':
-                numCompared = self.params_filters[0].size(0)
-                tempParams = torch.cat([x.unsqueeze(1) for x in self.params_filters],dim=1)
-                distances = torch.cdist(tempParams,self.compared_params)
-            elif compared == 'wavelets_complete':
-                numCompared = self.wavelets.size(0)
-                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
-                tempWavelets = torch.cat([tempWavelets.real, tempWavelets.imag],dim=1)
-                distances = torch.cdist(tempWavelets,self.compared_wavelets_complete)
-
-            sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1))],key=lambda x: x[2],reverse=False)
-            usedi = [False for x in range(numCompared)]
-            usedj = [False for x in range(numCompared)]
-            totalDist = []
-            for i,j,dist in sortedDistances:
-                if usedi[i] == False and usedj[j] == False:
-                    totalDist.append(dist)
-                    usedi[i] = True
-                    usedj[j] = True
-                elif len(totalDist) == numCompared:
-                    break
-                else:
-                    pass
-
-            return sum(totalDist)
     
 
 
@@ -409,8 +447,6 @@ class sn_ScatteringBase(nn.Module):
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
             axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
             axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-
-            
             axarr[int(x/col),x%col].legend()
 
         return f
@@ -465,60 +501,4 @@ class sn_ScatteringBase(nn.Module):
 
         return f
 
-    def train(self,mode=True):
-        super().train(mode=mode)
-        self.scatteringTrain = True
 
-    def eval(self):
-        super().eval()
-        if self.scatteringTrain:
-            self.updateFilters()
-        self.scatteringTrain = False
-
-    def parameters(self):
-        """ override parameters to include learning rates """
-        if self.learnable:
-            yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
-                              'maxi_lr':self.lr_orientation , 'weight_decay': 0}
-            yield {'params': [ self.params_filters[1],self.params_filters[2],
-                               self.params_filters[3]],'lr': self.lr_scattering,
-                               'maxi_lr':self.lr_scattering , 'weight_decay': 0}
-
-    def updateFilters(self):
-        """if were using learnable scattering, update the filters to reflect 
-        the new parameter values obtained from gradient descent"""
-        if self.learnable:
-            self.wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3], device=self.device)
-                                    
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
-                                  self.device) 
-        else:
-            pass
-
-    def forward(self, ip):
-        """ apply the scattering transform to the input image """
-        if self.scatteringTrain: #update filters if training
-            self.updateFilters()
-            
-        x = construct_scattering(ip, self.scattering, self.psi)
-        x = x[:,:, -self.n_coefficients:,:,:]
-        x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
-        return x
-
-    def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
-        if not self.learnable:
-            return 0
-
-        count = 0
-        for t in self.parameters():
-            if type(t["params"]) == list:
-                for tens in t["params"]: 
-                    count += tens.numel()
-            else:
-                count += t["params"].numel()
-
-        print("Scattering learnable parameters: {}".format(count))
-        return count
