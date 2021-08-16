@@ -24,4 +24,5 @@ if args.python != None:
 
 
 os.system("{} experiments/xray_experiments/onlycnn/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+
 exit(0)

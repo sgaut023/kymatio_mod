@@ -8,7 +8,6 @@ mlflow:
   tracking_uri: 
   experiment_name: 'Cifar Experiment'
 
-
 dataset:
   name: 'cifar' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 10

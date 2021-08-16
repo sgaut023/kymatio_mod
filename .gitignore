@@ -6,6 +6,7 @@
 mlruns/*
 videos/*
 
+#custom Shanel
 .vscode/*
 *.swp
 *.swo
