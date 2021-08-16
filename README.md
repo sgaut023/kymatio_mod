@@ -1,8 +1,7 @@
  Welcome to Parametric Scattering Networks
 ==============================
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10-2)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10-2?p=parametric-scattering-networks)
-
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10?p=parametric-scattering-networks)
+                                                              [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10?p=parametric-scattering-networks)
 
 <p align="center">
 (left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
