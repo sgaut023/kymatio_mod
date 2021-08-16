@@ -10,9 +10,14 @@ Functions:
 Classes: 
     SmallSampleController -- class used to sample a small portion from an existing dataset
 """
-
 import os
+import shutil
 
+import pandas as pd
+
+from pathlib import Path
+from zipfile import ZipFile
+from tqdm import tqdm
 from torchvision import datasets, transforms
 
 from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
@@ -65,6 +70,9 @@ def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
     returns:
         ssc
     """
+
+    if not os.path.isdir(Path(os.path.realpath(__file__)).parent.parent.parent/'data'/'xray'):
+        downloadCOVIDXCRX2()
     
     transform_train = xray_augmentationFactory(trainAugmentation, height, width)
     transform_val = xray_augmentationFactory("noaugment", height, width)
@@ -82,3 +90,97 @@ def xray_getDataloaders(trainSampleNum, valSampleNum, trainBatchSize,
     )
 
     return ssc
+
+
+
+
+
+def extract_zip(dataset_path, target_path):
+    """Extract files from zip
+    Parameters:
+        dataset_path -- url to dataset
+        file_name -- file name of the dataset
+    """
+    dataset_path = os.path.join(dataset_path,'covidx-cxr2.zip')
+    print(f'Extracting zip file: {dataset_path}')
+    with ZipFile(file=dataset_path) as zip_file:
+        for file in tqdm(iterable=zip_file.namelist(), total=len(zip_file.namelist())):
+            zip_file.extract(member=file, path=os.path.join(target_path, 'xray'))
+    os.remove(dataset_path)
+
+def create_train_folder(df_train, target_path):
+    """Create train set in the target folder
+    Parameters:
+        df_train    -- dataframe that contains all the train set details 
+                       ('patient_id', 'filename', 'class', 'data_source')
+        target_path -- path to the new dataset folder
+    """
+    folder_path = os.path.join(target_path, 'xray_preprocess/train')
+    print(f'Create train set at: {folder_path}')
+    for _, row in tqdm(df_train.iterrows(), total=df_train.shape[0]):
+        if row['class']=='negative':
+            destination_path = os.path.join(folder_path, 'negative')
+        elif row['class']=='positive':
+            destination_path = os.path.join(folder_path, 'positive')
+        if not os.path.exists(destination_path):
+            os.makedirs(destination_path) 
+        img = os.path.join(target_path, 'xray', 'train', row['filename'])
+        shutil.copy(img, destination_path )
+
+def create_test_folder(df_test, target_path):
+    """Create test set in the target folder
+    Parameters:
+        df_test    -- dataframe that contains all the test set details 
+                       ('patient_id', 'filename', 'class', 'data_source')
+        target_path -- path to the new dataset folder
+    """
+    folder_path = os.path.join(target_path, 'xray_preprocess/test')
+    print(f'Create test set at: {folder_path}')
+    for _, row in tqdm(df_test.iterrows(), total=df_test.shape[0]):
+        if row['class']=='negative':
+            destination_path = os.path.join(folder_path, 'negative')
+        elif row['class']=='positive':
+            destination_path = os.path.join(folder_path, 'positive')
+        if not os.path.exists(destination_path):
+            os.makedirs(destination_path) 
+        img = os.path.join(target_path, 'xray', 'test', row['filename'])
+        shutil.copy(img, destination_path )
+
+def create_train_test_df(target_path):
+    """Create train et test dataframe based on text file
+        target_path -- path to the new dataset folder
+        Parameters:
+            target_path -- path to the new dataset folder
+        Returns:
+            df_test     -- dataframe that contains all the test set details 
+                       ('patient_id', 'filename', 'class', 'data_source')
+            df_train    -- dataframe that contains all the train set details 
+                       ('patient_id', 'filename', 'class', 'data_source')
+
+    """
+    df_train = pd.read_csv(os.path.join(target_path, 'xray', 'train.txt'), delimiter=' ',
+                                        header = 0 )
+    df_test = pd.read_csv(os.path.join(target_path, 'xray', 'test.txt'), delimiter=' ', header = 0)
+    df_train.columns=['patient_id', 'filename', 'class', 'data_source']
+    df_test.columns=['patient_id', 'filename', 'class', 'data_source']
+
+    return df_train, df_test
+
+    
+
+def downloadCOVIDXCRX2():
+    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
+    target_path.mkdir(parents=True,exist_ok=True)
+
+    os.system('kaggle datasets download -d andyczhao/covidx-cxr2 --force')
+    cwd = Path(os.path.realpath(__file__)).parent.parent.parent
+
+    extract_zip(cwd, target_path)
+    df_train, df_test = create_train_test_df(target_path)
+    create_train_folder(df_train, target_path)
+    create_test_folder(df_test, target_path)
+    mydir = os.path.join(target_path,'xray')
+    try:
+        shutil.rmtree( mydir)
+    except OSError as e:
+        print ("Error: %s - %s." % (e.filename, e.strerror))
