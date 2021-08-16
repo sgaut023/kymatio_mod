@@ -1,16 +1,11 @@
-"""Wrapper for the cifar dataset with various options 
+"""Subsamples COVIDX-CRX2
 
 Author: Benjamin Therien, Shanel Gauthier
 
-Exceptions: 
-    ImpossibleSampleNumException --
-    IncompatibleBatchSizeException -- 
-    IncompatibleClassNumberException --
-    IndicesNotSetupException --
-
 Functions:
-    cifar_getDataloaders -- samples from the cifar-10 dataset based on input
-    xray_augmentationFactory -- returns different augmentations for cifar-10
+    xray_augmentationFactory -- returns different augmentations for COVIDX-CRX2
+    xray_getDataloaders -- returns different augmentations for COVIDX-CRX2
+
 
 Classes: 
     SmallSampleController -- class used to sample a small portion from an existing dataset
@@ -18,10 +13,10 @@ Classes:
 
 import os
 
-from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
-from parametricSN.data_loading.cifar_loader import SmallSampleController
 from torchvision import datasets, transforms
 
+from parametricSN.data_loading.auto_augment import AutoAugment, Cutout
+from parametricSN.data_loading.SmallSampleController import SmallSampleController
 
 
 def xray_augmentationFactory(augmentation, height, width):

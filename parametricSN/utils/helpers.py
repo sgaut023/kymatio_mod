@@ -215,7 +215,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         log_csv_file('train_acc.csv', train_acc)
         log_csv_file('test_loss.csv', test_loss)
         log_csv_file('train_loss.csv', train_loss)
-        print(f"finish logging to {params['mlflow']['tracking_uri']}")
+        print(f"finished logging to {params['mlflow']['tracking_uri']}")
 
 
 def override_params(args, params):

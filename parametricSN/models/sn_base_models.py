@@ -5,6 +5,9 @@ Authors: Benjamin Therien, Shanel Gauthier
 Functions: 
     create_scatteringExclusive -- creates scattering parameters
 
+Exceptions:
+    InvalidInitializationException -- Error thrown when an invalid initialization scheme is passed
+
 Classes: 
     sn_Identity -- computes the identity function in forward pass
     sn_HybridModel -- combinations of a scattering and other nn.modules
@@ -17,12 +20,15 @@ import cv2
 import torch.nn as nn
 
 from kymatio import Scattering2D
-from .create_filters import *
-from .wavelet_visualization import get_filters_visualization, getOneFilter, getAllFilters
-from .sn_models_exceptions import InvalidInitializationException
 from scipy.optimize import linear_sum_assignment
 
+from .create_filters import *
+from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams
 
+
+class InvalidInitializationException(Exception):
+    """Error thrown when an invalid initialization scheme is passed"""
+    pass
 
 
 def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
@@ -222,7 +228,7 @@ class sn_ScatteringBase(nn.Module):
             self.compared_params_angle = self.compared_params[0] % (2 * np.pi)
             self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
             self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
-
+            self.params_history = []
 
         if self.filter_video:
             self.videoWriters = {}
@@ -326,7 +332,19 @@ class sn_ScatteringBase(nn.Module):
         return: 
             minimal distance
         """
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
+        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+        self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
 
+        return compareParams(
+            params1=tempParamsGrouped,
+            angles1=tempParamsAngle, 
+            params2=self.compared_params_grouped,
+            angles2=self.compared_params_angle,
+            device=self.device
+        )
+
+        
         def getAngleDistance(one,two):
             """returns the angle of arc between two points on the unit circle"""
             if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
@@ -368,40 +386,6 @@ class sn_ScatteringBase(nn.Module):
             return distNumpy[row_ind, col_ind].sum()
 
 
-    def checkDistance(self,compared="wavelets"):
-        """DEPRECATED
-        
-        Method to checking the minimal distance between filter params of one matrix and another"""
-        with torch.no_grad():
-            if compared == 'wavelets':
-                numCompared = self.wavelets.size(0)
-                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
-                distances = torch.cdist(tempWavelets.real,self.compared_wavelets.real)
-            elif compared == 'params':
-                numCompared = self.params_filters[0].size(0)
-                tempParams = torch.cat([x.unsqueeze(1) for x in self.params_filters],dim=1)
-                distances = torch.cdist(tempParams,self.compared_params)
-            elif compared == 'wavelets_complete':
-                numCompared = self.wavelets.size(0)
-                tempWavelets = self.wavelets.reshape(self.wavelets.size(0),-1)
-                tempWavelets = torch.cat([tempWavelets.real, tempWavelets.imag],dim=1)
-                distances = torch.cdist(tempWavelets,self.compared_wavelets_complete)
-
-            sortedDistances = sorted([(i,j,distances[i,j].item()) for i in range(distances.size(0)) for j in range(distances.size(1))],key=lambda x: x[2],reverse=False)
-            usedi = [False for x in range(numCompared)]
-            usedj = [False for x in range(numCompared)]
-            totalDist = []
-            for i,j,dist in sortedDistances:
-                if usedi[i] == False and usedj[j] == False:
-                    totalDist.append(dist)
-                    usedi[i] = True
-                    usedj[j] = True
-                elif len(totalDist) == numCompared:
-                    break
-                else:
-                    pass
-
-            return sum(totalDist)
     
 
 
