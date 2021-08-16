@@ -145,13 +145,12 @@ Project Organization
     ├── parametricSN 
     │   ├── data_loading        <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
     │   ├── models              <- Contains all the  pytorch NN.modules for this project.
-    │   ├── datasets            <- Script to download KTH-TPIS2 and COVIDx CRX-2 datasets.
     │   └── notebooks           <- Jupyter notebooks.
     │   └── training            <- Contains train and test functions.
     │   └── utils               <- Helpers Functions.
     │   └── main.py             <- Source code.
     │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
-    ├── mlruns                  <- All the experiment results are automatically saved in thsi folder. 
+    ├── mlruns                  <- All the experiment results are automatically saved in this folder. 
     
     
 
