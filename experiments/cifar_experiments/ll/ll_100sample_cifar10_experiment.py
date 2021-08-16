@@ -1,15 +1,3 @@
-"""Cifar-10 100 sample experiment script
-
-This files runs one model in the following settings: (Learnable,"Random"),(Not Leanable,"Random"),(Learnable,"Tight-Frame"),(Not Leanable,"Tight-Frame")
-
-Experiment: learnable vs non-learnable scattering for cifar-10 100 samples with tight-frame initialization
-
-example command:
-
-    python parametricSN/refactor_cifar_small_sample.py run-train -oname sgd -olr 0.1 -slrs 0.1 -slro 0.1 -gseed 1620406577 -sl True -me 10
-
-"""
-
 import os
 import sys
 sys.path.append(str(os.getcwd()))

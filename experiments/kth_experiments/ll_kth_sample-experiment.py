@@ -1,18 +1,13 @@
-
 import os
-import math
-import time
-import argparse
+import sys
+sys.path.append(str(os.getcwd()))
 
-import numpy as np
+from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-from multiprocessing import Process
+mlflow_exp_name = os.path.basename(__file__)
 
 PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"CNN Scattering + KTH \""
-
-PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 
 PARAMS_FILE = "parameters_texture.yml"
@@ -21,7 +16,6 @@ LR = 0.1
 LRS = 0.1
 LRO = 0.1
 DF = 25
-SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 0
 INIT = "Tight-Frame"
 EPOCHS = 100
@@ -31,24 +25,9 @@ SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 MODEL = 'linear_layer'
 MODEL_LOSS = 'cross-entropy'
-def runCommand(cmd):
-    print("[Running] {}".format(cmd))
-    os.system(cmd)
-
-def cli():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=int)
-    parser.add_argument("--data-folder", "-df", type=int)
-
-    return parser.parse_args()
 
 if __name__ == '__main__':
-    args = cli()
-
-    if args.data_root != None and args.data_folder != None:
-        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
-    else:
-        DATA_ARG = ""
+    PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
     for SEED in [1390666426,432857963,1378328753,1118756524]:
@@ -65,24 +44,9 @@ if __name__ == '__main__':
                 commands.append(command)
         
 
-    for cmd in commands:
-        print(cmd)
+    experiments_mpCommands(
+        processBatchSize=PROCESS_BATCH_SIZE,
+        commands=commands
+    )
 
-    processes = [Process(target=runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
-    processBatches = [processes[i*PROCESS_BATCH_SIZE:(i+1)*PROCESS_BATCH_SIZE] for i in range(math.ceil(len(processes)/PROCESS_BATCH_SIZE))]
-
-    for i,batch in enumerate(processBatches):
-        print("Running process batch {}".format(i))
-        startTime = time.time()
-
-        for process in batch:
-            print("From Main: {}".format(process._args))
-            process.start()
-            time.sleep(5)
-
-        for process in batch:
-            process.join()
-
-        print("\n\nRunning Took {} seconds".format(time.time() - startTime))
-        time.sleep(1)
 
