@@ -1,20 +1,14 @@
-""" SN+CNN 100 Samples Xray
-"""
-
 import os
-import math
-import time
-import argparse
+import sys
+sys.path.append(str(os.getcwd()))
 
-import numpy as np
+from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-from multiprocessing import Process
+mlflow_exp_name = os.path.basename(__file__)
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"02-Resnet50 1000 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
@@ -22,7 +16,6 @@ LRS = 0.01
 LRO = 0.01
 LRMAX = 0.001
 DF = 25
-SEED = int(time.time() * np.random.rand(1))
 EPOCHS = 300
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
@@ -33,35 +26,13 @@ TRAIN_BATCH_SIZE = 16
 AUGMENT = "original-cifar"
 SECOND_ORDER = 0
 MODEL = 'resnet50'
-
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
-
 ACCUM_STEP_MULTIPLE = 128
 MODEL_LOSS = 'cross-entropy-accum'
 
-def runCommand(cmd):
-    print("[Running] {}".format(cmd))
-    os.system(cmd)
-
-def cli():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=str)
-    parser.add_argument("--data-folder", "-df", type=str)
-    parser.add_argument("--python", "-p", type=str)
-
-    return parser.parse_args()
-
 if __name__ == '__main__':
-    args = cli()
-
-    if args.data_root != None and args.data_folder != None:
-        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
-    else:
-        DATA_ARG = ""
-
-    if args.python != None:
-        PYTHON = args.python
+    PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
@@ -81,23 +52,8 @@ if __name__ == '__main__':
         commands.append(command)
 
 
+    experiments_mpCommands(
+        processBatchSize=PROCESS_BATCH_SIZE,
+        commands=commands
+    )
 
-    for cmd in commands:
-        print(cmd)
-
-    processes = [Process(target=runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
-    processBatches = [processes[i*PROCESS_BATCH_SIZE:(i+1)*PROCESS_BATCH_SIZE] for i in range(math.ceil(len(processes)/PROCESS_BATCH_SIZE))]
-
-    for i,batch in enumerate(processBatches):
-        print("Running process batch {}".format(i))
-        startTime = time.time()
-
-        for process in batch:
-            process.start()
-            time.sleep(10)
-
-        for process in batch:
-            process.join()
-
-        print("\n\nRunning Took {} seconds".format(time.time() - startTime))
-        time.sleep(1)
