@@ -7,8 +7,12 @@ Functions:
 
 """
 
-import matplotlib.pyplot as plt
+import torch
+
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import linear_sum_assignment
+
 
 def get_filters_visualization(psi, J, L, mode ='fourier'):
     """ Visualizes the scattering filters input for different modes
@@ -77,13 +81,9 @@ def getOneFilter(psi, count, scale, mode):
         x = np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).imag
     else:
         raise NotImplemented(f"Model {params['name']} not implemented")
-    # print(x.shape)
-    # exit(0)
+
     a = np.abs(x).max()
-    temp = np.array((x+a)/(a/225), dtype=np.uint8)
-    # print([y for y in x]) 
-    # print([y for y in temp])
-    # exit(0)
+    temp = np.array((x+a)/(a/255), dtype=np.uint8)
     return np.stack([temp for x in range(3)],axis=2)
 
 
@@ -105,3 +105,62 @@ def getAllFilters(psi, totalCount, scale, mode):
 
     temp = np.concatenate(rows, axis=0)
     return temp
+
+
+
+
+
+def getAngleDistance(one,two):
+    """returns the angle of arc between two points on the unit circle"""
+    if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
+        raise Exception
+
+    if one == two:
+        return 0
+    elif one < two:
+        diff = min(
+            two - one,
+            one + (2 * np.pi) - two
+        )
+    elif two < one:
+        diff = min(
+            one - two,
+            two + (2 * np.pi) - one
+        )
+    return diff
+
+
+def compareParams(params1,angles1,params2,angles2,device):
+    """Method to checking the minimal distance between initialized filters and learned ones
+    
+    Euclidean distances are calculated between each filter for parameters other than orientations
+    for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
+    these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
+    algorithm to compute the optimal match (I.E. the one that minizes total distance)   
+
+    parameters:
+        params1 -- first set of parameters compared
+        angles1 -- angles associated to the first set of parameters
+        params2 -- second set of parameters compared
+        angles2 -- angles associated to the second set of parameters
+        device  -- torch device to use
+
+    return: 
+        minimal distance
+    """
+    with torch.no_grad():
+        groupDistances = torch.cdist(params1,params2)
+        angleDistances = torch.zeros(groupDistances.shape, device=device)
+        avoidZero = torch.zeros(groupDistances.shape, device=device) + 0.0000000001
+
+        for i in range(angleDistances.size(0)):
+            for j in range(angleDistances.size(1)):
+                angleDistances[i,j] = getAngleDistance(angles1[i],angles2[j])
+
+        distances = groupDistances + angleDistances + avoidZero
+
+        distNumpy = distances.cpu().numpy()
+        row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
+
+        return distNumpy[row_ind, col_ind].sum()
+            

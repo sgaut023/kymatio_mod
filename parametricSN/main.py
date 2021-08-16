@@ -11,6 +11,7 @@ import sys
 from pathlib import Path 
 sys.path.append(str(Path.cwd()))
 
+import os
 import time
 import argparse
 import torch
@@ -120,9 +121,8 @@ def run_train(args):
     trainTime = []
     testTime = []
 
-    # param_distance.append(hybridModel.scatteringBase.checkDistance(compared='params'))
-    param_distance.append(hybridModel.scatteringBase.checkParamDistance())
-    wavelet_distance.append(hybridModel.scatteringBase.checkDistance(compared='wavelets_complete'))
+    if params['scattering']['param_distance']: 
+        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
     
     params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
@@ -140,14 +140,14 @@ def run_train(args):
                 lrs_scattering.append(optimizer.param_groups[2]['lr'])
         except Exception:
             pass
-
         
         train_loss, train_accuracy = train(hybridModel, device, train_loader, scheduler, optimizer, 
                                            epoch+1, accum_step_multiple=steppingSize)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         
-        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+        if params['scattering']['param_distance']: 
+            param_distance.append(hybridModel.scatteringBase.checkParamDistance())
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -155,13 +155,16 @@ def run_train(args):
             accuracy, test_loss = test(hybridModel, device, test_loader)
             test_losses.append(test_loss)
             test_acc.append(accuracy)
-            
 
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
     if params['scattering']['filter_video']:
         hybridModel.scatteringBase.releaseVideoWriters()
+
+    if params['scattering']['param_distance']:
+        torch.save(hybridModel.scatteringBase.params_history,
+                   os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
 
 
     #MLFLOW logging below
@@ -254,6 +257,8 @@ def main():
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
+
 
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
@@ -282,7 +287,7 @@ def main():
 
     for key in ['optim_three_phase','scattering_learnable',
                 'scattering_second_order','scattering_three_phase',
-                'scattering_filter_video']:
+                'scattering_filter_video','scattering_param_distance']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 
