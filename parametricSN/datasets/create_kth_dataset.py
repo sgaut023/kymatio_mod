@@ -10,7 +10,7 @@ Dataset folder organization
 Author: Shanel Gauthier
 
 Functions:
-    download_drom_url -- Download Dataset from URL
+    download_from_url -- Download Dataset from URL
     extract_tar       -- Extract files from tar
     create_dataset    -- Create dataset in the target folder
 
@@ -25,7 +25,7 @@ import tarfile
 import sys
 import shutil
 
-def download_drom_url(link, file_name):
+def download_from_url(link, file_name):
     """Download Dataset from URL
     FROM: https://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
     Parameters:
@@ -86,7 +86,24 @@ if __name__ == '__main__':
 
     link = 'https://www.csc.kth.se/cvap/databases/kth-tips/kth-tips2-b_col_200x200.tar'
     file_name ='kth-tips2-b_col_200x200.tar'
-    download_drom_url(link, file_name)
+    download_from_url(link, file_name)
+    extract_tar(file_name, target_path)
+    create_dataset(target_path)
+    
+    # remove extracted folder (not necessary)
+    mydir = os.path.join(target_path,'KTH-TIPS2-b')
+    try:
+        shutil.rmtree( mydir)
+    except OSError as e:
+        print ("Error: %s - %s." % (e.filename, e.strerror))
+
+def download():
+    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
+    target_path.mkdir(parents=True, exist_ok= True)
+
+    link = 'https://www.csc.kth.se/cvap/databases/kth-tips/kth-tips2-b_col_200x200.tar'
+    file_name ='kth-tips2-b_col_200x200.tar'
+    download_from_url(link, file_name)
     extract_tar(file_name, target_path)
     create_dataset(target_path)
     

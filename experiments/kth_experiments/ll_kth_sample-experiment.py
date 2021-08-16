@@ -12,7 +12,7 @@ PROCESS_BATCH_SIZE = 2
 
 mlflow_exp_name = "\"CNN Scattering + KTH \""
 
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 
 PARAMS_FILE = "parameters_texture.yml"
