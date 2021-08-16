@@ -14,7 +14,7 @@ This repository contains the code for [Parameteric Scattering Networks](https://
 
 100 Sample CIFAR-10 Challenge
 ----------------
-
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10-2)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10-2?p=parametric-scattering-networks)
 When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy. We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. To obtain comparable results when subsampling from such a large training set, it is important to use the same seeds and to control for deterministic computations. Our repository does both. By running the ```competition/cifar-10_100sample.py``` script, users can generate our state of the art result on CIFAR-10. The results will automatically be logged to mlflow. By modifying the same script and corresponding code under ```parametricSN/```, users can insert their own architectures.
 
 ```
