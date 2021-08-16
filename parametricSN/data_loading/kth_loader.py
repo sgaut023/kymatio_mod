@@ -103,13 +103,13 @@ class KTHLoader():
         for s in ['a', 'b', 'c', 'd']:
             if self.sample == s:
                 dataset = datasets.ImageFolder(#load train dataset
-                    root=os.path.join(self.data_dir,f'sample_{s}'), 
+                    root=os.path.join(self.data_dir,s), 
                     transform=self.transform_train
                 )
                 dataset_train = dataset
             else:
                 dataset = datasets.ImageFolder(#load train dataset
-                    root=os.path.join(self.data_dir,f'sample_{s}'), 
+                    root=os.path.join(self.data_dir,s), 
                     transform=self.transform_val
                 )
 

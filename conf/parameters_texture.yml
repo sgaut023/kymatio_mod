@@ -32,6 +32,8 @@ scattering:
   learnable: True # True if learnable
   second_order: False
   architecture: 'scattering'
+  filter_video: False
+  param_distance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']
@@ -50,7 +52,7 @@ optim:
 model:
   name: 'linear_layer' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 50
+  epoch: 1
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
   save: False
