@@ -14,7 +14,7 @@ PROCESS_BATCH_SIZE = 1
 
 mlflow_exp_name = "\"SN+LL 100 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.01

@@ -11,13 +11,13 @@ example command:
 """
 
 import os
-import math
 import time
-import argparse
+import sys
+sys.path.append(str(os.getcwd()))
 
 import numpy as np
 
-from multiprocessing import Process
+from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 PROCESS_BATCH_SIZE = 4
 
@@ -42,28 +42,9 @@ TRAIN_SAMPLE_NUM = 100
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
 
-def runCommand(cmd):
-    print("[Running] {}".format(cmd))
-    os.system(cmd)
-
-def cli():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", "-dr", type=str)
-    parser.add_argument("--data-folder", "-df", type=str)
-    parser.add_argument("--python", "-p", type=str)
-
-    return parser.parse_args()
 
 if __name__ == '__main__':
-    args = cli()
-
-    if args.data_root != None and args.data_folder != None:
-        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
-    else:
-        DATA_ARG = ""
-
-    if args.python != None:
-        PYTHON = args.python
+    PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
@@ -76,29 +57,9 @@ if __name__ == '__main__':
 
             commands.append(command)
     
+    experiments_mpCommands(
+        processBatchSize=PROCESS_BATCH_SIZE,
+        commands=commands
+    )
 
-    for cmd in commands:
-        print(cmd)
-
-    processes = [Process(target=runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
-    processBatches = [processes[i*PROCESS_BATCH_SIZE:(i+1)*PROCESS_BATCH_SIZE] for i in range(math.ceil(len(processes)/PROCESS_BATCH_SIZE))]
-
-    for i,batch in enumerate(processBatches):
-        print("Running process batch {}".format(i))
-        startTime = time.time()
-
-        for process in batch:
-            process.start()
-            time.sleep(5)
-
-        for process in batch:
-            process.join()
-
-        print("\n\nRunning Took {} seconds".format(time.time() - startTime))
-        time.sleep(1)
-
-
-
-
-
-
+   

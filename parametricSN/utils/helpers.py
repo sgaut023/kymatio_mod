@@ -23,10 +23,12 @@ import mlflow
 import os
 import yaml
 import sys
+import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from multiprocessing import Process
 from pathlib import Path 
 
 sys.path.append(str(Path.cwd()))
@@ -273,3 +275,48 @@ def estimateRemainingTime(trainTime, testTime, epochs, currentEpoch, testStep):
     ))
 
     return remainingTotal
+
+
+
+
+def experiments_cli():
+    """CLI arguments for experiments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str, required=True)
+
+    args = parser.parse_args()
+
+    if args.data_root != None and args.data_folder != None:
+        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
+    else:
+        DATA_ARG = ""
+
+
+    return args.python, DATA_ARG
+
+def experiments_runCommand(cmd):
+    """runs one command"""
+    print("[Running] {}".format(cmd))
+    os.system(cmd)
+
+
+def experiments_mpCommands(processBatchSize, commands):
+    """runs commands in parallel"""
+    processes = [Process(target=experiments_runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
+    processBatches = [processes[i*processBatchSize:(i+1)*processBatchSize] for i in range(math.ceil(len(processes)/processBatchSize))]
+
+    for i,batch in enumerate(processBatches):
+        print("Running process batch {}".format(i))
+        startTime = time.time()
+
+        for process in batch:
+            process.start()
+            time.sleep(5)
+
+        for process in batch:
+            process.join()
+
+        print("\n\nRunning Took {} seconds".format(time.time() - startTime))
+        time.sleep(1)

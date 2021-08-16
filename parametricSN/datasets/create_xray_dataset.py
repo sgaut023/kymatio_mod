@@ -98,7 +98,7 @@ def create_train_test_df(target_path):
 
 if __name__ == '__main__':
     target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
-    target_path.mkdir(parents=True, exist_ok= True)
+    target_path.mkdir(parents=True,exist_ok=True)
     
     parser = argparse.ArgumentParser(description='Paths to folders')
     parser.add_argument("--dataset_path", "-dp", type=str, help='Path to dataset zip', required=True)
