@@ -5,6 +5,7 @@
 *.pth
 mlruns/*
 videos/*
+runs_ben/*
 
 #custom Shanel
 .vscode/*
