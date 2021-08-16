@@ -23,7 +23,6 @@ if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
 
-os.system("{} experiments/xray_experiments/onlycnn/onlycnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 os.system("{} experiments/xray_experiments/onlycnn/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
 exit(0)

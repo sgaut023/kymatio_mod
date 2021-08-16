@@ -32,9 +32,8 @@ from pathlib import Path
 sys.path.append(str(Path.cwd()))
 
 def get_context(parameters_file, full_path = False):
-    """ Read yaml file that contains experiment parameters and 
-        read second yaml file that contains paths. 
-        Create dictionnaries from the two yaml files.         
+    """ Read yaml file that contains experiment parameters.
+        Create dictionnaries from the yaml file.         
         
         Parameters:
             parameters_file -- the name of yaml file that contains the parameters
@@ -165,18 +164,18 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     """
 
     duration = (time.time() - start_time)
-
     if params['mlflow']['tracking_uri'] is None:
-        temp = str(os.path.join(os.getcwd(),'mlruns'))
-        if not os.path.isdir(temp):
-            os.mkdir(temp)
-        params['mlflow']['tracking_uri'] = 'sqlite:///' + os.path.join(temp,'store.db')
-    
-    mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
-    mlflow.set_experiment(params['mlflow']['experiment_name'])
+        tracking_uri_folder = Path(os.path.realpath(__file__)).parent.parent.parent/'mlruns'
+        try:
+            tracking_uri_folder.mkdir(parents=True, exist_ok= True)
+        except:
+            pass
+        mlflow.set_tracking_uri('sqlite:///'+ str(tracking_uri_folder/'store.db'))
+    else:
+        mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
 
+    mlflow.set_experiment(params['mlflow']['experiment_name'])
     with mlflow.start_run():
-        #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
         mlflow.log_params(rename_params('dataset', params['dataset']))

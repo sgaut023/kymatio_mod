@@ -17,6 +17,7 @@ Functions:
 """
 from glob import glob
 import shutil
+from pathlib import Path
 import os
 from tqdm import tqdm
 import requests
@@ -80,15 +81,13 @@ def create_dataset(target_path):
             shutil.copy(img, destination_path)
 
 if __name__ == '__main__':
-    try:
-        target_path  =sys.argv[1]
-    except IndexError:
-        print("ERROR: Must provide a target path to save the KTH dataset")
-        exit()
+    target_path = Path(os.path.realpath(__file__)).parent.parent.parent/'data'
+    target_path.mkdir(parents=True, exist_ok= True)
+
     link = 'https://www.csc.kth.se/cvap/databases/kth-tips/kth-tips2-b_col_200x200.tar'
     file_name ='kth-tips2-b_col_200x200.tar'
-    #download_drom_url(link, file_name)
-    #extract_tar(file_name, target_path)
+    download_drom_url(link, file_name)
+    extract_tar(file_name, target_path)
     create_dataset(target_path)
     
     # remove extracted folder (not necessary)

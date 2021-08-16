@@ -1,11 +1,11 @@
 #data preprocessing:
 general:
   cores: 2
-  seed: 1557226124 # seed for dataset subselection and random initialization
+  seed:  # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
+  tracking_uri: 
   experiment_name: 'KTH Experiments'
 
 dataset:
@@ -15,10 +15,10 @@ dataset:
   test_batch_size: 128
   train_sample_num: 1188  #total train samples
   test_sample_num: 3564
-  data_root: '/NOBACKUP/gauthiers/'
-  data_folder: 'KTH'
-  height: 128  # ultrasound image dimension
-  width:  128 # ultrasound image dimension
+  data_root: 
+  data_folder: 
+  height: 128 
+  width:  128 
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
 
@@ -31,9 +31,6 @@ scattering:
   init_params: 'Tight-Frame' # 'Tight-Frame' or 'Random'
   learnable: True # True if learnable
   second_order: False
-  # max_lr: 0.1
-  # div_factor: 25
-  # three_phase: Falsde
   architecture: 'scattering'
 
 optim: 
@@ -56,7 +53,6 @@ model:
   epoch: 50
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
-  average: False
   save: False
   
 

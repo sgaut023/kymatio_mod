@@ -54,8 +54,11 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_m
             model.scatteringBase.saveFilterValues(scatteringActive=True) 
             
             optimizer.zero_grad()
-
-
+            if scheduler != None:
+                try:
+                    scheduler.step()
+                except:
+                    pass
 
         with torch.no_grad():
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
@@ -64,13 +67,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_m
         
     model.scatteringBase.saveFilterGrads(scatteringActive=True) 
     optimizer.step()
-    model.scatteringBase.saveFilterValues(scatteringActive=True) 
-
-    if scheduler != None:
-        scheduler.step()
-
-    
-    
+    model.scatteringBase.saveFilterValues(scatteringActive=True)  
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
 

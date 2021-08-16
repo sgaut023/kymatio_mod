@@ -3,7 +3,6 @@
 #find . -name *.pth 
 #find . -name *.pth -delete
 *.pth
-runs_ben/*
 mlruns/*
 videos/*
 
@@ -25,12 +24,7 @@ doc/source/gallery_2d
 doc/source/gallery_3d
 .coverage
 
-/data/02_interim/
-/data/03_features/
-/data/01_raw/raw_images/
-mlruns_shanel/*
-mlruns_shanel_vm/*
-
+/data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
