@@ -285,7 +285,7 @@ def experiments_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", "-dr", type=str)
     parser.add_argument("--data-folder", "-df", type=str)
-    parser.add_argument("--python", "-p", type=str, required=True)
+    parser.add_argument("--python", "-p", type=str)
 
     args = parser.parse_args()
 
@@ -294,8 +294,8 @@ def experiments_cli():
     else:
         DATA_ARG = ""
 
+    return sys.executable, DATA_ARG
 
-    return args.python, DATA_ARG
 
 def experiments_runCommand(cmd):
     """runs one command"""
