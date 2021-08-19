@@ -49,6 +49,12 @@ git clone https://github.com/btherien/ParametricScatteringNetworks
 PIP
 -----
 
+```
+python3 -m venv /path/to/virtual/environments/parametricSN
+source /path/to/virtual/environments/parametricSN/bin/activate
+pip install /path/to/ParametricScattering/Networks/requirments/pip_reqs.txt
+```
+
 
 Conda
 ------
@@ -70,17 +76,17 @@ Our empirical evaluations are based on three image datasets, illustrated in the 
 
 Experiments
 ------------
-All experiments from the paper can be reproduced using the scripts in the experiments folder. For example, to run the experiment where the training set contains 100 CIFAR-10 images using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter: 
+All experiments from [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) can be reproduced using the scripts in the experiments folder. For instance, the following command will run our Scattering+LinearLayer 100 sample CIFAR-10 experiment. 
 ```
-python parametricSN/experiments/cifar_experiments/ll/ll_100sample_cifar10_experiment.py -p <python_interpreter>
+python parametricSN/experiments/cifar_experiments/ll/ll_100sample_cifar10_experiment.py
 ```
-To run the experiment with [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter:
+Running experiments on the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset can be done similarly.
 ```
-python parametricSN/experiments/kth_experiments/ll_kth_sample-experiment.py -p <python_interpreter>
+python parametricSN/experiments/kth_experiments/ll_kth_sample-experiment.py
 ```
-To run the experiment where the training set contains 100  [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) images using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter: 
+For [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)
 ```
-python parametricSN/experiments/xray_experiments/ll/ll_100sample_xray_experiment.py -p <python_interpreter>
+python parametricSN/experiments/xray_experiments/ll/ll_100sample_xray_experiment.py
 ```
 All the results and plots are automatically saved in MLflow. 
 
