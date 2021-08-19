@@ -45,7 +45,7 @@ Get Setup
 
 Start by cloning the repository
 ```
-git clone https://github.com/btherien/ParametricScatteringNetworks
+git clone https://github.com/bentherien/ParametricScatteringNetworks
 ```
 
 PIP
