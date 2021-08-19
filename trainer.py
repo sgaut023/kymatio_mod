@@ -1,6 +1,7 @@
 """Script to run scripts"""
 
 import os
+import sys
 import argparse
 
 PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
@@ -22,7 +23,9 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
+for ds in ['xray','kth','cifar']:
+    for fn in os.listdir("/home/benjamin/Documents/github/kymatio_mod/experiments/{}/filter_monitoring".format(ds)):
+        os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
 
-os.system("{} experiments/xray_experiments/onlycnn/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
 exit(0)

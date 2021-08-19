@@ -20,10 +20,9 @@ import cv2
 import torch.nn as nn
 
 from kymatio import Scattering2D
-from scipy.optimize import linear_sum_assignment
 
 from .create_filters import *
-from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams
+from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams, compareParamsVisualization
 
 
 class InvalidInitializationException(Exception):
@@ -344,46 +343,20 @@ class sn_ScatteringBase(nn.Module):
             device=self.device
         )
 
-        
-        def getAngleDistance(one,two):
-            """returns the angle of arc between two points on the unit circle"""
-            if one < 0 or (2 * np.pi) < one or two < 0 or (2 * np.pi) < two:
-                raise Exception
+    def compareParamsVisualization(self):
+        """visualize the matched filters"""
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
+        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+        self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
 
-            if one == two:
-                return 0
-            elif one < two:
-                diff = min(
-                    two - one,
-                    one + (2 * np.pi) - two
-                )
-            elif two < one:
-                diff = min(
-                    one - two,
-                    two + (2 * np.pi) - one
-                )
-            return diff
-            
+        return compareParamsVisualization(
+            params1=tempParamsGrouped,
+            angles1=tempParamsAngle, 
+            params2=self.compared_params_grouped,
+            angles2=self.compared_params_angle,
+            device=self.device
+        )
 
-        with torch.no_grad():
-
-            tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
-            tempParamsAngle = self.params_filters[0] % (2 * np.pi)
-
-            groupDistances = torch.cdist(tempParamsGrouped,self.compared_params_grouped)
-            angleDistances = torch.zeros(groupDistances.shape, device=self.device)
-            avoidZero = torch.zeros(groupDistances.shape, device=self.device) + 0.0000000001
-
-            for i in range(angleDistances.size(0)):
-                for j in range(angleDistances.size(1)):
-                    angleDistances[i,j] = getAngleDistance(tempParamsAngle[i],self.compared_params_angle[j])
-
-            distances = groupDistances + angleDistances + avoidZero
-
-            distNumpy = distances.cpu().numpy()
-            row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
-
-            return distNumpy[row_ind, col_ind].sum()
 
 
     
