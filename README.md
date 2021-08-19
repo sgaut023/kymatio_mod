@@ -92,15 +92,13 @@ All the results and plots are automatically saved in MLflow.
 
 Evaluating Robustness to Deformation
 --------------
-In [previous work](https://www.di.ens.fr/~mallat/papiers/ScatCPAM.pdf)(Section 2.5), the scattering transform has been shown to be robust to small deformations. We have created an experiment to test empirical validity of this theorem for trained parameteric scattering networks (fixed or learnable). 
+In [previous work](https://www.di.ens.fr/~mallat/papiers/ScatCPAM.pdf)(Section 2.5), the scattering transform has been shown to be robust to small deformations. We have created an experiment to test empirical validity of this theorem for trained parameteric scattering networks (fixed or learnable). To compare different models, the user must first train them on the dataset of interest (using our scripts under the experiments folder) with the 'model' 'save' variable set to True. Once different models have been trained, comparing their deformantion stability is simple: just provide the paths to the desired model's mlflow artifacts (E.G. ```"/ParametricScatteringNetworks/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model"```) to our deformantion script. In this way, multiple different models can be compared:
 
-To run an experiment to evaluate the robustness of some scattering network models (as much as one wants, but it is recommanded to stay at a reasonnable number for clarity) to different deformations, run the command below which is an example for two models with paths to the model folder path1 and path2:
 ```
-python parametricSN/evaluate_deformed_representation.py <path1> <path2>
+python parametricSN/evaluate_deformed_representation.py <artifact_path1> <artifact_path2>
 ```
-One example of such path would be "/.../kymatio_mod/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model".
 
-The resulting figures will be automatically logged in mlflow and below is an example of the result for 4 models and the rotation deformation. You can see, in order, the image before the deformation, the image after the deformation at its maximal size and the plot of the relative distance in the representations with respect to the rotation size (its angle).  The horizontal lines are a baseline that indicates the level of deformation one could expect from random other images in the dataset.
+The resulting figures will be automatically logged to mlflow. Below is an example of the script's output for 4 models using the rotation deformation. The figures show, in order, the image before the deformation, the image after the deformation (at its most deformed point), and the plot of the relative distance in the representations with respect to the rotation size (its angle). The horizontal lines are a baseline that indicate the average level of deformation for 50 randomly selected images from the dataset of interest.
 
 <img src="https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png" width="225" height="225">            <img src="https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png" width="225" height="225">                <img src="https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png" width="225" height="225">      
 
