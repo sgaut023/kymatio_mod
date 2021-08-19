@@ -41,10 +41,19 @@ You can use the following notebook to explore the parameters used to create the 
 Get Setup
 ------------
 
-Prerequisites
-- Anaconda/Miniconda
-
 Start by cloning the repository
+```
+git clone https://github.com/btherien/ParametricScatteringNetworks
+```
+
+PIP
+-----
+
+
+Conda
+------
+Prerequisites
+- Anaconda/Miniconda 
 
 To create the `parametricSN` conda environment, enter the following in the command prompt: 
 ```
