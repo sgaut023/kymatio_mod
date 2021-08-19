@@ -52,9 +52,9 @@ PIP
 -----
 
 ```
-python3 -m venv /path/to/virtual/environments/parametricSN
-source /path/to/virtual/environments/parametricSN/bin/activate
-pip install /path/to/ParametricScattering/Networks/requirments/pip_reqs.txt
+python3 -m venv parametricSN
+source parametricSN/bin/activate
+pip install -r ParametricScatteringNetworks/dependencies/pip_requirements.txt
 ```
 
 
@@ -65,7 +65,7 @@ Prerequisites
 
 To create the `parametricSN` conda environment, enter the following in the command prompt: 
 ```
-conda env create -f parametricSN/environment.yml
+conda env create -f dependencies/environment.yml
 ```
 To active the `parametricSN` conda environment, enter the following: 
 ```
@@ -83,15 +83,15 @@ Experiments
 ------------
 All experiments from [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) can be reproduced using the scripts in the experiments folder. For instance, the following command will run our Scattering+LinearLayer 100 sample CIFAR-10 experiment. 
 ```
-python parametricSN/experiments/cifar_experiments/ll/ll_100sample_cifar10_experiment.py
+python parametricSN/experiments/cifar/ll/ll_100sample_cifar10_experiment.py
 ```
 Running experiments on the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset can be done similarly.
 ```
-python parametricSN/experiments/kth_experiments/ll_kth_sample-experiment.py
+python parametricSN/experiments/kth/ll_kth_sample-experiment.py
 ```
 For [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)
 ```
-python parametricSN/experiments/xray_experiments/ll/ll_100sample_xray_experiment.py
+python parametricSN/experiments/xray/ll/ll_100sample_xray_experiment.py
 ```
 All the results and plots are automatically saved in MLflow. 
 
@@ -145,28 +145,30 @@ Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andy
 Project Organization
 ------------
 
-    ├── conf                    <- Configuration folder
-    ├── data                    <- Contains datasets - to create the different datasets please see section Datasets
+    ├── conf                     <- Configuration folder
+    ├── data                     <- Contains datasets - to create the different datasets please see section Datasets
     ├── experiments        
-    │   ├── cifar_experiments   <- All scripts to reproduce cifar experiments.
-    |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
-    |       ├── ll              <- Scripts tp run all experiments of hybrid sacttering + linear layer.
-    |       └── onlycnn         <- Scripts tp run all experiments of cnn without scattering priors.
-    │   ├── kth_experiments     <- All scripts to reproduce KTH-TPIS2 experiments.
-    │   └── xray_experiments    <- All scripts to reproduce Covidx CRX-2 experiments.
-    |       ├── cnn             <- Scripts tp run all experiments of hybrid sacttering + cnn.
-    |       ├── ll              <- Scripts tp run all experiments of hybrid sacttering + linear layer.
-    |       └── onlycnn         <- Scripts tp run all experiments of cnn without scattering priors.
-    ├── kymatio                 <- Folder copied from: https://github.com/kymatio/kymatio.
+    │   ├── cifar                <- All scripts to reproduce cifar experiments.
+    |       ├── cnn              <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll               <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn          <- Scripts tp run all experiments of cnn without scattering priors.
+    │   ├── kth                  <- All scripts to reproduce KTH-TPIS2 experiments.
+    │   └── xray                 <- All scripts to reproduce Covidx CRX-2 experiments.
+    |       ├── cnn              <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll               <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn          <- Scripts tp run all experiments of cnn without scattering priors.
+    ├── kymatio                  <- Folder copied from: https://github.com/kymatio/kymatio.
     ├── parametricSN 
-    │   ├── data_loading        <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
-    │   ├── models              <- Contains all the  pytorch NN.modules for this project.
-    │   └── notebooks           <- Jupyter notebooks.
-    │   └── training            <- Contains train and test functions.
-    │   └── utils               <- Helpers Functions.
-    │   └── main.py             <- Source code.
-    │   └── environment.yml     <- The conda environment file for reproducing the analysis environment.
-    ├── mlruns                  <- All the experiment results are automatically saved in this folder. 
+    │   ├── data_loading         <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
+    │   ├── models               <- Contains all the  pytorch NN.modules for this project.
+    │   └── notebooks            <- Jupyter notebooks.
+    │   └── training             <- Contains train and test functions.
+    │   └── utils                <- Helpers Functions.
+    │   └── main.py              <- Source code.
+    ├── Dependencies 
+    │   └── environment.yml      <- The conda environment file for reproducing the analysis environment.
+    |   └── pip_requirements.yml <- The pip requirements file.
+    ├── mlruns                   <- All the experiment results are automatically saved in this folder. 
     
     
 
