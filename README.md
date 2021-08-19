@@ -90,6 +90,10 @@ python parametricSN/experiments/xray_experiments/ll/ll_100sample_xray_experiment
 ```
 All the results and plots are automatically saved in MLflow. 
 
+Evaluating Robustness to Deformation
+--------------
+In [previous work](https://www.di.ens.fr/~mallat/papiers/ScatCPAM.pdf)(Section 2.5), the scattering transform has been shown to be robust to small deformations. We have created an experiment to test empirical validity of this theorem for trained parameteric scattering networks (fixed or learnable). 
+
 To run an experiment to evaluate the robustness of some scattering network models (as much as one wants, but it is recommanded to stay at a reasonnable number for clarity) to different deformations, run the command below which is an example for two models with paths to the model folder path1 and path2:
 ```
 python parametricSN/evaluate_deformed_representation.py <path1> <path2>
