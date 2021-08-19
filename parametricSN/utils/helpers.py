@@ -214,6 +214,10 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
         mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
 
+        if params['scattering']['param_distance']: 
+            mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization.pdf')
+
+
         # saving all accuracies
         log_csv_file('test_acc.csv', test_acc)
         log_csv_file('train_acc.csv', train_acc)
