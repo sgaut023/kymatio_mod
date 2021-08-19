@@ -59,30 +59,19 @@ Datasets
 Our empirical evaluations are based on three image datasets, illustrated in the Figure below. We subsample each dataset at various sample sizes in order to showcase the performance of scattering-based architectures in the small data regime. CIFAR-10 and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) are natural image and texture recognition datasets (correspondingly). They are often used as general-purpose benchmarks in similar image analysis settings. [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) is a dataset of X-ray scans for COVID-19 diagnosis; its use here demonstrates the viability of our parametric scattering approach in practice, e.g., in medical imaging applications.
 ![Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png)
 
-#### 1. KTH-TIPS2
-To download the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run this command:
-```
-python parametricSN/datasets/create_kth_dataset.py 
-```
-
-#### 2. COVIDx CRX-2
-To download the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, you need to download your kaggle.json file by following these [instructions](https://github.com/Kaggle/kaggle-api#api-credentials) and place it in the location ~/.kaggle/kaggle.json. Then, run the command below. Please make sure that you have enough space. The dataset is 11.6 GB. 
-```
-bash parametricSN/datasets/create_xray_dataset.sh 
-```
 Experiments
 ------------
-To run an experiment with the CIFAR-10 dataset, run the command below:
+All experiments from the paper can be reproduced using the scripts in the experiments folder. For example, to run the experiment where the training set contains 100 CIFAR-10 images using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter: 
 ```
-python parametricSN/main.py run-train -pf parameters.yml
+python parametricSN/experiments/cifar_experiments/ll/ll_100sample_cifar10_experiment.py -p <python_interpreter>
 ```
-To run an experiment with the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset, run the command below:
+To run the experiment with [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter:
 ```
-python parametricSN/main.py run-train -pf parameters_texture.yml
+python parametricSN/experiments/kth_experiments/ll_kth_sample-experiment.py -p <python_interpreter>
 ```
-To run an experiment with the [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) dataset, run the command below:
+To run the experiment where the training set contains 100  [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) images using the scattering networks followed by a linear layer, run this command where <python_interpreter> is the path to the python interpreter: 
 ```
-python parametricSN/main.py run-train -pf parameters_xray.yml
+python parametricSN/experiments/xray_experiments/ll/ll_100sample_xray_experiment.py -p <python_interpreter>
 ```
 All the results and plots are automatically saved in MLflow. 
 
