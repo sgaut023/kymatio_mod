@@ -28,12 +28,9 @@ class sn_MLP(nn.Module):
         selfnum_classes =num_classes
         if use_cuda:
             self.cuda()
-
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
         fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
-
         self.layers = nn.Sequential(
-            nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True),
-            fc1,
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -46,7 +43,10 @@ class sn_MLP(nn.Module):
 
     def forward(self, x):
         """Forward pass"""
-        x = x.view(x.shape[0], -1)
+        
+        x = self.bn0(x)
+        x = x.reshape(x.shape[0], -1)
+        x = self.fc1(x)
         return self.layers(x)
 
     def countLearnableParams(self):
