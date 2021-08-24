@@ -132,7 +132,7 @@ def run_train(args):
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
     lrs, lrs_scattering, lrs_orientation = [], [], []
-    param_distance, wavelet_distance = [], []
+    param_distance = []
 
     trainTime = []
     testTime = []
@@ -173,12 +173,13 @@ def run_train(args):
             test_acc.append(accuracy)
 
             testTime.append(time.time()-t1)
-            estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs= params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
+            estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
     if params['scattering']['filter_video']:
         hybridModel.scatteringBase.releaseVideoWriters()
 
     if params['scattering']['param_distance']:
+        compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
 
@@ -228,7 +229,7 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot]
+        filters_values, filters_parameters, f_lr, paramDistancePlot,compareParamsVisualization]
     )
     
 
