@@ -17,7 +17,7 @@ def cli():
 args = cli()
 
 if args.data_root != None and args.data_folder != None:
-    DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
+    DATA_ARG = "-dr {} -df {}".format(args.data_root,args.data_folder)
     
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
@@ -26,16 +26,26 @@ if args.python != None:
 
 
 #cifar
-os.system("{} xray_experiments/onlycnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/onlycnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/cnn_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/cnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/cnn_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} experiments/cifar_experiments/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
-exit(0)
+#os.system("{} cifar_experiments/ll_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/ll_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/ll_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} cifar_experiments/ll_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
-os.system("{} cifar_experiments/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} cifar_experiments/ll_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} experiments/cifar_experiments/onlycnn/onlycnn_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} experiments/cifar_experiments/onlycnn/onlycnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+#os.system("{} experiments/cifar_experiments/onlycnn/onlycnn_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar_experiments/onlycnn/onlycnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
 # os.system("{} cifar_experiments/llalldata_cifar10_experiment.py".format(PYTHON))
+#os.system("{} experiments/cifar_experiments/onlycnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar_experiments/onlycnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar_experiments/onlycnn_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar_experiments/onlycnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
 
 exit(0)

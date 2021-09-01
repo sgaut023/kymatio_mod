@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  
+  tracking_uri: 'sqlite:////home/mila/l/laurent.alsene-racicot/kymatio_mod/runs_laurent/mlruns/store.db'  
   #tracking_uri: "sqlite:////home/mila/b/benjamin.therien/github/kymatio_mod/runs_ben/mlruns/store.db" #'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
   experiment_name: 'test2'
 

@@ -15,7 +15,7 @@ import time
 import argparse
 import torch
 import math
-import cv2
+#import cv2
 import kymatio.datasets as scattering_datasets
 import numpy as np
 

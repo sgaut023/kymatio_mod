@@ -56,12 +56,12 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
             model.scatteringBase.saveFilterValues(scatteringActive=True) 
             
             optimizer.zero_grad()
+            
             if scheduler != None:
                 try:
                     scheduler.step()
                 except:
                     pass
-
         with torch.no_grad():
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probabilityd
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -71,11 +71,11 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, glicoControl
     optimizer.step()
     model.scatteringBase.saveFilterValues(scatteringActive=True) 
 
-    if scheduler != None:
-        try:
-            scheduler.step()
-        except:
-            pass
+    # if scheduler != None:
+    #     try:
+    #         scheduler.step()
+    #     except:
+    #         pass
 
     
     
