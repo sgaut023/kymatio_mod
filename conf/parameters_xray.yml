@@ -35,6 +35,7 @@ scattering:
   architecture: 'scattering'
   filter_video: False
   param_distance: False
+  equivariance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']

@@ -30,7 +30,8 @@ class InvalidInitializationException(Exception):
     pass
 
 
-def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order,device,initialization,
+                               equivariance=False,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns it for modification. Next,
@@ -43,8 +44,8 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     N -- height of the input image
     M -- width of the input image
     initilization -- the type of init: ['Tight-Frame' or 'Random']
-    seed -- the seed used for creating randomly initialized filters
-    requires_grad -- boolean idicating whether we want to learn params
+    equivariance -- boolean indivating of the filters are equivariant
+    requires_grad -- boolean indicating whether we want to learn params
     """
     scattering = Scattering2D(J=J, shape=(M, N), frontend='torch')
 
@@ -59,15 +60,14 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     if use_cuda:
         scattering = scattering.cuda()
 
-    phi, psi  = scattering.load_filters()
+    _, psi  = scattering.load_filters()
     
     params_filters = []
 
     if initialization == "Tight-Frame":
-        params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
+        params_filters = create_filters_params(J,L,requires_grad, equivariance, device) #kymatio init
     elif initialization == "Random":
-        num_filters= J*L
-        params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
+        params_filters = create_filters_params_random(J,L,requires_grad,equivariance,device) #random init
     else:
         raise InvalidInitializationException
 
@@ -76,10 +76,12 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     grid = torch.stack(torch.meshgrid(*ranges), 0).to(device)
     params_filters =  [ param.to(device) for param in params_filters]
 
-    wavelets  = morlets(shape, params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3], device=device )
-    
-    psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
+    if equivariance:
+        psi , wavelets = update_equivariant_psi(J, psi, shape, params_filters,device)
+    else:
+        wavelets  = morlets(shape, params_filters[0], params_filters[1], 
+                        params_filters[2], params_filters[3], device=device )
+        psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
 
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
@@ -168,7 +170,7 @@ class sn_ScatteringBase(nn.Module):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  device, learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True, use_cuda=True,
-                 filter_video=False):
+                 filter_video=False, equivariance=False):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -187,6 +189,7 @@ class sn_ScatteringBase(nn.Module):
             monitor_filters -- boolean indicating whether to track filter distances from initialization
             filter_video -- whether to create filters from 
             use_cuda -- True if using GPU
+            equivariance -- boolean indivating of the filters are equivariant
 
         """
         super(sn_ScatteringBase,self).__init__()
@@ -205,21 +208,25 @@ class sn_ScatteringBase(nn.Module):
         self.monitor_filters = monitor_filters
         self.filter_video = filter_video
         self.epoch = 0
+        self.equivariance = equivariance
 
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
-            J,N,M,second_order, initialization=self.initialization,seed=seed,
+            J,N,M,second_order, initialization=self.initialization, equivariance=equivariance,
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
+        self.filterNum = self.wavelets.shape[2]
+        self.paramsNum = self.params_filters[0].shape[0]
 
         self.filters_plots_before = self.getFilterViz()
         self.scatteringTrain = False
+        self.shape = (self.scattering.M_padded, self.scattering.N_padded,)
 
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
-                J,N,M,second_order, initialization='Tight-Frame',seed=seed,
+                J,N,M,second_order, initialization='Tight-Frame',equivariance=equivariance,
                 requires_grad=False,use_cuda=self.use_cuda,device=self.device
             )
 
@@ -267,11 +274,15 @@ class sn_ScatteringBase(nn.Module):
         """if were using learnable scattering, update the filters to reflect 
         the new parameter values obtained from gradient descent"""
         if self.learnable:
-            self.wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3], device=self.device)
-                                    
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device) 
+            if self.equivariance:
+                self.psi,self.wavelets = update_equivariant_psi(self.J, self.psi, self.shape, self.params_filters, device=self.device)
+            else:
+                self.wavelets = morlets(self.grid, self.params_filters[0], 
+                                        self.params_filters[1], self.params_filters[2], 
+                                        self.params_filters[3], device=self.device)
+                                        
+                
+                self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device) 
                                 #   self.initialization, 
             self.writeVideoFrame()
         else:
@@ -397,59 +408,99 @@ class sn_ScatteringBase(nn.Module):
         except Exception:
             pass
 
-
+        
 
     def plotFilterGrads(self):
         """plots the graph of the filter gradients"""
-        filterNum = self.params_filters[1].shape[0]
-        col = 8
-        row = int(filterNum/col)
-        size = (80, 10*row,)
 
-        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+        if self.equivariance:
+            col = self.paramsNum
+            row = 1
+            size = (80, 10)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
+            for x in range(self.paramsNum):
+                temp = {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
+                }
 
-        for x in range(filterNum):#iterate over all the filters
-            temp = {
-                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
-                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
-                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
-                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
-            }
+                axarr[x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
+                axarr[x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[x%col].legend()
+        
+        else:
+            col = 8
+            row = int(self.paramsNum/col)
+            size = (80, 10*row,)
 
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-            axarr[int(x/col),x%col].legend()
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
+
+            for x in range(self.paramsNum):#iterate over all the filters
+                temp = {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
+                }
+
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[int(x/col),x%col].legend()
 
         return f
 
     
     def plotFilterValues(self):
         """plots the graph of the filter values"""
-        filterNum = self.params_filters[1].shape[0]
-        col = 8
-        row = int(filterNum/col)
-        size = (80, 10*row,)
+        
+        if self.equivariance:
+            col = self.paramsNum
+            row = 1
+            size = (80, 10)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
+            for x in range(self.paramsNum):
+                temp = {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
+                    'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
+                }
 
-        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+                axarr[x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+                axarr[x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+                axarr[x%col].legend()
 
-        for x in range(filterNum):#iterate over all the filters
-            #axarr[int(x/col),x%col].axis('off')
-            temp = {
-                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
-                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
-                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
-                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
-                'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
-            }
+        else:
+            col = 8
+            row = int(self.filterNum/col)
+            size = (80, 10*row,)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
-            axarr[int(x/col),x%col].legend()
+            for x in range(self.paramsNum):
+                temp = {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
+                    'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
+                }
+
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+                axarr[int(x/col),x%col].legend()
 
         return f
         
@@ -473,5 +524,7 @@ class sn_ScatteringBase(nn.Module):
             
 
         return f
+    
+
 
 

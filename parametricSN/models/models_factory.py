@@ -12,7 +12,7 @@ Exceptions:
 
 
 from .sn_base_models import sn_Identity, sn_ScatteringBase
-from .sn_top_models import sn_CNN, sn_MLP, sn_LinearLayer, sn_Resnet50
+from .sn_top_models import sn_CNN, sn_MLP, sn_LinearLayer, sn_Resnet50, sn_WRN
 
 class InvalidArchitectureError(Exception):
     """Error thrown when an invalid architecture name is passed"""
@@ -21,7 +21,7 @@ class InvalidArchitectureError(Exception):
 
 def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, device, 
                      learnable=True, lr_orientation=0.1, lr_scattering=0.1, filter_video=False,
-                     use_cuda=True):
+                     equivariance =False,use_cuda=True):
     """Factory for the creation of the first layer of a hybrid model
     
         parameters: 
@@ -55,7 +55,8 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             lr_scattering=lr_scattering,
             filter_video=filter_video,
             device=device,
-            use_cuda=use_cuda
+            use_cuda=use_cuda,
+            equivariance=equivariance
         )
 
     else:
@@ -97,6 +98,15 @@ def topModelFactory(base, architecture, num_classes, width=8, average=False, use
 
     elif architecture.lower() == 'resnet50':
         return sn_Resnet50(num_classes=num_classes)
+    
+    elif architecture.lower() == 'wrn':
+        if isinstance(base, sn_ScatteringBase):
+            num_channels = base.n_coefficients*3
+            standard = False
+        else:
+            num_channels = 3
+            standard = True
+        return sn_WRN(num_classes=num_classes, num_channels= num_channels, standard=standard)
 
     else:
         print("In modelFactory() incorrect module name for architecture={}".format(architecture))

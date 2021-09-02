@@ -93,7 +93,7 @@ def run_train(args):
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
         filter_video=params['scattering']['filter_video'],
-        device=device,
+        device=device, equivariance = params['scattering']['equivariance'],
         use_cuda=use_cuda
     )
 
@@ -182,7 +182,8 @@ def run_train(args):
         compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
-
+    else:
+        compareParamsVisualization = None
 
     #MLFLOW logging below
     f_loss = visualize_loss(
@@ -275,7 +276,7 @@ def main():
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
-
+    subparser.add_argument("--scattering-equivariance", "-seq", type=int, choices=[0,1])
 
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])

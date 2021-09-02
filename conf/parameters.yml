@@ -30,11 +30,12 @@ scattering:
   lr_scattering: 0.1
   lr_orientation: 0.1
   init_params: 'Tight-Frame' # 'Random' or 'Tight-Frame'
-  learnable: False # True if learnable
+  learnable: True # True if learnable
   second_order: False
   architecture: 'scattering'
-  filter_video: True
-  param_distance: True
+  filter_video: False
+  param_distance: False
+  equivariance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
@@ -50,7 +51,7 @@ optim:
   phase_ends:
 
 model:
-  name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'wrn' # choices=['cnn', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
   epoch: 5
   step_test: 25

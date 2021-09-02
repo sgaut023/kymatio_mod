@@ -22,6 +22,7 @@ dataset:
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
 
+
 # kymatio 
 scattering:
   J: 4
@@ -34,6 +35,7 @@ scattering:
   architecture: 'scattering'
   filter_video: False
   param_distance: False
+  equivariance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']
