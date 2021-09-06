@@ -14,7 +14,6 @@ Classes:
     Resnet50       --Pretrained resnet-50 on ImageNet
 """
 
-from numpy.core.numeric import False_
 from torchvision import models
 
 import torch.nn as nn
@@ -65,27 +64,21 @@ class sn_LinearLayer(nn.Module):
     """
     Linear layer fitted for scattering input
     """
-    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
+    def __init__(self,num_channels=3, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
-        self.average= average
         self.num_channels = num_channels
         if use_cuda:
             self.cuda()
 
-        if self.average:
-            self.fc1 = nn.Linear(int(num_channels*n_coefficients), num_classes)
-        else:
-            self.fc1 = nn.Linear(int(num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+        self.fc1 = nn.Linear(int(self.num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
 
         self.bn0 = nn.BatchNorm2d(self.n_coefficients*num_channels,eps=1e-5,affine=True)
 
 
     def forward(self, x):
         x = self.bn0(x)
-        if self.average:
-            x = x.mean(dim=(2,3))
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         return x
@@ -221,27 +214,19 @@ class sn_LinearLayer(nn.Module):
     """
     Linear layer fitted for scattering input
     """
-    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
+    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.num_channels = num_channels
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
-        self.average= average
         if use_cuda:
             self.cuda()
 
-        if self.average:
-            self.fc1 = nn.Linear(int(num_channels*n_coefficients), num_classes)
-        else:
-            self.fc1 = nn.Linear(int(num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
-
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*num_channels,eps=1e-5,affine=True)
-
+        self.fc1 = nn.Linear(int(self.num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*self.num_channels,eps=1e-5,affine=True)
 
     def forward(self, x):
         x = self.bn0(x)
-        if self.average:
-            x = x.mean(dim=(2,3))
         x = x.reshape(x.shape[0], -1)
         x = self.fc1(x)
         return x
@@ -264,6 +249,7 @@ class sn_Resnet50(nn.Module):
         self.model_ft = models.resnet50(pretrained=True)
         num_ftrs = self.model_ft.fc.in_features
         self.model_ft.fc =  nn.Linear(num_ftrs, num_classes)
+        self.num_classes = num_classes
 
         
     def forward(self, x):

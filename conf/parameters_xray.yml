@@ -1,28 +1,26 @@
 #data preprocessing:
 general:
   cores: 4
-  seed:  50  # seed for dataset subselection and random initialization
+  seed:    # seed for dataset subselection and random initialization
   save_metric: False
 
 mlflow:
   tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'
-  # tracking_uri: 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'xray'
+  experiment_name: 'Xray Experiment'
 
 dataset:
-  name: 'x-ray' # choices=['cifar', 'kth', 'x-ray']
+  name: 'x-ray'
   num_classes: 2
   train_batch_size: 128
   test_batch_size: 128
   train_sample_num: 500  #total train samples
   test_sample_num: 400
-  data_root: '/NOBACKUP/gauthiers/'
-  data_folder: 'chest_xrays_preprocess'
-  height:  224   # ultrasound image dimension
-  width:  224  # ultrasound image dimension
+  data_root: 
+  data_folder: 
+  height:  224  
+  width:  224  
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample:
-  glico: 0
   accum_step_multiple: 128
   num_channels: 3
 
@@ -37,6 +35,8 @@ scattering:
   learnable: True # True if learnable
   second_order: False
   architecture: 'scattering'
+  filter_video: False
+  param_distance: False
   pixelwise: False
 
 optim: 
@@ -55,11 +55,10 @@ optim:
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer', 'resnet50']
   width: 8   # widthd factor for resnet
-  epoch: 300
+  epoch: 2
   step_test: 25
   loss: 'cross-entropy' # choices=['cross-entropy', cross-entropy-accum', 'cosine']
-  average: False
-  save: True
+  save: False
 
   
 
