@@ -10,34 +10,34 @@ mlflow:
   experiment_name: 'test2'
 
 dataset:
-  name: 'cifar' # choices=['cifar', 'kth', 'x-ray']
+  name: 'mnist' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 10
   train_batch_size: 100
   test_batch_size: 512
   train_sample_num: 100  #total train samples
   test_sample_num: 10000
   data_root: #'/home/gauthiers/kymatio_datasets/'
-  data_folder: 'CIFAR'
-  height:  32   # ultrasound image dimension
-  width:  32   # ultrasound image dimension
-  augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
+  data_folder: 'MNIST'
+  height:  28   # ultrasound image dimension
+  width:  28   # ultrasound image dimension
+  augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
   glico: 0
   accum_step_multiple: 128
-  num_channels: 3
-
+  num_channels: 1
 # kymatio 
 
 scattering:
-  J: 2
+  J: 3
   max_order: 2
-  lr_scattering: 1
-  lr_orientation: 1
+  lr_scattering: 0.1
+  lr_orientation: 0.1
   init_params: 'Tight-Frame' # 'Random' or 'Tight-Frame'
-  learnable: True # True if learnable
+  learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
-  pixelwise: True
+  pixelwise: False
+  
 
 
 optim: 
@@ -52,7 +52,6 @@ optim:
   phase_num:
   T_max: 
   phase_ends:
-  alternating: False  
 
 model:
   name: 'linear_layer' # choices=['cnn', 'mlp', 'linear_layer']

@@ -1,4 +1,4 @@
-""" SN+LL 500 Samples Xray
+""" SN+LL 100 Samples Xray
 """
 
 import os
@@ -14,7 +14,7 @@ PROCESS_BATCH_SIZE = 1
 
 mlflow_exp_name = "\"SN+LL 100 Samples Xray\""
 PARAMS_FILE = "parameters_xray.yml"
-PYTHON = '/home/gauthiers/.conda/envs/ultra/bin/python'
+PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.01
@@ -24,7 +24,7 @@ LRMAX = 0.01
 DF = 25
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 400
+EPOCHS = 200
 INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     commands = []
 
-    for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
+    for SEED in [22942091]:#,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550
         for aa in [(1,"Tight-Frame"),(0,"Tight-Frame"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 

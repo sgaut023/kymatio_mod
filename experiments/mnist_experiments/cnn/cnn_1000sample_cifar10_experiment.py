@@ -12,9 +12,9 @@ from multiprocessing import Process
 
 PROCESS_BATCH_SIZE = 4
 
-mlflow_exp_name = "\"SN+CNN 1000 samples Cifar-10 PIXELWISE = 1\""
+mlflow_exp_name = "\"SN+CNN 1000 samples Cifar-10\""
 
-PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
@@ -38,7 +38,7 @@ MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
-PIXELWISE = 1
+
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -77,8 +77,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -spw {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS, PIXELWISE
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS
             )
 
             command = "{} {} run-train {} {} {} {}".format(

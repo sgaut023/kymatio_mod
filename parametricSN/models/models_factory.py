@@ -13,7 +13,8 @@ from .sn_top_models import sn_CNN, sn_MLP, sn_LinearLayer, sn_Resnet50
 from .sn_models_exceptions import InvalidArchitectureError
 
 def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, device, 
-                     learnable=True, lr_orientation=0.1,lr_scattering=0.1,use_cuda=True):
+                    num_channels,pixelwise,learnable=True, lr_orientation=0.1,lr_scattering=0.1,
+                    use_cuda=True):
     """Factory for the creation of the first layer of a hybrid model
     
         parameters: 
@@ -42,9 +43,11 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             second_order=second_order,
             initialization=initialization,
             seed=seed,
+            num_channels=num_channels,
             learnable=learnable,
             lr_orientation=lr_orientation,
             lr_scattering=lr_scattering,
+            pixelwise=pixelwise,
             device=device ,
             use_cuda=use_cuda
         )
@@ -55,7 +58,7 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
 
 
 
-def topModelFactory(base, architecture, num_classes, width=8, average=False, use_cuda=True):
+def topModelFactory(base, architecture, num_channels, num_classes, width=8, average=False, use_cuda=True):
     """Factory for the creation of seconds part of a hybrid model
     
     parameters:
@@ -70,19 +73,19 @@ def topModelFactory(base, architecture, num_classes, width=8, average=False, use
 
     if architecture.lower() == 'cnn':
         return sn_CNN(
-            base.n_coefficients, k=width, num_classes=num_classes, standard=False
+            base.n_coefficients,num_channels=num_channels, k=width, num_classes=num_classes, standard=False
         )
 
     elif architecture.lower() == 'mlp':
         return sn_MLP(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
+            num_channels=num_channels,num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
             use_cuda=use_cuda
         )
 
     elif architecture.lower() == 'linear_layer':
         return sn_LinearLayer(
-            num_classes=num_classes, n_coefficients=base.n_coefficients, 
+            num_channels=num_channels,num_classes=num_classes, n_coefficients=base.n_coefficients, 
             M_coefficient=base.M_coefficient, N_coefficient=base.N_coefficient, 
             average=average
         )

@@ -24,17 +24,17 @@ class sn_MLP(nn.Module):
     """
        Multilayer perceptron fitted for scattering input
     """
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
+    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, use_cuda=True):
         super(sn_MLP,self).__init__()
-        selfnum_classes =num_classes
+        self.num_classes =num_classes
+        self.num_channels = num_channels
+        self.n_coefficients = n_coefficients
         if use_cuda:
             self.cuda()
 
-        fc1=  nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients),  512)
-
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*num_channels,eps=1e-5,affine=True)
+        self.fc1=  nn.Linear(int(num_channels*M_coefficient*  N_coefficient*n_coefficients),  512)
         self.layers = nn.Sequential(
-            nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True),
-            fc1,
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -47,7 +47,9 @@ class sn_MLP(nn.Module):
 
     def forward(self, x):
         """Forward pass"""
-        x = x.view(x.shape[0], -1)
+        x = self.bn0(x)
+        x = x.reshape(x.shape[0], -1)
+        x = self.fc1(x)
         return self.layers(x)
 
     def countLearnableParams(self):
@@ -63,20 +65,21 @@ class sn_LinearLayer(nn.Module):
     """
     Linear layer fitted for scattering input
     """
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
+    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
         self.average= average
+        self.num_channels = num_channels
         if use_cuda:
             self.cuda()
 
         if self.average:
-            self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(num_channels*n_coefficients), num_classes)
         else:
-            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
 
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*num_channels,eps=1e-5,affine=True)
 
 
     def forward(self, x):
@@ -139,16 +142,17 @@ class sn_CNN(nn.Module):
     CNN fitted for scattering input
     Model from: https://github.com/kymatio/kymatio/blob/master/examples/2d/cifar_small_sample.py 
     """
-    def __init__(self, in_channels, k=8, n=4, num_classes=10, standard=False):
+    def __init__(self, in_channels, num_channels, k=8, n=4, num_classes=10, standard=False):
         super(sn_CNN, self).__init__()
 
-        self.bn0 = nn.BatchNorm2d(in_channels*3,eps=1e-5,affine=True)
+        self.bn0 = nn.BatchNorm2d(in_channels*num_channels,eps=1e-5,affine=True)
 
         self.inplanes = 16 * k
         self.ichannels = 16 * k
         self.in_channels = in_channels
+        self.num_channels = num_channels
         self.num_classes =num_classes
-        in_channels = in_channels * 3
+        in_channels = in_channels * num_channels
         if standard:
 
             self.init_conv = nn.Sequential(
@@ -217,8 +221,9 @@ class sn_LinearLayer(nn.Module):
     """
     Linear layer fitted for scattering input
     """
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
+    def __init__(self, num_channels, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8, average=False, use_cuda=True):
         super(sn_LinearLayer,self).__init__()
+        self.num_channels = num_channels
         self.n_coefficients = n_coefficients
         self.num_classes = num_classes
         self.average= average
@@ -226,11 +231,11 @@ class sn_LinearLayer(nn.Module):
             self.cuda()
 
         if self.average:
-            self.fc1 = nn.Linear(int(3*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(num_channels*n_coefficients), num_classes)
         else:
-            self.fc1 = nn.Linear(int(3*M_coefficient*  N_coefficient*n_coefficients), num_classes)
+            self.fc1 = nn.Linear(int(num_channels*M_coefficient*  N_coefficient*n_coefficients), num_classes)
 
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3,eps=1e-5,affine=True)
+        self.bn0 = nn.BatchNorm2d(self.n_coefficients*num_channels,eps=1e-5,affine=True)
 
 
     def forward(self, x):

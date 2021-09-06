@@ -30,7 +30,7 @@ from scipy.optimize import linear_sum_assignment
 
 
 
-def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order,device,initialization,pixelwise,seed=0,requires_grad=True,use_cuda=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns it for modification. Next,
@@ -64,11 +64,11 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     params_filters = []
 
     if initialization == "Tight-Frame":
-        params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
+        params_filters = create_filters_params(J,L,requires_grad,pixelwise,device) #kymatio init
     elif initialization == "Random":
         #num_filters = get_total_num_filters(J,L)
         num_filters= J*L
-        params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
+        params_filters = create_filters_params_random(num_filters,requires_grad,pixelwise,device) #random init
     else:
         raise InvalidInitializationException
 
@@ -80,10 +80,15 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
 
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3], device=device )
-    
+
+    if pixelwise:
+        wavelets.requires_grad = True
+
     psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
 
-    return scattering, psi, wavelets, params_filters, n_coefficients, grid
+    # filters = filters_pixelwise(psi)
+
+    return scattering, psi, wavelets, params_filters, n_coefficients, grid#, filters
 
 
 class sn_HybridModel(nn.Module):
@@ -205,7 +210,7 @@ class sn_ScatteringBase(nn.Module):
         return getOneFilter(self.psi, count, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
-                 device, learnable=True, lr_orientation=0.1, 
+                 device, num_channels, pixelwise, learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True, use_cuda=True):
         """Constructor for the leanable scattering nn.Module
         
@@ -234,15 +239,18 @@ class sn_ScatteringBase(nn.Module):
         self.learnable = learnable
         self.use_cuda = use_cuda 
         self.device = device
+        self.num_channels = num_channels
+        self.pixelwise = pixelwise
         self.initialization = initialization
         self.lr_scattering = lr_scattering
         self.lr_orientation = lr_orientation
-        self.M_coefficient = self.M/(2**self.J)
-        self.N_coefficient = self.N/(2**self.J)
+        self.M_coefficient = int(self.M/(2**self.J))
+        self.N_coefficient = int(self.N/(2**self.J))
         self.monitor_filters = monitor_filters
 
+
         self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
-            J,N,M,second_order, initialization=self.initialization,seed=seed,
+            J,N,M,second_order, initialization=self.initialization,pixelwise=self.pixelwise,seed=seed,
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
@@ -254,7 +262,7 @@ class sn_ScatteringBase(nn.Module):
 
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
-                J,N,M,second_order, initialization='Tight-Frame',seed=seed,
+                J,N,M,second_order, initialization='Tight-Frame', pixelwise=pixelwise,seed=seed,
                 requires_grad=False,use_cuda=self.use_cuda,device=self.device
             )
 
@@ -477,34 +485,41 @@ class sn_ScatteringBase(nn.Module):
 
     def parameters(self):
         """ override parameters to include learning rates """
-        if self.learnable:
+        if self.learnable and not self.pixelwise:
             yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
                               'maxi_lr':self.lr_orientation , 'weight_decay': 0}
             yield {'params': [ self.params_filters[1],self.params_filters[2],
                                self.params_filters[3]],'lr': self.lr_scattering,
                                'maxi_lr':self.lr_scattering , 'weight_decay': 0}
+        
+        elif self.learnable and self.pixelwise:
+            yield {'params': self.wavelets, 'lr': self.lr_scattering, 'weight_decay': 0}
 
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect 
         the new parameter values obtained from gradient descent"""
-        if self.learnable:
+        if self.learnable and not self.pixelwise:
             self.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], 
                                     self.params_filters[3], device=self.device)
                                     
             self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
-                                  self.device) 
+                                  self.device)
+        elif self.learnable and self.pixelwise:
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, 
+                                  self.device)
         else:
             pass
 
     def forward(self, ip):
         """ apply the scattering transform to the input image """
-        if self.scatteringTrain: #update filters if training
+        if self.scatteringTrain: #update filters if training and not pixelwise
             self.updateFilters()
             
         x = construct_scattering(ip, self.scattering, self.psi)
         x = x[:,:, -self.n_coefficients:,:,:]
-        x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
+        x = x.reshape(x.size(0), self.n_coefficients*self.num_channels, x.size(3), x.size(4))
+
         return x
 
     def countLearnableParams(self):

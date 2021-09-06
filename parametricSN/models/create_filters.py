@@ -94,8 +94,19 @@ def update_psi(J, psi, wavelets, device):
                         d[res] = wavelets[i]
                     else:
                         d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
-                
+                        
     return psi
+
+def filters_pixelwise(psi):
+    filters = []
+    for j in range(len(psi)):
+        for k,v in psi[j].items():
+            if not isinstance(k, int):
+                continue
+            v.requires_grad = True
+            filters.append(v)
+    return filters
+
 
 def get_total_num_filters(J, L):
     """ Compute the total number of filters
@@ -130,7 +141,7 @@ def periodize_filter_fft(x, res, device):
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
-def create_filters_params_random(n_filters, is_scattering_dif, device):
+def create_filters_params_random(n_filters, is_scattering_dif, pixelwise, device):
     """ Create reusable randomly initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
@@ -152,13 +163,13 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
     params = [orientations, xis, sigmas, slants]
 
-    if is_scattering_dif:
+    if is_scattering_dif and not pixelwise:
         for param in params:
             param.requires_grad = True
 
     return  params
 
-def create_filters_params(J, L, is_scattering_dif, device):
+def create_filters_params(J, L, is_scattering_dif, pixelwise, device):
     """ Create reusable tight frame initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
@@ -191,7 +202,8 @@ def create_filters_params(J, L, is_scattering_dif, device):
     orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
 
     params = [orientations, xis, sigmas, slants]
-    if is_scattering_dif:
+
+    if is_scattering_dif and not pixelwise:
         for param in params:
             param.requires_grad = True
     return  params

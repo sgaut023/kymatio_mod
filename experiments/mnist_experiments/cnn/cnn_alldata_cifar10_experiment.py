@@ -1,4 +1,5 @@
-"""SN+CNN 1000 samples Cifar-10
+"""SN+CNN All Data Cifar-10
+
 """
 
 import os
@@ -10,11 +11,11 @@ import numpy as np
 
 from multiprocessing import Process
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 2
 
-mlflow_exp_name = "\"SN+CNN 1000 samples Cifar-10 PIXELWISE = 1\""
+mlflow_exp_name = "\"SN+CNN All Data Cifar-10\""
 
-PYTHON = '/home/alseneracil/.conda/envs/parametricSN/bin/python'
+PYTHON = '/home/benjamin/venv/torch11/bin/python'
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.1
@@ -25,20 +26,21 @@ DF = 25
 THREE_PHASE = 1
 SEED = int(time.time() * np.random.rand(1))
 LEARNABLE = 1
-EPOCHS = 1000
+EPOCHS = 500
 INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 1000
-TRAIN_BATCH_SIZE = 128
+TRAIN_SAMPLE_NUM = 50000
+TRAIN_BATCH_SIZE = 1024
 AUGMENT = "autoaugment"
 MODEL = "cnn"
 PHASE_ENDS = " ".join(["100","200"])
+SCATT_ARCH = 'scattering'
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
-PIXELWISE = 1
+
 
 def runCommand(cmd):
     print("[Running] {}".format(cmd))
@@ -77,8 +79,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -spw {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS, PIXELWISE
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -slrs {} -slro {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,LRS,LRO
             )
 
             command = "{} {} run-train {} {} {} {}".format(

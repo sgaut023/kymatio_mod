@@ -22,6 +22,8 @@ dataset:
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
   glico: 0
+  num_channels: 3
+
 
 # kymatio 
 scattering:
@@ -36,6 +38,7 @@ scattering:
   # div_factor: 25
   # three_phase: Falsde
   architecture: 'scattering'
+  pixelwise: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']
