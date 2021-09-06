@@ -1,214 +1,175 @@
-Kymatio: Wavelet scattering in Python
-======================================
+ Welcome to Parametric Scattering Networks
+==============================
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10-2)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10-2?p=parametric-scattering-networks)
+                                                              [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/parametric-scattering-networks/small-data-image-classification-on-cifar-10)](https://paperswithcode.com/sota/small-data-image-classification-on-cifar-10?p=parametric-scattering-networks)
+                                                              
+This repository contains the code for [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539). It also contains code to run and test new hybrid architectures for the small sample regime. 
 
-Kymatio is an implementation of the wavelet scattering transform in the Python programming language, suitable for large-scale numerical experiments in signal processing and machine learning.
-Scattering transforms are translation-invariant signal representations implemented as convolutional networks whose filters are not learned, but fixed (as wavelet filters).
-
-[![PyPI](https://img.shields.io/badge/python-3.5%2C%203.6%2C%203.7-blue.svg)](https://pypi.org/project/kymatio/)
-[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Build Status](https://travis-ci.org/kymatio/kymatio.svg?branch=master)](https://travis-ci.org/kymatio/kymatio)
-[![Downloads](https://pepy.tech/badge/kymatio)](https://pepy.tech/project/kymatio)
-[![codecov](https://codecov.io/gh/kymatio/kymatio/branch/master/graph/badge.svg)](https://codecov.io/gh/kymatio/kymatio)
+100 Sample CIFAR-10 Challenge
+----------------
 
 
-Use Kymatio if you need a library that:
-* supports 1-D, 2-D, and 3-D wavelets,
-* integrates wavelet scattering in a deep learning architecture, and
-* runs seamlessly on CPU and GPU hardware, with major deep learning APIs, such
-  as PyTorch and TensorFlow.
-
-# The Kymatio environment
-
-## Flexibility
-
-The Kymatio organization associates the developers of several pre-existing packages for wavelet scattering, including `ScatNet`, `scattering.m`, `PyScatWave`, `WaveletScattering.jl`, and `PyScatHarm`.
-
-The resort to PyTorch tensors as inputs to Kymatio allows the programmer to backpropagate the gradient of wavelet scattering coefficients, thus integrating them within an end-to-end trainable pipeline, such as a deep neural network.
-
-## Portability
-
-Each of these algorithms is written in a high-level imperative paradigm, making it portable to any Python library for array operations as long as it enables complex-valued linear algebra and a fast Fourier transform (FFT).
-
-Each algorithm comes packaged with a frontend and backend. The frontend takes care of
-interfacing with the user. The backend defines functions necessary for
-computation of the scattering transform.
-
-Currently, there are eight available frontend–backend pairs, NumPy (CPU), scikit-learn (CPU), pure PyTorch (CPU and GPU), PyTorch<=1.7 (CPU and GPU), PyTorch+scikit-cuda (GPU), PyTorch<=1.7+scikit-cuda (GPU), TensorFlow (CPU and GPU), and Keras (CPU and GPU).
-
-## Scalability
-
-Kymatio integrates the construction of wavelet filter banks in 1D, 2D, and 3D, as well as memory-efficient algorithms for extracting wavelet scattering coefficients, under a common application programming interface.
-
-Running Kymatio on a graphics processing unit (GPU) rather than a multi-core conventional central processing unit (CPU) allows for significant speedups in computing the scattering transform.
-The current speedup with respect to CPU-based MATLAB code is of the order of 10 in 1D and 3D and of the order of 100 in 2D.
-
-We refer to our [official benchmarks](https://www.kymat.io/userguide.html#benchmarks) for further details.
-
-## How to cite
-
-If you use this package, please cite the following paper:
-
-Andreux M., Angles T., Exarchakis G., Leonarduzzi R., Rochette G., Thiry L., Zarka J., Mallat S., Andén J., Belilovsky E., Bruna J., Lostanlen V., Hirn M. J., Oyallon E., Zhang S., Cella C., Eickenberg M. (2019). Kymatio: Scattering Transforms in Python. arXiv preprint arXiv:1812.11214. [(paper)](https://arxiv.org/abs/1812.11214)
-
-# Installation
-
-
-## Dependencies
-
-Kymatio requires:
-
-* Python (>= 3.5)
-* SciPy (>= 0.13)
-
-
-### Standard installation (on CPU hardware)
-We strongly recommend running Kymatio in an Anaconda environment, because this simplifies the installation of other
-dependencies. You may install the latest version of Kymatio using the package manager `pip`, which will automatically download
-Kymatio from the Python Package Index (PyPI):
+When combined in with a wide residual network, our learnable scattering networks define the SOTA for 100 sample CIFAR-10 accuracy. We would like to invite any and all researchers who believe they can improve on our results to try and do so using this repository. To obtain comparable results when subsampling from such a large training set, it is important to use the same seeds and to control for deterministic computations. Our repository does both. By running the ```competition/cifar-10_100sample.py``` script, users can generate our state of the art result on CIFAR-10. The results will automatically be logged to mlflow. By modifying the same script and corresponding code under ```parametricSN/```, users can insert their own architectures.
 
 ```
-pip install kymatio
+cd /path/to/repository/ParametericScatteringNetworks
+pyton competition/cifar-10_100sample.py
 ```
 
-Linux and macOS are the two officially supported operating systems.
+<!--- 
+![Screen Shot 2021-08-09 at 9 39 37 AM](https://user-images.githubusercontent.com/23482039/128716737-95fe42fa-32b7-4234-bc63-7d500a092636.png)
+[Screen Shot 2021-08-09 at 9 49 14 AM](https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png) 
+
+---> 
+Explore The Mortlet Wavelet Filters we Optimize
+------------
+
+<p align="center">
+(left) Filters in the fourier domain (middle) Real part of the filters (right) Imaginary part of the filters
+ </p>
+ <p align="center">
+<img src="gifs/scatteringFilterProgressionFourier500epochs.gif" width="225" height="225">            <img src="gifs/scatteringFilterProgressionReal500epochs.gif" width="225" height="225">                <img src="gifs/scatteringFilterProgressionImag500epochs.gif" width="225" height="225">      
+</p>
 
 
-# Frontend
+The above gifs visually depict the optimizaiton of our scattering network's morlet wavelet filters. Each frame corresponds to one batch gradient descent step using a 1000 sample subset of CIFAR-10 for training. For instance, the 30th frame corresponds to the positions of the filters after 30 steps of batch gradient descent. The filters were initialized from a tight-frame.
 
-## NumPy
 
-To explicitly call the `numpy` frontend, run:
 
+
+You can use the following notebook to explore the parameters used to create the filters.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/sgaut023/kymatio_mod/blob/master/parametricSN/notebooks/FilterParamsEffectColab.ipynb)
+
+Get Setup
+------------
+
+Start by cloning the repository
 ```
-from kymatio.numpy import Scattering2D
-scattering = Scattering2D(J=2, shape=(32, 32))
-```
-
-## Scikit-learn
-
-After installing the latest version of scikit-learn, you can call `Scattering2D` as a `Transformer` using:
-
-```
-from kymatio.sklearn import Scattering2D
-
-scattering_transformer = Scattering2D(2, (32, 32))
-```
-
-## PyTorch
-
-After installing the latest version of PyTorch, you can call `Scattering2D` as a `torch.nn.Module` using:
-
-```
-from kymatio.torch import Scattering2D
-
-scattering = Scattering2D(J=2, shape=(32, 32))
+git clone https://github.com/bentherien/ParametricScatteringNetworks
 ```
 
-## TensorFlow
-
-After installing the latest version of TensorFlow, you can call `Scattering2D` as a `tf.Module` using:
-
-```
-from kymatio.tensorflow import Scattering2D
-
-scattering = Scattering2D(J=2, shape=(32, 32))
-```
-
-## Keras
-
-Alternatively, with TensorFlow installed, you can call `Scattering2D` as a Keras `Layer` using:
+PIP
+-----
 
 ```
-from tensorflow.keras.layers import Input
-from kymatio.keras import Scattering2D
-
-inputs = Input(shape=(32, 32))
-scattering = Scattering2D(J=2)(inputs)
-```
-
-# Installation from source
-
-Assuming the Kymatio source has been downloaded, you may install it by running
-
-```
-pip install -r requirements.txt
-python setup.py install
-```
-
-Developers can also install Kymatio via:
-
-```
-pip install -r requirements.txt
-python setup.py develop
+python3 -m venv parametricSN
+source parametricSN/bin/activate
+pip install -r ParametricScatteringNetworks/dependencies/pip_requirements.txt
 ```
 
 
-## GPU acceleration
+Conda
+------
+Prerequisites
+- Anaconda/Miniconda 
 
-Certain frontends, `numpy` and `sklearn`, only allow processing on the CPU and are therefore slower. The `torch`, `tensorflow`, and `keras` frontends, however, also support GPU processing, which can significantly accelerate computations. Additionally, the `torch` backend supports an optimized `skcuda` backend which currently provides the fastest performance in computing scattering transforms. In 2D, it may be instantiated using:
+To create the `parametricSN` conda environment, enter the following in the command prompt: 
+```
+conda env create -f dependencies/environment.yml
+```
+To active the `parametricSN` conda environment, enter the following: 
+```
+conda activate parametricSN
+```
+Datasets
+------------
+Our empirical evaluations are based on three image datasets, illustrated in the Figure below. We subsample each dataset at various sample sizes in order to showcase the performance of scattering-based architectures in the small data regime. CIFAR-10 and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) are natural image and texture recognition datasets (correspondingly). They are often used as general-purpose benchmarks in similar image analysis settings. [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2) is a dataset of X-ray scans for COVID-19 diagnosis; its use here demonstrates the viability of our parametric scattering approach in practice, e.g., in medical imaging applications.
+
+<p align="center">
+ <img src="https://user-images.githubusercontent.com/23482039/128716927-e73247a1-5423-4408-bea5-06fecfbd8396.png" width="400" height="240"> 
+</p>
+
+Experiments
+------------
+All experiments from [Parameteric Scattering Networks](https://arxiv.org/abs/2107.09539) can be reproduced using the scripts in the experiments folder. For instance, the following command will run our Scattering+LinearLayer 100 sample CIFAR-10 experiment. 
+```
+python parametricSN/experiments/cifar/ll/ll_100sample_cifar10_experiment.py
+```
+Running experiments on the [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) dataset can be done similarly.
+```
+python parametricSN/experiments/kth/ll_kth_sample-experiment.py
+```
+For [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)
+```
+python parametricSN/experiments/xray/ll/ll_100sample_xray_experiment.py
+```
+All the results and plots are automatically saved in MLflow. 
+
+Evaluating Robustness to Deformation
+--------------
+In [previous work](https://www.di.ens.fr/~mallat/papiers/ScatCPAM.pdf)(Section 2.5), the scattering transform has been shown to be robust to small deformations. We have created an experiment to test the empirical validity of this theorem for trained parameteric scattering networks (fixed or learnable). To compare different models, the user must first train them on the dataset of interest (using our scripts under the experiments folder) with the 'model' 'save' variable set to True. Once different models have been trained, comparing their deformantion stability is simple: just provide the paths to the desired model's mlflow artifacts (E.G. ```"/ParametricScatteringNetworks/mlruns/1/03f1f015288f47dc81d0529b23c25bf1/artifacts/model"```) to our deformantion script. In this way, multiple different models can be compared:
 
 ```
-from kymatio.torch import Scattering2D
-
-scattering = Scattering2D(J=2, shape=(32, 32), backend='torch_skcuda')
+python parametricSN/evaluate_deformed_representation.py <artifact_path1> <artifact_path2>
 ```
 
-This is particularly useful when working with large images, such as those in ImageNet, which are of size 224×224.
-
-## PyTorch and scikit-cuda
-
-To run Kymatio on a graphics processing unit (GPU), you can either use the PyTorch-style `cuda()` method to move your
-object to GPU. Kymatio is designed to operate on a variety of backends for tensor operations. For extra speed, install
-the CUDA library and the `skcuda` dependency by running the following pip command:
-
-```
-pip install scikit-cuda cupy
-```
-
-The user may control the choice of backend at runtime via for instance:
-
-```
-from kymatio.torch import Scattering2D
-scattering = Scattering2D(J=2, shape=(32, 32)), backend='torch_skcuda')
-```
-
-# Documentation
-
-The documentation of Kymatio is officially hosted on the [kymat.io](https://www.kymat.io/) website.
+The resulting figures will automatically be logged to mlflow. Below is an example of the script's output for 4 models using the rotation deformation. The figures show, in order, (x) the image before the deformation, (x_tilde) the image after the deformation (visualized at its most deformed point), and the plot of the defomation strength (x-axis) and the distance betweren s(x) and s(x_tilde) normalized by s(x) where s is the scattering transform (y-axis). The horizontal lines are a baseline that indicate the average distance for 50 images between s(x) and s(random_im) normalized by s(x) where random_im is a randomly chosen image from the dataset.
+ 
+ 
+<p align="center">
+<img src="https://user-images.githubusercontent.com/83732761/129376277-14ee903a-c336-412a-b56e-569189824fe0.png" width="225" height="225">            <img src="https://user-images.githubusercontent.com/83732761/129376313-75f93f87-fa29-4b77-a54b-ad8f4072a71f.png" width="225" height="225">                <img src="https://user-images.githubusercontent.com/83732761/129376330-c627cc8f-05ca-4e1a-b71f-d77d393155fa.png" width="225" height="225">      
+</p>
 
 
-## Online resources
+Results
+------------
+We consider hybrid architectures somewhat inspired by [Edouard Oyallon et al.](https://arxiv.org/abs/1809.06367), where scattering is combined with a Wide Residual Network (WRN), and another simpler one, denoted LL, where scattering is followed by a linear model. We compare learned parametric scattering networks (LS) to fixed ones (S), for both random (Rand) and tight frame (TF) initializations. We also compare our approach to a fully learned WRN. Our evaluations are based on three image datasets: CIFAR-10, COVIDx CRX-2 and KTH-TIPS2. For CIFAR-10, the training set is augmented with pre-specified autoaugment. The Table below reports the results with J=2. Learnable scattering with tight frame configuration improves performance for all architectures, showing benefits for small sample sizes. Randomly-initialized scattering can reach similar performance to tight frame after optimization.
+| Init. | Arch.           | 100 samples             | 500 samples             | 1000 samples            | All                                           |
+|-------|-----------------|-------------------------|-------------------------|-------------------------|-----------------------------------------------|
+| TF    | LS+LL           | 37.84±0.57              | 52.68±0.31              | 57.43±0.17              | 69.57±0.1                                     |
+| TF    | S +LL           | 36.01±0.55              | 48.12±0.25              | 53.25± 0.24             | 65.58±0.04                                    |
+| Rand  | LS+LL           | 34.81±0.6               | 49.6±0.39               | 55.72±0.39              | 69.39±0.41                                    |
+| Rand  | S +LL           | 29.77±0.47              | 41.85±.41               | 46.3±0.37               | 57.72±0.1                                     |
+| TF    | LS+WRN          | 43.60±0.87              | 63.13±0.29             | 70.14±0.26              | 93.61±0.12                                    |
+| TF    | S +WRN          | 43.16±0.78              | 61.66±0.32              | 68.16±0.27              | 92.27±0.05                                    |
+| Rand  | LS+WRN          | 41.42±0.65              | 59.84±0.40              | 67.4±0.28               | 93.36±0.19                                    |
+| Rand  | S +WRN          | 32.08±0.46              | 46.84±0.21              | 52.76±0.33              | 85.35±1.06                                    |
+|       | WRN             | 38.78±0.72              | 62.97± 0.41             | 71.37±0.31              | [95.7](https://arxiv.org/abs/1809.06367)
 
-* [GitHub repository](https://github.com/kymatio/kymatio)
-* [GitHub issue tracker](https://github.com/kymatio/kymatio/issues)
-* [BSD-3-Clause license](https://github.com/kymatio/kymatio/blob/master/LICENSE.md)
-* [List of authors](https://github.com/kymatio/kymatio/blob/master/AUTHORS.md)
-* [Code of conduct](https://github.com/kymatio/kymatio/blob/master/CODE_OF_CONDUCT.md)
+Table below reports our evaluation on [COVIDx CRX-2](https://www.kaggle.com/andyczhao/covidx-cxr2)  and [KTH-TIPS2](https://www.csc.kth.se/cvap/databases/kth-tips/credits.html) using J=3. For COVIDx CRX-2, we use the same evaluation protocol as CIFAR-10.  We observe that the WRN alone performs worse than the other architectures, demonstrating the effectiveness of the scattering prior in the small data regime. For KTH-TIPS2, following the [standard protocol](https://openaccess.thecvf.com/content_ICCV_2017/papers/Song_Locally-Transferred_Fisher_Vectors_ICCV_2017_paper.pdf), we train the model on one of the four physical samples of 11 different materials (1188 images), while the rest are used for testing. Out of all the WRN hybrid models, the random learnable model achieves the highest accuracy and is the only one to improve over its linear counterpart. 
+
+| Init. | Arch.           |XRAY-100 samples         | XRAY-500 samples        | XRAY-1000 samples      | KTH                     |
+|-------|-----------------|-------------------------|-------------------------|-------------------------|-------------------------|
+| TF    | LS+LL           | 74.80±1.65              | 83.10±0.84              | 84.58±0.79              | 66.83±0.94              |
+| TF    | S +LL           | 75.48±1.77              | 83.58±0.91              | 86.18±0.49              | 63.91±0.57              |
+| Rand  | LS+LL           | 73.15±1.35              | 82.33±1.1               | 84.73±0.59              | 65.98±0.73              |
+| Rand  | S +LL           | 74.25±0.86              | 82.53±0.76              | 85.43±0.51              | 60.42±0.34              |
+| TF    | LS+WRN          | 78.1±1.62               | 86.15±0.63              | 89.65±0.42              | 66.46±1.09              |
+| TF    | S +WRN          | 76.23±2                 | 86.5±0.66               | 89.13±0.36              | 63.77±0.59              |
+| Rand  | LS+WRN          | 74.86±1.22              | 84.15±0.79              | 87.63±0.55              | 67.35±0.51              |
+| Rand  | S +WRN          | 75.4±1.03               | 83.75±0.58              | 87.48±0.61              | 65.05±0.38              |
+|       | WRN             | 69.15±1.13              | 80.04±2.41              | 87.81±1.37              | $51.24±1.37             |
 
 
-## Building the documentation from source
-The documentation can also be found in the `doc/` subfolder of the GitHub repository.
-To build the documentation locally, please clone this repository and run
 
-```
-pip install -r requirements_optional.txt
-cd doc; make clean; make html
-```
+Project Organization
+------------
 
-## Support
+    ├── conf                     <- Configuration folder
+    ├── data                     <- Contains datasets - to create the different datasets please see section Datasets
+    ├── experiments        
+    │   ├── cifar                <- All scripts to reproduce cifar experiments.
+    |       ├── cnn              <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll               <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn          <- Scripts tp run all experiments of cnn without scattering priors.
+    │   ├── kth                  <- All scripts to reproduce KTH-TPIS2 experiments.
+    │   └── xray                 <- All scripts to reproduce Covidx CRX-2 experiments.
+    |       ├── cnn              <- Scripts tp run all experiments of hybrid sacttering + cnn.
+    |       ├── ll               <- Scripts tp run all experiments of hybrid sacttering + linear layer.
+    |       └── onlycnn          <- Scripts tp run all experiments of cnn without scattering priors.
+    ├── kymatio                  <- Folder copied from: https://github.com/kymatio/kymatio.
+    ├── parametricSN 
+    │   ├── data_loading         <- Wrapper for subsampling the cifar-10, KTH-TIPS2 and Covidx CRX-2 based on given input.
+    │   ├── models               <- Contains all the  pytorch NN.modules for this project.
+    │   └── notebooks            <- Jupyter notebooks.
+    │   └── training             <- Contains train and test functions.
+    │   └── utils                <- Helpers Functions.
+    │   └── main.py              <- Source code.
+    ├── Dependencies 
+    │   └── environment.yml      <- The conda environment file for reproducing the analysis environment.
+    |   └── pip_requirements.yml <- The pip requirements file.
+    ├── mlruns                   <- All the experiment results are automatically saved in this folder. 
+    
+    
 
-We wish to thank the Scientific Computing Core at the Flatiron Institute for the use of their computing resources for testing.
 
-<a href="https://www.flatironinstitute.org/"><img src="https://itensor.org/flatiron_logo.png" height="100"></a>
-
-We would also like to thank École Normale Supérieure for their support.
-
-[![ENS](https://www.ens.fr/sites/default/files/inline-images/logo.jpg)](https://www.ens.fr/)
-
-## Kymatio
-
-Kyma (*κύμα*) means *wave* in Greek. By the same token, Kymatio (*κυμάτιο*) means *wavelet*.
-
-Note that the organization and the library are capitalized (*Kymatio*) whereas the corresponding Python module is written in lowercase (`import kymatio`).
-
-The recommended pronunciation for Kymatio is *kim-ah-tio*. In other words, it rhymes with patio, not with ratio.

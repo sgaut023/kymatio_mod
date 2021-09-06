@@ -1,53 +1,61 @@
 #data preprocessing:
 general:
-  cores: 4
-  seed:    # seed for dataset subselection and random initialization
+  cores: 2
+  seed:  # seed for dataset subselection and random initialization
+  save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/gauthiers/kymatio_mod/mlruns_shanel/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'Test'
+  tracking_uri: 
+  experiment_name: 'KTH Experiments'
 
 dataset:
   name: 'KTH' # choices=['cifar', 'kth', 'x-ray']
   num_classes: 11
   train_batch_size: 128
-  test_batch_size: 592
+  test_batch_size: 128
   train_sample_num: 1188  #total train samples
   test_sample_num: 3564
-  data_root: '/NOBACKUP/gauthiers/'
-  data_folder: 'KTH'
-  height:  64   # ultrasound image dimension
-  width:  64   # ultrasound image dimension
+  data_root: 
+  data_folder: 
+  height: 128 
+  width:  128 
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
-  sample: 'c'
+  sample: 'd'
 
 # kymatio 
 scattering:
-  J: 2
+  J: 4
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
-  init_params: 'Random' # 'Random' or 'Kymatio'
+  init_params: 'Tight-Frame' # 'Tight-Frame' or 'Random'
   learnable: True # True if learnable
+  second_order: False
+  architecture: 'scattering'
+  filter_video: False
+  param_distance: False
 
 optim: 
-  name: 'sgd' #choices=['adam', 'sgd']
-  lr: 0.1
+  name: 'sgd' #choices=['adam', 'dsgd']
+  lr: 0.1 
   weight_decay: 0.0005
   momentum: 0.9
-  max_lr: 0.07 #highest lr we can
-  scheduler: 'OneCycleLR' #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
-  div_factor: 20 # so far, best results with 25 and maxlr = 0.05
-  three_phase: False 
-  phase_num:
-  alternating: True
+  max_lr: 0.001 #highest lr we can
+  scheduler: 'OneCycleLR'  #choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler']
+  div_factor: 25 # so far, best results with 25 and maxlr = 0.05
+  three_phase: False
+  phase_num: 3
+  alternating: False
   T_max: 
+  phase_ends: #["50", "100", "200"]
 
 model:
-  name: 'cnn' # choices=['cnn', 'mlp', 'linear_layer']
+  name: 'linear_layer' # choices=['c', 'mlp', 'linear_layer']
   width: 8   # width factor for resnet
-  epoch: 5
+  epoch: 1
   step_test: 25
+  loss: 'cross-entropy' # choices=['cross-entropy', 'cosine']
+  save: False
   
 
 

@@ -3,10 +3,12 @@
 #find . -name *.pth 
 #find . -name *.pth -delete
 *.pth
+mlruns/*
+videos/*
 runs_ben/*
 
-
 #custom Shanel
+.vscode/*
 *.swp
 *.swo
 *__pycache__*
@@ -23,12 +25,7 @@ doc/source/gallery_2d
 doc/source/gallery_3d
 .coverage
 
-/data/02_interim/
-/data/03_features/
-/data/01_raw/raw_images/
-/src/kymatio/
-
-
+/data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
