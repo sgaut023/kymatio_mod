@@ -18,23 +18,27 @@ Functions:
 
 import random
 import torch
+import math
 import time
 import mlflow
 import os
 import yaml
 import sys
+import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from multiprocessing import Process
 from pathlib import Path 
 
 sys.path.append(str(Path.cwd()))
 
+from parametricSN.models.models_utils import compareParams
+
 def get_context(parameters_file, full_path = False):
-    """ Read yaml file that contains experiment parameters and 
-        read second yaml file that contains paths. 
-        Create dictionnaries from the two yaml files.         
+    """ Read yaml file that contains experiment parameters.
+        Create dictionnaries from the yaml file.         
         
         Parameters:
             parameters_file -- the name of yaml file that contains the parameters
@@ -42,7 +46,6 @@ def get_context(parameters_file, full_path = False):
             full_path       -- boolean that indicates if parameters_file is the name 
                                 of the yaml file or the full path  
         Returns:
-            catalog         -- dictionnary that contains paths
             params          -- dictionnary that contains experiment parameters
     """
     current_dir = Path.cwd()
@@ -52,12 +55,9 @@ def get_context(parameters_file, full_path = False):
         params_path = parameters_file
     else:
         params_path = os.path.join(proj_path, f'conf/{parameters_file}')
-    catalog_path = os.path.join(proj_path, 'conf/data_catalog.yml')
-    with open(catalog_path, "r") as f:
-        catalog = yaml.safe_load(f)
     with open(params_path, "r") as f:
         params = yaml.safe_load(f)     
-    return catalog, params
+    return params
 
 
 def visualize_loss(loss_train ,loss_test, step_test = 10, y_label='loss'):
@@ -159,9 +159,9 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         params               -- the parameters passed to the program
         model                -- the hybrid model used during training 
         test_acc             -- list of test accuracies over epochs
-        test_loss            --  list of test losses over epochs
-        train_acc            --  list of train accuracies over epochs
-        train_loss           --  list of train losses over epochs
+        test_loss            -- list of test losses over epochs
+        train_acc            -- list of train accuracies over epochs
+        train_loss           -- list of train losses over epochs
         start_time           -- the time at which the current run was started 
         filters_plots_before -- plots of scattering filter values before training 
         filters_plots_after  -- plots of scattering filter values after training 
@@ -169,11 +169,18 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     """
 
     duration = (time.time() - start_time)
+    if params['mlflow']['tracking_uri'] is None:
+        tracking_uri_folder = Path(os.path.realpath(__file__)).parent.parent.parent/'mlruns'
+        try:
+            tracking_uri_folder.mkdir(parents=True, exist_ok= True)
+        except:
+            pass
+        params['mlflow']['tracking_uri'] = 'sqlite:///'+ str(tracking_uri_folder/'store.db')
+    
     mlflow.set_tracking_uri(params['mlflow']['tracking_uri'])
     mlflow.set_experiment(params['mlflow']['experiment_name'])
 
     with mlflow.start_run():
-        #metrics = {'AVG- ' + str(key): val for key, val in metrics.items()}
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
         mlflow.log_params(rename_params('dataset', params['dataset']))
@@ -206,14 +213,17 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
 
         mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
         mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
-        mlflow.log_figure(misc_plots[8], f'learnable_parameters/wavelet_distance.pdf')
+
+        if params['scattering']['param_distance']: 
+            mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization.pdf')
+
 
         # saving all accuracies
         log_csv_file('test_acc.csv', test_acc)
         log_csv_file('train_acc.csv', train_acc)
         log_csv_file('test_loss.csv', test_loss)
         log_csv_file('train_loss.csv', train_loss)
-        print(f"finish logging{params['mlflow']['tracking_uri']}")
+        print(f"finished logging to {params['mlflow']['tracking_uri']}")
 
 
 def override_params(args, params):
@@ -272,3 +282,91 @@ def estimateRemainingTime(trainTime, testTime, epochs, currentEpoch, testStep):
     ))
 
     return remainingTotal
+
+
+
+
+def experiments_cli():
+    """CLI arguments for experiments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-root", "-dr", type=str)
+    parser.add_argument("--data-folder", "-df", type=str)
+    parser.add_argument("--python", "-p", type=str)
+
+    args = parser.parse_args()
+
+    if args.data_root != None and args.data_folder != None:
+        DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
+    else:
+        DATA_ARG = ""
+
+    return sys.executable, DATA_ARG
+
+
+def experiments_runCommand(cmd):
+    """runs one command"""
+    print("[Running] {}".format(cmd))
+    os.system(cmd)
+
+
+def experiments_mpCommands(processBatchSize, commands):
+    """runs commands in parallel"""
+    processes = [Process(target=experiments_runCommand,args=(commands[i],)) for i,cmd in enumerate(commands)]
+    processBatches = [processes[i*processBatchSize:(i+1)*processBatchSize] for i in range(math.ceil(len(processes)/processBatchSize))]
+
+    for i,batch in enumerate(processBatches):
+        print("Running process batch {}".format(i))
+        startTime = time.time()
+
+        for process in batch:
+            process.start()
+            time.sleep(5)
+
+        for process in batch:
+            process.join()
+
+        print("\n\nRunning Took {} seconds".format(time.time() - startTime))
+        time.sleep(1)
+
+
+def logComparison(mlflow_exp_name):
+
+    device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    paramsTF = torch.load(os.path.join('/tmp',"{}_{}.pt".format('Tight-Frame',mlflow_exp_name.strip("\""))))
+    paramsRand = torch.load(os.path.join('/tmp',"{}_{}.pt".format('Random',mlflow_exp_name.strip("\""))))
+
+    param_distance = []
+    for i in range(len(paramsTF)):
+        param_distance.append(
+            compareParams(
+            params1=paramsTF[i]['params'],
+            angles1=paramsTF[i]['angle'], 
+            params2=paramsRand[i]['params'],
+            angles2=paramsRand[i]['angle'],
+            device=device
+            )
+        )
+
+    paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Distance',
+        title='TF and Randomly intialized parameters distances from one another as they are optimized', label='Distance',
+        xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
+
+
+    temp = str(os.path.join(os.getcwd(),'mlruns'))
+    if not os.path.isdir(temp):
+        os.mkdir(temp)
+
+    mlflow.set_tracking_uri('sqlite:///' + os.path.join(temp,'store.db'))
+    mlflow.set_experiment(mlflow_exp_name.strip("\""))
+
+
+    with mlflow.start_run(run_name='filter comparison'):
+        mlflow.log_figure(paramDistancePlot, 'learnable_parameters/param_distance.pdf')
+        print(f"finished logging to {'sqlite:///' + os.path.join(temp,'store.db')}")
+
+    os.system('rm {}'.format(os.path.join('/tmp',"{}_{}.pt".format('Tight-Frame',mlflow_exp_name))))
+    os.system('rm {}'.format(os.path.join('/tmp',"{}_{}.pt".format('Random',mlflow_exp_name))))
+
+
+

@@ -14,7 +14,6 @@ Classes:
     Resnet50       --Pretrained resnet-50 on ImageNet
 """
 
-from numpy.core.numeric import False_
 from torchvision import models
 
 import torch.nn as nn

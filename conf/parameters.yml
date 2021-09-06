@@ -5,9 +5,8 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////home/mila/l/laurent.alsene-racicot/kymatio_mod/runs_laurent/mlruns/store.db'  
-  #tracking_uri: "sqlite:////home/mila/b/benjamin.therien/github/kymatio_mod/runs_ben/mlruns/store.db" #'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db'  # 'sqlite:////home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns/store.db' # '/home/benjamin/Documents/github/kymatio_mod/runs_ben/mlruns' #'/NOBACKUP/gauthiers/kymatio_mod/mlruns'
-  experiment_name: 'test2'
+  tracking_uri: "/home/mila/l/laurent.alsene-racicot/kymatio_mod/runs_laurent/mlruns/store.db"
+  experiment_name: 'Cifar Experiment'
 
 dataset:
   name: 'cifar' # choices=['cifar', 'kth', 'x-ray']
@@ -16,13 +15,12 @@ dataset:
   test_batch_size: 512
   train_sample_num: 100  #total train samples
   test_sample_num: 10000
-  data_root: #'/home/gauthiers/kymatio_datasets/'
-  data_folder: 'CIFAR'
-  height:  32   # ultrasound image dimension
-  width:  32   # ultrasound image dimension
+  data_root: 
+  data_folder: 
+  height:  32   
+  width:  32  
   augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
-  glico: 0
   accum_step_multiple: 128
 # kymatio 
 
@@ -35,7 +33,8 @@ scattering:
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
-
+  filter_video: True
+  param_distance: True
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
