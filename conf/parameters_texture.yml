@@ -21,8 +21,8 @@ dataset:
   width:  128 
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 'd'
+  num_channels: 3
 
-# kymatio 
 scattering:
   J: 4
   max_order: 2
@@ -34,6 +34,7 @@ scattering:
   architecture: 'scattering'
   filter_video: False
   param_distance: False
+  pixelwise: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']

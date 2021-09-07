@@ -24,11 +24,7 @@ import math
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
-from parametricSN.utils.helpers import get_context, visualize_loss
-from parametricSN.utils.helpers import visualize_learning_rates
-from parametricSN.utils.helpers import  log_mlflow, getSimplePlot
-from parametricSN.utils.helpers import  override_params, setAllSeeds
-from parametricSN.utils.helpers import estimateRemainingTime
+from parametricSN.utils.helpers import get_context, visualize_loss, visualize_learning_rates, log_mlflow, getSimplePlot, override_params, setAllSeeds, estimateRemainingTime
 from parametricSN.utils.optimizer_factory import optimizerFactory
 from parametricSN.utils.scheduler_factory import schedulerFactory
 from parametricSN.data_loading.dataset_factory import datasetFactory
@@ -69,7 +65,7 @@ def run_train(args):
 
     params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
-
+    
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
@@ -93,20 +89,23 @@ def run_train(args):
         second_order=params['scattering']['second_order'],
         initialization=params['scattering']['init_params'],
         seed=params['general']['seed'],
+        num_channels=params['dataset']['num_channels'],
         learnable=params['scattering']['learnable'],
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
+        pixelwise=params['scattering']['pixelwise'],
         filter_video=params['scattering']['filter_video'],
         device=device,
         use_cuda=use_cuda
     )
-
+    
     setAllSeeds(seed=params['general']['seed'])
     
     top = topModelFactory( #create cnn, mlp, linearlayer, or other
         base=scatteringBase,
         architecture=params['model']['name'],
-        num_classes=params['dataset']['num_classes'], 
+        num_classes=params['dataset']['num_classes'],
+        num_channels=params['dataset']['num_channels'],
         width= params['model']['width'], 
         use_cuda=use_cuda
     )
@@ -132,6 +131,11 @@ def run_train(args):
         scheduler = schedulerFactory(optimizer=optimizer, params=params, steps_per_epoch=len(train_loader))
         steppingSize = None
 
+    
+    # if params['optim']['alternating']:
+    #     optimizer.scheduler = scheduler
+
+
     test_acc = []
     start_time = time.time()
     train_losses, test_losses , train_accuracies = [], [], []
@@ -154,10 +158,23 @@ def run_train(args):
         hybridModel.scatteringBase.setEpoch(epoch)
 
         try:
-            lrs.append(optimizer.param_groups[0]['lr'])
-            if params['scattering']['learnable']:
-                lrs_orientation.append(optimizer.param_groups[1]['lr'])
-                lrs_scattering.append(optimizer.param_groups[2]['lr'])
+            if params['optim']['alternating']:
+                if optimizer.phase % 2 == 0:
+                    lrs.append(optimizer.param_groups[0]['lr'])
+                    if params['scattering']['learnable']:
+                        lrs_orientation.append(0)
+                        lrs_scattering.append(0)
+                else:
+                    lrs.append(0)
+                    if params['scattering']['learnable']:
+                        lrs_orientation.append(optimizer.param_groups[0]['lr'])
+                        lrs_scattering.append(optimizer.param_groups[1]['lr'])
+
+            else:
+                lrs.append(optimizer.param_groups[0]['lr'])
+                if params['scattering']['learnable']:
+                    lrs_orientation.append(optimizer.param_groups[1]['lr'])
+                    lrs_scattering.append(optimizer.param_groups[2]['lr'])
         except Exception:
             pass
         
@@ -225,7 +242,6 @@ def run_train(args):
         filters_plots_after = None
         filters_values = None
         filters_grad = None
-        filters_parameters = None
 
     log_mlflow(
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
@@ -252,7 +268,7 @@ def main():
     subparser.add_argument("--mlflow-tracking-uri", "-turi", type=str)
     subparser.add_argument("--mlflow-experiment-name", "-en", type=str)
     #dataset
-    subparser.add_argument("--dataset-name", "-dname", type=str, choices=['cifar', 'kth', 'x-ray'])
+    subparser.add_argument("--dataset-name", "-dname", type=str, choices=['cifar', 'kth', 'x-ray','mnist'])
     subparser.add_argument("--dataset-num-classes", "-dnc", type=int)
     subparser.add_argument("--dataset-train-batch-size", "-dtbs", type=int)
     subparser.add_argument("--dataset-test-batch-size", "-dtstbs", type=int)
@@ -277,12 +293,13 @@ def main():
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-pixelwise", "-spw", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
 
 
     #optim
-    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
+    subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
     subparser.add_argument("--optim-weight-decay", "-owd", type=float)
     subparser.add_argument("--optim-momentum", "-omo", type=float)
@@ -290,6 +307,7 @@ def main():
     subparser.add_argument("--optim-div-factor", "-odivf", type=int)
     subparser.add_argument("--optim-three-phase", "-otp", type=int, choices=[0,1])
     subparser.add_argument("--optim-scheduler", "-os", type=str, choices=['CosineAnnealingLR','OneCycleLR','LambdaLR','StepLR','NoScheduler'])    
+    subparser.add_argument("--optim-alternating", "-oalt", type=int, choices=[0,1])
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
     subparser.add_argument("--optim-phase-ends", "-ope", nargs="+", default=None)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
@@ -299,7 +317,7 @@ def main():
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)
-    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy','cross-entropy-accum'])
+    subparser.add_argument("--model-loss", "-mloss", type=str, choices=['cosine', 'cross-entropy','cross-entropy-accum','hinge'])
     subparser.add_argument("--model-save", "-msave", type=int, choices=[0,1])
 
     subparser.add_argument('--param_file', "-pf", type=str, default='parameters.yml',
@@ -309,7 +327,8 @@ def main():
 
     for key in ['optim_three_phase','scattering_learnable',
                 'scattering_second_order','scattering_three_phase',
-                'scattering_filter_video','scattering_param_distance']:
+                'scattering_filter_video','scattering_param_distance',
+                'scattering_pixelwise']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

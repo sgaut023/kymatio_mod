@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 
+  tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'
   experiment_name: 'Xray Experiment'
 
 dataset:
@@ -22,6 +22,8 @@ dataset:
   augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample:
   accum_step_multiple: 128
+  num_channels: 3
+
 
 # kymatio 
 scattering:
@@ -35,6 +37,7 @@ scattering:
   architecture: 'scattering'
   filter_video: False
   param_distance: False
+  pixelwise: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']

@@ -60,8 +60,10 @@ def append_to_list(list1, list2, element1, element2):
     list1.append(element1)
     list2.append(element2)
 
-def apply_transformation(max_value, name, hybridModel, img, l2_norms, deformations, y, titles,  
-                        imgs_deformed, transform = None, device = None, num_points = 20):
+def apply_transformation(max_value, name, hybridModel, img, deformations, l2_norms, titles,
+                        imgs_deformed, transform = None, device = None, num_data = 15):
+                        
+                        
     """ Defines the transformation levels and calls compute_l2norm function 
             
         Parameters:
@@ -69,19 +71,19 @@ def apply_transformation(max_value, name, hybridModel, img, l2_norms, deformatio
             name -- name of the transformation
             hybridModel -- scattering model 
             img -- image without any transformation
-            l2_norms -- list of euclidien distance between scattering representations
             deformations -- list of deformation levels
+            l2_norms -- list of euclidien distance between scattering representations
             titles -- list of string (use to add the title for each plot)
             imgs_deformed -- list of deformed images (with maximal transformation level)
             transform -- torchvision transforms
             device -- device cuda or cpu
-            num_points -- number of transformation levels
+            num_data -- number of transformation levels
         
     """
-    if max_value > num_points:
-        deformation_levels = torch.arange(0,max_value, max_value/ num_points,dtype = int)
+    if max_value > num_data:
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data,dtype = int)
     else:
-        deformation_levels = torch.arange(0,max_value, max_value/ num_points )
+        deformation_levels = torch.arange(0,max_value, max_value/ num_data )
     
     l2_norm, deformation, img_deformed = compute_l2norm(hybridModel, name,img, deformation_levels,
                                                         transform, device)
@@ -111,54 +113,42 @@ def get_l2norm_deformation( model_path,  test_loader, img, device = None, num_da
 
     x, y, titles, transformation_names, imgs_deformed = [], [], [], [], []
     
-    # rotation
     transform = torchvision.transforms.RandomAffine(degrees=[0,0])
     apply_transformation(max_value = 10, name = "rotation", hybridModel = hybridModel, img = img,
-                         x=x,y=y,titles=titles,transformation_names=transformation_names, 
+                         deformations=x,l2_norms=y,titles=titles, 
                          imgs_deformed=imgs_deformed,transform = transform, device = device,
-                         num_data = 15)
+                         num_data = num_data)
     transformation_names.append("rotation")
 
-    # distortion
-    transform = torchvision.transforms.RandomPerspective(distortion_scale=0, p=1)
-    apply_transformation(max_value = 0.2, name = "distortion", hybridModel = hybridModel, img = img,
-                         x=x,y=y,titles=titles,transformation_names=transformation_names,
-                         imgs_deformed=imgs_deformed,transform = transform, device = device,
-                         num_data = 15)
-    transformation_names.append("distortion")
-
-    # shear
     transform = torchvision.transforms.RandomAffine(degrees = 0, shear= [0, 0])
-    apply_transformation(max_value = 10, name = "shear", hybridModel = hybridModel, img = img,
-                         x=x,y=y,titles=titles,transformation_names=transformation_names,
+    apply_transformation(max_value = 5, name = "shear", hybridModel = hybridModel, img = img,
+                         deformations=x,l2_norms=y,titles=titles,
                          imgs_deformed=imgs_deformed,transform = transform, device = device,
-                         num_data = 15)
+                         num_data = num_data)
     transformation_names.append("shear")
 
-
-    # Sharpness
     transform = torchvision.transforms.RandomAdjustSharpness(sharpness_factor=100, p=1)
-    apply_transformation(max_value = 50, name = "sharpness", hybridModel = hybridModel, img = img,
-                         x=x,y=y,titles=titles,transformation_names=transformation_names,
-                         imgs_deformed=imgs_deformed,transform = transform, device = device,
-                         num_data = 15)
-    transformation_names.append("sharpness")
     
-    # Horizontal translation
     height = params['dataset']['height'] 
     max_translate = int(height* 0.1)
     transform = torchvision.transforms.RandomAffine(degrees = 0, translate=[0,0])
     apply_transformation(max_value = max_translate, name = "translation", hybridModel = hybridModel, 
-                         img = img,x=x,y=y,titles=titles,transformation_names=transformation_names,
+                         img = img,deformations=x,l2_norms=y,titles=titles,
                          imgs_deformed=imgs_deformed,transform = transform, device = device,
-                         num_data = 15)
+                         num_data = num_data)
     transformation_names.append("translation")
 
-    # Mallat1
     apply_transformation(max_value = 1, name = "Mallat1", hybridModel = hybridModel, img = img,
-                         x=x,y=y,titles=titles,transformation_names=transformation_names,
+                         deformations=x,l2_norms=y,titles=titles,
                          imgs_deformed=imgs_deformed,transform = None, device = device,
-                         num_data = 15)
+                         num_data = num_data)
+    transformation_names.append("Mallat1")
+
+    apply_transformation(max_value = 1, name = "Mallat2", hybridModel = hybridModel, img = img,
+                         deformations=x,l2_norms=y,titles=titles,
+                         imgs_deformed=imgs_deformed,transform = None, device = device,
+                         num_data = num_data)
+    transformation_names.append("Mallat2")
 
     distance  = get_baseline(img, (iter(test_loader)), hybridModel,  device)
 
@@ -196,12 +186,20 @@ def get_loaders(params, use_cuda):
             test_loader -- test data loader
 
     """
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     if params['dataset']['data_root'] != None:
         DATA_DIR = Path(params['dataset']['data_root'])/params['dataset']['data_folder'] 
     else:
         DATA_DIR = scattering_datasets.get_dataset_dir('CIFAR')
-    train_loader, test_loader, params['general']['seed'], _ = datasetFactory(params,DATA_DIR,use_cuda) 
+    
+    ssc = datasetFactory(params,DATA_DIR,use_cuda)
+
+    train_loader, test_loader, params['general']['seed'] = ssc.generateNewSet(
+        device, workers=params['general']['cores'],
+        seed=params['general']['seed'],
+        load=False
+    ) 
     return train_loader, test_loader
 
 def get_baseline(img, it, hybridModel,  device, num_images=50):
@@ -266,12 +264,6 @@ def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, 
                 elif deformation == 'shear':
                     transforms.shear = [v.item(), v.item()]
                     img_deformed = transforms(img).to(device)
-                elif deformation == 'distortion':                    
-                    transforms.distortion_scale = v.item()
-                    img_deformed = transforms(img).to(device)
-                elif deformation == 'sharpness':
-                    transforms.sharpness_factor = v.item()
-                    img_deformed = transforms(img).to(device)
                 elif deformation == 'translation':
                     ret = transforms.get_params(transforms.degrees, transforms.translate,
                                                 transforms.scale, transforms.shear, img.shape)
@@ -282,12 +274,15 @@ def compute_l2norm(hybridModel, deformation, img, deformation_list, transforms, 
                                                                             interpolation=transforms.interpolation,
                                                                             fill=False)
                 elif deformation == "Mallat1":
-                    tau = lambda u : (v.item() *(0.5*u[0]+0.3*u[1]**2),v.item() *(0.3*u[1]) )      
+                    tau = lambda u : (v.item() *(0.3*u[0]+0.2*u[1]**2),v.item() *(0.2*u[1]) )      
+                    img_deformed = diffeo(img.to(device),tau,device)
+                elif deformation == "Mallat2":
+                    tau = lambda u : (v.item()*0.3*(u[0]**2+u[1]**2),-v.item()*0.3*(2*u[0]*u[1]))
                     img_deformed = diffeo(img.to(device),tau,device)
 
                 
                 representation = hybridModel.scatteringBase(img_deformed)
-                if deformation == "Mallat1":
+                if deformation == "Mallat1" or deformation == "Mallat2":
                     deformationSize = deformation_size(tau)
                     deformations.append(deformationSize)
                 else:
@@ -326,7 +321,7 @@ def visualize_distances(model_values, num_transformations = 4):
             plt.axhline(y= model_value['distance'], color=colors[c], linestyle='-')
             plt.xlabel("Deformation Size", fontsize=20)
             plt.title(model_value['titles'][idx],    fontsize=20)
-            plt.ylabel('||S(x_tild) - S(x)||',   fontsize=20)
+            plt.ylabel('||S(x_tild) - S(x)||/||S(x)||',   fontsize=20)
             plt.legend(fontsize = 20)
         figures.append(f)
     return figures
@@ -432,7 +427,7 @@ def main(models):
     
     model_values = []
     for model in models:
-        model_values.append(get_l2norm_deformation( model, train_loader, img, device, num_data = 20))
+        model_values.append(get_l2norm_deformation( model, train_loader, img, device, num_data = 30))
     
     figures = visualize_distances(model_values,len(model_values[0]["x"]))
     log_mlflow(params, model_values, figures, img)

@@ -4,6 +4,7 @@
 #find . -name *.pth -delete
 *.pth
 mlruns/*
+runs_laurent/*
 videos/*
 runs_ben/*
 

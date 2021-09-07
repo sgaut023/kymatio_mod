@@ -1,6 +1,6 @@
 """ Factory for all training methods"""
 
-from . import cosine_training, cross_entropy_training, cross_entropy_training_accumulation
+from . import cosine_training, cross_entropy_training, cross_entropy_training_accumulation, hinge_training
 
 
 def train_test_factory(loss_name):
@@ -21,6 +21,10 @@ def train_test_factory(loss_name):
     elif loss_name == 'cosine':
         train = lambda *args, **kwargs : cosine_training.train(*args, **kwargs)
         test = lambda *args : cosine_training.test(*args)
+    
+    elif loss_name == 'hinge':
+        train = lambda *args, **kwargs : hinge_training.train(*args, **kwargs)
+        test = lambda *args : hinge_training.test(*args)
 
     else:
         raise NotImplemented(f"Loss {loss_name} not implemented")

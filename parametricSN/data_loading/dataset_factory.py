@@ -7,10 +7,12 @@ Functions:
 from parametricSN.data_loading.cifar_loader import cifar_getDataloaders
 from parametricSN.data_loading.kth_loader import kth_getDataloaders
 from parametricSN.data_loading.xray_loader import xray_getDataloaders
+from parametricSN.data_loading.mnist_loader import mnist_getDataloaders
+
 
 
 def datasetFactory(params, dataDir, use_cuda):
-    """ Factory for Cifar-10, kth-tips2, and COVID-CRX2 datasets
+    """ Factory for Cifar-10, kth-tips2, MNIST and COVID-CRX2 datasets
 
     Creates and returns different dataloaders and datasets based on input
 
@@ -34,6 +36,12 @@ def datasetFactory(params, dataDir, use_cuda):
                     trainAugmentation=params['dataset']['augment'], height=params['dataset']['height'], 
                     width=params['dataset']['width'], sample=params['dataset']['sample'], 
                     dataDir=dataDir
+                )
+    elif params['dataset']['name'].lower() == "mnist":
+        return mnist_getDataloaders(
+                    trainSampleNum=params['dataset']['train_sample_num'], valSampleNum=params['dataset']['test_sample_num'], 
+                    trainBatchSize=params['dataset']['train_batch_size'], valBatchSize=params['dataset']['test_batch_size'], 
+                    trainAugmentation=params['dataset']['augment'], dataDir=dataDir
                 )
     elif params['dataset']['name'].lower() == "x-ray":
         return xray_getDataloaders(
