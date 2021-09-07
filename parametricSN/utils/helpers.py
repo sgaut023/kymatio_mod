@@ -181,6 +181,8 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
     mlflow.set_experiment(params['mlflow']['experiment_name'])
 
     with mlflow.start_run():
+        if params['scattering']['filter_video']:
+            mlflow.log_artifact('videos/scatteringFilterProgressionReal{}epochs.avi'.format("--"))
         mlflow.log_params(rename_params('model', params['model']))   
         mlflow.log_params(rename_params('scattering', params['scattering']))
         mlflow.log_params(rename_params('dataset', params['dataset']))

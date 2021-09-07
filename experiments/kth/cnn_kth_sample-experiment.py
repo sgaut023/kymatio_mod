@@ -23,7 +23,7 @@ RUNS_PER_SEED = 1
 TOTALRUNS = 4
 SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
-MODEL = 'cnn'
+MODEL = 'wrn'
 MODEL_LOSS = 'cross-entropy'
 
 

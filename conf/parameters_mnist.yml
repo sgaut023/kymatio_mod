@@ -5,7 +5,11 @@ general:
   save_metric: False
 
 mlflow:
+<<<<<<< HEAD
   tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'  
+=======
+  tracking_uri: "/home/mila/l/laurent.alsene-racicot/kymatio_mod/runs_laurent/mlruns/store.db"  
+>>>>>>> origin/laurentexp9
   experiment_name: 'Mnist Experiment'
 
 dataset:

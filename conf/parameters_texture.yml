@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 
+  tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'
   experiment_name: 'KTH Experiments'
 
 dataset:
@@ -35,6 +35,7 @@ scattering:
   filter_video: False
   param_distance: False
   pixelwise: False
+  equivariance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']

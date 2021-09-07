@@ -16,7 +16,7 @@ LRO = 0.01
 LRMAX = 0.01
 DF = 25
 LEARNABLE = 1
-EPOCHS = 200
+EPOCHS = 1 #200
 INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
@@ -25,7 +25,7 @@ TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
 SECOND_ORDER = 0
-MODEL = 'cnn'
+MODEL = 'wrn'
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()

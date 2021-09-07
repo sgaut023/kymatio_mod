@@ -17,7 +17,7 @@ def cli():
 args = cli()
 
 if args.data_root != None and args.data_folder != None:
-    DATA_ARG = "-ddr {} -ddf {}".format(args.data_root,args.data_folder)
+    DATA_ARG = "-dr {} -df {}".format(args.data_root,args.data_folder)
     
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
