@@ -4,7 +4,7 @@ sys.path.append(str(os.getcwd()))
 
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-mlflow_exp_name = os.path.basename(__file__)
+mlflow_exp_name = os.path.basename(__file__) + "_PIXELWISE"
 
 PROCESS_BATCH_SIZE = 2
 
@@ -31,6 +31,7 @@ MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
+PIXELWISE = 1
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
@@ -49,8 +50,8 @@ if __name__ == '__main__':
                 SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
             )
 
-            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -slrs {} -slro {}".format(
-                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,LRS,LRO
+            args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -sa {} -slrs {} -slro {} -spw {}".format(
+                SCATT_LRMAX,SCATT_DF,SCATT_THREE_PHASE,MODEL_LOSS,SCATT_ARCH,LRS,LRO,PIXELWISE
             )
 
             command = "{} {} run-train {} {} {} {}".format(

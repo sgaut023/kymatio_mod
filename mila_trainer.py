@@ -24,9 +24,19 @@ if args.python != None:
 
 
 #cifar
-os.system("{} experiments/cifar/resnet50/resnet50_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} experiments/cifar/resnet50/resnet50_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} experiments/cifar/resnet50/resnet50_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} experiments/cifar/resnet50/resnet50_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/ll/ll_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/ll/ll_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/ll/ll_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/ll/ll_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+
+# os.system("{} experiments/cifar/cnn/cnn_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/cnn/cnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/cnn/cnn_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/cnn/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+
+# os.system("{} experiments/cifar/resnet50/resnet50_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/resnet50/resnet50_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/resnet50/resnet50_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/cifar/resnet50/resnet50_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
 
 exit(0)

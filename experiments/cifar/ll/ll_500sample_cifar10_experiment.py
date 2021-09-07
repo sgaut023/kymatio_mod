@@ -4,7 +4,7 @@ sys.path.append(str(os.getcwd()))
 
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-mlflow_exp_name = os.path.basename(__file__)
+mlflow_exp_name = os.path.basename(__file__) + "_PIXELWISE"
 
 PROCESS_BATCH_SIZE = 4
 
@@ -23,6 +23,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 500
 TRAIN_BATCH_SIZE = 500
 AUGMENT = "autoaugment"
+PIXELWISE = 1
 
 
 
@@ -35,8 +36,8 @@ if __name__ == '__main__':
         for aa in [(1,"Random"),(0,"Random"),(1,"Tight-Frame"),(0,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -spw {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,PIXELWISE,DATA_ARG)
 
             commands.append(command)
     

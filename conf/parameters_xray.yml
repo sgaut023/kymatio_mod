@@ -5,7 +5,7 @@ general:
   save_metric: False
 
 mlflow:
-  tracking_uri: 'sqlite:////NOBACKUP/alseneracil/kymatio_mod/runs_laurent/mlruns/store.db'
+  tracking_uri: "/home/mila/l/laurent.alsene-racicot/kymatio_mod/runs_laurent/mlruns/store.db"
   experiment_name: 'Xray Experiment'
 
 dataset:

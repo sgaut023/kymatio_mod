@@ -67,20 +67,7 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_m
         
     model.scatteringBase.saveFilterGrads(scatteringActive=True) 
     optimizer.step()
-<<<<<<< HEAD
-    model.scatteringBase.saveFilterValues(scatteringActive=True) 
-
-    # if scheduler != None:
-    #     try:
-    #         scheduler.step()
-    #     except:
-    #         pass
-
-    
-    
-=======
     model.scatteringBase.saveFilterValues(scatteringActive=True)  
->>>>>>> master
     train_loss /= len(train_loader.dataset)
     train_accuracy = 100. * correct / len(train_loader.dataset)
 
