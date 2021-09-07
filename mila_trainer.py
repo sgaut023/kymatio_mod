@@ -23,9 +23,18 @@ if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
 
-#cifar
-os.system("{} xray_experiments/onlycnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/onlycnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
-os.system("{} xray_experiments/onlycnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+#Xray
+os.system("{} experiments/cifar/cnn/cnn_100sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/cnn/cnn_500sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/cnn/cnn_1000sample_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+os.system("{} experiments/cifar/cnn/cnn_alldata_cifar10_experiment.py {}".format(PYTHON,DATA_ARG))
+
+# os.system("{} experiments/xray/ll/ll_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/xray/ll/ll_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/xray/ll/ll_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+
+# os.system("{} experiments/xray/cnn/cnn_100sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/xray/cnn/cnn_500sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
+# os.system("{} experiments/xray/cnn/cnn_1000sample_xray_experiment.py {}".format(PYTHON,DATA_ARG))
 
 exit(0)
