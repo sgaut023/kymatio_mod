@@ -35,6 +35,7 @@ scattering:
   filter_video: False
   param_distance: False
   pixelwise: False
+  equivariance: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'dsgd']

@@ -68,6 +68,28 @@ def construct_scattering(input, scattering, psi):
 
     return S
 
+def update_equivariant_psi(J, psi, shape, params_filters,device):
+    
+    first=True
+    for i,d in enumerate(psi):
+                for res in range(0, J-1):
+                    if res in d.keys():
+                        if res == 0:
+                            orientation = (params_filters[0][d['j']] + d['theta']*(np.pi/8)).unsqueeze(0)
+                            wavelet = morlets(shape, orientation, 
+                                            params_filters[1][d['j']].unsqueeze(0), 
+                                            params_filters[2][d['j']].unsqueeze(0),
+                                            params_filters[3][d['j']].unsqueeze(0)).squeeze(0).unsqueeze(2)
+                            d[res]  = wavelet.real.contiguous()
+                        else:
+                            d[res] = periodize_filter_fft(d[0].squeeze(0), res, device).unsqueeze(2)
+                        if first:
+                            wavelets = wavelet
+                            first = False
+                        else:
+                            wavelets=torch.cat((wavelets,wavelet), dim=2)
+    return psi , wavelets
+
 def update_psi(J, psi, wavelets, device):
     """ Update the psi dictionnary with the new wavelets
 
@@ -82,10 +104,9 @@ def update_psi(J, psi, wavelets, device):
     """
     wavelets = wavelets.real.contiguous().unsqueeze(3)
     
-    if J == 2:
+    if  J == 2:
         for i,d in enumerate(psi):
-                d[0] = wavelets[i]
-
+                    d[0] = wavelets[i]
     else:
         for i,d in enumerate(psi):
             for res in range(0, J-1):
@@ -141,21 +162,39 @@ def periodize_filter_fft(x, res, device):
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
-def create_filters_params_random(n_filters, is_scattering_dif, pixelwise, device):
+def create_filters_params_random(J,L, is_scattering_dif,equivariance, pixelwise,device):
     """ Create reusable randomly initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
-            n_filters -- the number of filters in the filter bank
+            J -- scale of the scattering
+            L -- number of orientation for the scattering
             is_scattering_dif -- boolean for the differentiability of the scattering
+            equivariance --boolean indivating of the filters are equivariant
             device -- device cuda or cpu
 
         Returns:
             params -- list that contains the parameters of the filters
     """
-    orientations = np.random.uniform(0,2*np.pi,n_filters) 
-    slants = np.random.uniform(0.5, 1.5,n_filters )
-    xis = np.random.uniform(0.5, 1, n_filters )
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
+    orientations = []
+    xis = []
+    sigmas = []
+    slants = []
+
+    # the filters have the same parameters per scale except for orientation
+    if equivariance:
+        for j in range(J):
+            #sigmas.append(np.log(np.random.uniform(np.exp(1*(j+1)), np.exp(3*(j+1)))))
+            sigmas.append(np.log(np.random.uniform(np.exp(1), np.exp(5))))
+            xis.append(np.random.uniform(0.5,1))
+            slants.append(np.random.uniform(0.5, 1.5))
+            orientations.append(np.random.uniform(0, 2* np.pi)) 
+
+    else:
+        n_filters= J*L
+        orientations = np.random.uniform(0,2*np.pi,n_filters) 
+        slants = np.random.uniform(0.5, 1.5,n_filters )
+        xis = np.random.uniform(0.5, 1, n_filters )
+        sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
     
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
     sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
@@ -169,13 +208,14 @@ def create_filters_params_random(n_filters, is_scattering_dif, pixelwise, device
 
     return  params
 
-def create_filters_params(J, L, is_scattering_dif, pixelwise, device):
+def create_filters_params(J, L, is_scattering_dif, equivariance,pixelwise, device):
     """ Create reusable tight frame initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
             J -- scale of the scattering
             L -- number of orientation for the scattering
             is_scattering_dif -- boolean for the differentiability of the scattering
+            equivariance --boolean indivating of the filters are equivariant
             device -- device cuda or cpu
 
         Returns:
@@ -187,15 +227,22 @@ def create_filters_params(J, L, is_scattering_dif, pixelwise, device):
     sigmas = []
     slants = []
 
+
     for j in range(J):
-        for theta in range(L):
-            sigmas.append(0.8 * 2**j)
-            t = ((int(L-L/2-1)-theta) * np.pi / L)
-            xis.append(3.0 / 4.0 * np.pi /2**j)
-            slant = 4.0/L
-            slants.append(slant)
-            orientations.append(t) 
-     
+        if equivariance:
+                sigmas.append(0.8 * 2**j)
+                xis.append(3.0 / 4.0 * np.pi /2**j)
+                slants.append(4.0/L)
+                orientations.append(0) 
+        else:
+            for theta in range(L):
+                sigmas.append(0.8 * 2**j)
+                xis.append(3.0 / 4.0 * np.pi /2**j)
+                slant = 4.0/L
+                slants.append(slant)
+                t = ((int(L-L/2-1)-theta) * np.pi / L)
+                orientations.append(t) 
+                    
     xis = torch.tensor(xis, dtype=torch.float32, device=device)
     sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
     slants = torch.tensor(slants, dtype=torch.float32, device=device)
@@ -206,8 +253,20 @@ def create_filters_params(J, L, is_scattering_dif, pixelwise, device):
     if is_scattering_dif and not pixelwise:
         for param in params:
             param.requires_grad = True
+
+ 
     return  params
 
+def get_equivariant_orientations(theta, L):
+    """
+    Computes orientations when filters are equivariant
+    Parameters:
+        theta --  first theta angle
+        L -- number of orientations
+    Returns:
+        orientations -- np.array of L orientations with interval of pi/L
+    """
+    return  np.arange(theta, theta + np.pi, np.pi)
 
 def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftshift=True, fft=True):
     """ Helper function for creating morlet filters

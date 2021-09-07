@@ -91,7 +91,7 @@ def run_train(args):
         lr_scattering=params['scattering']['lr_scattering'],
         pixelwise=params['scattering']['pixelwise'],
         filter_video=params['scattering']['filter_video'],
-        device=device,
+        device=device, equivariance = params['scattering']['equivariance'],
         use_cuda=use_cuda
     )
     
@@ -199,7 +199,8 @@ def run_train(args):
         compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
-
+    else:
+        compareParamsVisualization = None
 
     #MLFLOW logging below
     f_loss = visualize_loss(
@@ -292,7 +293,7 @@ def main():
     subparser.add_argument("--scattering-pixelwise", "-spw", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
-
+    subparser.add_argument("--scattering-equivariance", "-seq", type=int, choices=[0,1])
 
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd', 'alternating'])
@@ -309,7 +310,7 @@ def main():
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
 
     #model 
-    subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer', 'resnet50'])
+    subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer', 'resnet50', 'wrn'])
     subparser.add_argument("--model-width", "-mw", type=int)
     subparser.add_argument("--model-epoch", "-me", type=int)
     subparser.add_argument("--model-step-test", "-mst", type=int)

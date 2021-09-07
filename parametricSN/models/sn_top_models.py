@@ -11,11 +11,12 @@ Classes:
     sn_LinearLayer -- Linear layer fitted for scattering input
     sn_MLP         -- Multilayer perceptron fitted for scattering input
     BasicBlock     -- Standard wideresnet basicblock
-    Resnet50       --Pretrained resnet-50 on ImageNet
+    Resnet50       -- Pretrained resnet-50 on ImageNet
+    sn_WRN         -- WRN-16-8
 """
 
 from torchvision import models
-
+from models.wide_resnet import WideResNet
 import torch.nn as nn
 
 
@@ -95,6 +96,7 @@ def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
+
 
 
 class BasicBlock(nn.Module):
@@ -262,4 +264,27 @@ class sn_Resnet50(nn.Module):
         for t in self.model_ft.parameters():
             count += t.numel()
         return count
+
+class sn_WRN(nn.Module):
+    """
+    WRN
+    """
+    def __init__(self, num_channels =3, num_classes=10, standard= True):
+        super(sn_WRN, self).__init__()
+        self.model = WideResNet(num_classes=num_classes, num_channels =num_channels, standard = standard)
+        self.num_classes = num_classes
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+    def countLearnableParams(self):
+        """returns the amount of learnable parameters in this model"""
+        count = 0
+        for t in self.parameters():
+            count += t.numel()
+        return count
+
+    
+    
  

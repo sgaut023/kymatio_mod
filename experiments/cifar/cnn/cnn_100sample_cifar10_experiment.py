@@ -24,13 +24,14 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
-MODEL = "cnn"
+MODEL = 'wrn'
 PHASE_ENDS = " ".join(["100","200"])
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
 PIXELWISE = 1
+EQUIVARIANCE= 0
 
 
 if __name__ == '__main__':
@@ -46,8 +47,8 @@ if __name__ == '__main__':
                 OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM
             )
 
-            args2 = "-os {} -daug {} -en {} -dtbs {} -mname {} -ope {}".format(
-                SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS
+            args2 = "-os {} -daug {} -en {} -dtbs {} -mname {} -ope {} -seq {}".format(
+                SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,MODEL,PHASE_ENDS, EQUIVARIANCE
             )
 
             args3 = "-smaxlr {} -sdivf {} -stp {} -mloss {} -spw {}".format(

@@ -4,7 +4,7 @@ sys.path.append(str(os.getcwd()))
 
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-mlflow_exp_name = os.path.basename(__file__) + "_PIXELWISE"
+mlflow_exp_name = os.path.basename(__file__)
 PROCESS_BATCH_SIZE = 4
 
 RUN_FILE = "parametricSN/main.py"
@@ -23,8 +23,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 100
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
-PIXELWISE = 1
-EQUIVARIANCE= 0
+EQUIVARIANCE= 1
 
 
 if __name__ == '__main__':
@@ -36,8 +35,8 @@ if __name__ == '__main__':
         for aa in [(1,"Random"),(1,"Tight-Frame")]:#,(0,"Tight-Frame"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -en {} -spw {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,mlflow_exp_name,PIXELWISE,DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -dtbs {} -os {} -daug {} -en {} -seq {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER,AUGMENT,mlflow_exp_name,EQUIVARIANCE, DATA_ARG)
 
             commands.append(command)
     
