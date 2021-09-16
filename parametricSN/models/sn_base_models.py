@@ -256,6 +256,7 @@ class sn_ScatteringBase(nn.Module):
 
     def parameters(self):
         """ override parameters to include learning rates """
+        print("TEST")
         if self.learnable:
             yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
                               'maxi_lr':self.lr_orientation , 'weight_decay': 0}
