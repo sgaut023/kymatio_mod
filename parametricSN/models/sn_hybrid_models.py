@@ -33,12 +33,6 @@ class sn_HybridModel(nn.Module):
             self.scatteringBase = scatteringBase.cpu()
             self.top = top.cpu()
 
-    def parameters(self):
-        """implements parameters method allowing the use of scatteringBase's method """
-        temp = [{'params': list(self.top.parameters())}]
-        temp.extend(list(self.scatteringBase.parameters()))
-        return temp
-
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))
 
@@ -53,11 +47,6 @@ class sn_HybridModel(nn.Module):
     def setEpoch(self, epoch):
         self.scatteringBase.setEpoch(epoch)
 
-    def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
-        return self.scatteringBase.countLearnableParams() \
-            + self.top.countLearnableParams()
-
     def showParams(self):
         """prints shape of all parameters and is_leaf"""
         for x in self.parameters():
@@ -66,5 +55,4 @@ class sn_HybridModel(nn.Module):
                     print(tens.shape,tens.is_leaf)
             else:
                 print(x['params'].shape,x['params'].is_leaf)
-
 

@@ -50,7 +50,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
 
     L = scattering.L
     if second_order:
-        n_coefficients=  L*L*J*(J-1)//2 #+ 1 + L*J  
+        n_coefficients=  L*L*J*(J-1)//2
     else: 
         n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
     
@@ -112,10 +112,6 @@ class sn_Identity(nn.Module):
     def plotFilterValues(self):
         pass
 
-    def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
-        return 0
-    
     def checkFilterDistance(self):
         return 0
     
@@ -211,6 +207,15 @@ class sn_ScatteringBase(nn.Module):
             requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
         )
 
+        if learnable:
+            for i in range(0, len(self.params_filters)):
+                self.params_filters[i] = nn.Parameter(self.params_filters[i])
+                self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
+        else:
+            for i in range(0, len(self.params_filters)):
+                self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+
+
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
 
@@ -238,12 +243,6 @@ class sn_ScatteringBase(nn.Module):
             self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
                                                  cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
 
-
-    
-        # if True:
-        #     self.params_filters[0] = torch.tensor([np.pi/12 + np.random.rand(1)[0]*np.pi/360 for x in range(self.params_filters[0].size(0))], device=device, requires_grad=True, dtype=torch.float32)
-
-
     def train(self,mode=True):
         super().train(mode=mode)
         self.scatteringTrain = True
@@ -254,16 +253,6 @@ class sn_ScatteringBase(nn.Module):
             self.updateFilters()
         self.scatteringTrain = False
 
-    def parameters(self):
-        """ override parameters to include learning rates """
-        print("TEST")
-        if self.learnable:
-            yield {'params': [self.params_filters[0]], 'lr': self.lr_orientation, 
-                              'maxi_lr':self.lr_orientation , 'weight_decay': 0}
-            yield {'params': [ self.params_filters[1],self.params_filters[2],
-                               self.params_filters[3]],'lr': self.lr_scattering,
-                               'maxi_lr':self.lr_scattering , 'weight_decay': 0}
-
     def updateFilters(self):
         """if were using learnable scattering, update the filters to reflect 
         the new parameter values obtained from gradient descent"""
@@ -272,8 +261,8 @@ class sn_ScatteringBase(nn.Module):
                                     self.params_filters[1], self.params_filters[2], 
                                     self.params_filters[3], device=self.device)
                                     
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device) 
-                                #   self.initialization, 
+            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device)
+
             self.writeVideoFrame()
         else:
             pass
@@ -287,22 +276,6 @@ class sn_ScatteringBase(nn.Module):
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
         return x
-
-    def countLearnableParams(self):
-        """returns the amount of learnable parameters in this model"""
-        if not self.learnable:
-            return 0
-
-        count = 0
-        for t in self.parameters():
-            if type(t["params"]) == list:
-                for tens in t["params"]: 
-                    count += tens.numel()
-            else:
-                count += t["params"].numel()
-
-        print("Scattering learnable parameters: {}".format(count))
-        return count
 
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
@@ -357,11 +330,6 @@ class sn_ScatteringBase(nn.Module):
             angles2=self.compared_params_angle,
             device=self.device
         )
-
-
-
-    
-
 
     def saveFilterValues(self,scatteringActive):
         try:
@@ -436,7 +404,6 @@ class sn_ScatteringBase(nn.Module):
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
         for x in range(filterNum):#iterate over all the filters
-            #axarr[int(x/col),x%col].axis('off')
             temp = {
                 'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
                 'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
@@ -464,15 +431,10 @@ class sn_ScatteringBase(nn.Module):
         for idx,param in enumerate(['angle',"1",'2','3']):#iterate over all the parameters
             for idx2,filter in enumerate(torch.stack(self.filterTracker[param]).T):
                 filter = filter.cpu().numpy()
-                # if param == 'angle':
-                #     filter = filter%(2*np.pi)
-                axarr[int(idx/2),idx%2].plot([x for x in range(len(filter))],filter)#, label=idx2)
-            # axarr[int(idx/2),idx%2].legend()
+                axarr[int(idx/2),idx%2].plot([x for x in range(len(filter))],filter)
             axarr[int(idx/2),idx%2].set_title(label[idx], fontsize=16)
             axarr[int(idx/2),idx%2].set_xlabel('Epoch', fontsize=12) # Or ITERATION to be more precise
             axarr[int(idx/2),idx%2].set_ylabel('Value', fontsize=12)
             
 
         return f
-
-
