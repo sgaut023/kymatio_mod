@@ -66,12 +66,11 @@ def run_train(args):
     params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     DATA_DIR = get_data_root(params['dataset']['name'], params['dataset']['data_root'], params['dataset']['data_folder'])
 
-    ssc = datasetFactory(params,DATA_DIR,use_cuda) #load Dataset
+    ssc = datasetFactory(params,DATA_DIR) #load Dataset
 
     train_loader, test_loader, params['general']['seed'] = ssc.generateNewSet(#Sample from datasets
         device, workers=params['general']['cores'],
@@ -93,8 +92,7 @@ def run_train(args):
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
         filter_video=params['scattering']['filter_video'],
-        device=device,
-        use_cuda=use_cuda
+        device="cpu",#device,
     )
 
     setAllSeeds(seed=params['general']['seed'])
@@ -104,10 +102,9 @@ def run_train(args):
         architecture=params['model']['name'],
         num_classes=params['dataset']['num_classes'], 
         width= params['model']['width'], 
-        use_cuda=use_cuda
     )
 
-    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top, use_cuda=use_cuda) #creat hybrid model
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 

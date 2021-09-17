@@ -58,9 +58,10 @@ def construct_scattering(input, scattering, psi):
 
     input = input.reshape((-1,) + signal_shape)
 
+    phi, psi = scattering.load_filters()
 
     S = scattering2d(input, scattering.pad, scattering.unpad, scattering.backend, scattering.J,
-                        scattering.L, scattering.phi, psi, scattering.max_order, scattering.out_type)
+                        scattering.L, phi, psi, scattering.max_order, scattering.out_type)
 
     if scattering.out_type == 'array':
         scattering_shape = S.shape[-3:]

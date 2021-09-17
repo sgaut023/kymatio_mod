@@ -13,6 +13,7 @@ Classes:
     sn_HybridModel -- combinations of a scattering and other nn.modules
     sn_ScatteringBase -- a scattering network
 """
+import types
 
 import torch
 import cv2
@@ -30,7 +31,7 @@ class InvalidInitializationException(Exception):
     pass
 
 
-def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True,use_cuda=True):
+def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
     Creates the scattering network, adds it to the passed device, and returns it for modification. Next,
@@ -38,7 +39,6 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     update the psi Kymatio object to match the Kymatio API.
 
     arguments:
-    use_cuda -- True if were using gpu
     J -- scale of scattering (always 2 for now)
     N -- height of the input image
     M -- width of the input image
@@ -55,9 +55,6 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
         n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
     
     K = n_coefficients*3
-
-    if use_cuda:
-        scattering = scattering.cuda()
 
     phi, psi  = scattering.load_filters()
     
@@ -77,7 +74,7 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     params_filters =  [ param.to(device) for param in params_filters]
 
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3], device=device )
+                    params_filters[2], params_filters[3], device=device)
     
     psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
 
@@ -127,13 +124,16 @@ class sn_Identity(nn.Module):
     def checkDistance(self,compared):
         pass
     
-        
+
+def _register_single_filter(self, v, n):
+    self.register_buffer('tensor' + str(n), v)
+
+
 class sn_ScatteringBase(nn.Module):
     """A learnable scattering nn.module 
 
     parameters:
         learnable -- should the filters be learnable parameters of this model
-        use_cuda -- True if we are using cuda
         J -- scale of scattering (always 2 for now)
         N -- height of the input image
         M -- width of the input image
@@ -150,20 +150,20 @@ class sn_ScatteringBase(nn.Module):
         """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
         filter_viz = {}
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(self.psi, self.J, 8, mode=mode) 
+            f = get_filters_visualization(self.scattering.psi, self.J, 8, mode=mode) 
             filter_viz[mode] = f  
 
         return filter_viz
 
     def getOneFilter(self, count, scale, mode):
-        return getOneFilter(self.psi, count, scale, mode)
+        return getOneFilter(self.scattering.psi, count, scale, mode)
 
     def getAllFilters(self, totalCount, scale, mode):
-        return getAllFilters(self.psi, totalCount, scale, mode)
+        return getAllFilters(self.scattering.psi, totalCount, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  device, learnable=True, lr_orientation=0.1, 
-                 lr_scattering=0.1, monitor_filters=True, use_cuda=True,
+                 lr_scattering=0.1, monitor_filters=True,
                  filter_video=False):
         """Constructor for the leanable scattering nn.Module
         
@@ -182,7 +182,6 @@ class sn_ScatteringBase(nn.Module):
             lr_scattering -- learning rate for scattering parameters other than orientation                 
             monitor_filters -- boolean indicating whether to track filter distances from initialization
             filter_video -- whether to create filters from 
-            use_cuda -- True if using GPU
 
         """
         super(sn_ScatteringBase,self).__init__()
@@ -191,7 +190,6 @@ class sn_ScatteringBase(nn.Module):
         self.M = M
         self.second_order = second_order
         self.learnable = learnable
-        self.use_cuda = use_cuda 
         self.device = device
         self.initialization = initialization
         self.lr_scattering = lr_scattering
@@ -202,9 +200,9 @@ class sn_ScatteringBase(nn.Module):
         self.filter_video = filter_video
         self.epoch = 0
 
-        self.scattering, self.psi, self.wavelets, self.params_filters, self.n_coefficients, self.grid = create_scatteringExclusive(
+        self.scattering, self.scattering.psi, self.scattering.wavelets, self.params_filters, self.n_coefficients, grid = create_scatteringExclusive(
             J,N,M,second_order, initialization=self.initialization,seed=seed,
-            requires_grad=learnable,use_cuda=self.use_cuda,device=self.device
+            requires_grad=learnable,device=self.device
         )
 
         if learnable:
@@ -214,19 +212,23 @@ class sn_ScatteringBase(nn.Module):
         else:
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+        self.register_buffer(name='grid', tensor=grid)
+
+        self.scattering.register_single_filter = types.MethodType(_register_single_filter, self.scattering)
 
 
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                self.wavelets = morlets(self.grid, self.params_filters[0], 
+                self.scattering.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3], device=self.device)
-                                    
-                self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device)
+                                    self.params_filters[3], device=None)#next(self.scattering.buffers()).device)
+                phi, psi = self.scattering.load_filters()
+                self.scattering.psi = update_psi(self.scattering.J, psi, self.scattering.wavelets, None)# next(self.scattering.buffers()).device)
+                self.scattering.register_filters()
 
-                self.writeVideoFrame()
+                #self.writeVideoFrame()
                 
                 # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
@@ -243,7 +245,7 @@ class sn_ScatteringBase(nn.Module):
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
                 J,N,M,second_order, initialization='Tight-Frame',seed=seed,
-                requires_grad=False,use_cuda=self.use_cuda,device=self.device
+                requires_grad=False,device=self.device
             )
 
             self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in self.compared_params[1:]],dim=1)
@@ -263,7 +265,7 @@ class sn_ScatteringBase(nn.Module):
 
     def forward(self, ip):
         """ apply the scattering transform to the input image """
-        x = construct_scattering(ip, self.scattering, self.psi)
+        x = self.scattering(ip)
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
         return x
@@ -296,10 +298,10 @@ class sn_ScatteringBase(nn.Module):
         return: 
             minimal distance
         """
-        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
-        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1).cpu()
+        tempParamsAngle = (self.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
-
+        print(tempParamsGrouped.device, tempParamsAngle.device, self.compared_params_grouped.device, self.compared_params_angle.device)
         return compareParams(
             params1=tempParamsGrouped,
             angles1=tempParamsAngle, 
@@ -310,10 +312,10 @@ class sn_ScatteringBase(nn.Module):
 
     def compareParamsVisualization(self):
         """visualize the matched filters"""
-        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
-        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1).cpu()
+        tempParamsAngle = (self.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
-
+        print(tempParamsGrouped.device, tempParamsAngle.device, self.compared_params_grouped.device, self.compared_params_angle.device)
         return compareParamsVisualization(
             params1=tempParamsGrouped,
             angles1=tempParamsAngle, 
