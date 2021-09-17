@@ -92,7 +92,6 @@ def run_train(args):
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
         filter_video=params['scattering']['filter_video'],
-        device="cpu",#device,
     )
 
     setAllSeeds(seed=params['general']['seed'])

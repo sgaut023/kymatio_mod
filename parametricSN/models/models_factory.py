@@ -19,7 +19,7 @@ class InvalidArchitectureError(Exception):
     pass
 
 
-def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, device, 
+def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
                      learnable=True, lr_orientation=0.1, lr_scattering=0.1, filter_video=False):
     """Factory for the creation of the first layer of a hybrid model
     
@@ -30,7 +30,6 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             second_order -- 
             initilization -- the type of init: ['Tight-Frame' or 'Random']
             seed -- the random seed used to initialize the parameters
-            device -- the device to place weights on
             learnable -- should the filters be learnable parameters of this model
             lr_orientation -- learning rate for the orientation of the scattering parameters
             lr_scattering -- learning rate for scattering parameters other than orientation                 
@@ -52,7 +51,6 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
             lr_orientation=lr_orientation,
             lr_scattering=lr_scattering,
             filter_video=filter_video,
-            device=device
         )
 
     else:

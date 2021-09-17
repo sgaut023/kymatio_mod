@@ -31,10 +31,10 @@ class InvalidInitializationException(Exception):
     pass
 
 
-def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,requires_grad=True):
+def create_scatteringExclusive(J,N,M,second_order,initialization,seed=0,requires_grad=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
-    Creates the scattering network, adds it to the passed device, and returns it for modification. Next,
+    Creates the scattering network and returns it for modification. Next,
     based on input, we modify the filter initialization and use it to create new conv kernels. Then, we
     update the psi Kymatio object to match the Kymatio API.
 
@@ -61,22 +61,22 @@ def create_scatteringExclusive(J,N,M,second_order,device,initialization,seed=0,r
     params_filters = []
 
     if initialization == "Tight-Frame":
-        params_filters = create_filters_params(J,L,requires_grad,device) #kymatio init
+        params_filters = create_filters_params(J,L,requires_grad) #kymatio init
     elif initialization == "Random":
         num_filters= J*L
-        params_filters = create_filters_params_random(num_filters,requires_grad,device) #random init
+        params_filters = create_filters_params_random(num_filters,requires_grad) #random init
     else:
         raise InvalidInitializationException
 
     shape = (scattering.M_padded, scattering.N_padded,)
-    ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
-    grid = torch.stack(torch.meshgrid(*ranges), 0).to(device)
-    params_filters =  [ param.to(device) for param in params_filters]
+    ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
+    grid = torch.stack(torch.meshgrid(*ranges), 0)
+    params_filters =  [ param for param in params_filters]
 
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3], device=device)
+                    params_filters[2], params_filters[3])
     
-    psi = update_psi(J, psi, wavelets, device) #update psi to reflect the new conv filters
+    psi = update_psi(J, psi, wavelets) #update psi to reflect the new conv filters
 
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
@@ -162,7 +162,7 @@ class sn_ScatteringBase(nn.Module):
         return getAllFilters(self.scattering.psi, totalCount, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
-                 device, learnable=True, lr_orientation=0.1, 
+                 learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
                  filter_video=False):
         """Constructor for the leanable scattering nn.Module
@@ -176,7 +176,6 @@ class sn_ScatteringBase(nn.Module):
             second_order -- 
             initilization -- the type of init: ['Tight-Frame' or 'Random']
             seed -- the random seed used to initialize the parameters
-            device -- the device to place weights on
             learnable -- should the filters be learnable parameters of this model
             lr_orientation -- learning rate for the orientation of the scattering parameters
             lr_scattering -- learning rate for scattering parameters other than orientation                 
@@ -190,7 +189,6 @@ class sn_ScatteringBase(nn.Module):
         self.M = M
         self.second_order = second_order
         self.learnable = learnable
-        self.device = device
         self.initialization = initialization
         self.lr_scattering = lr_scattering
         self.lr_orientation = lr_orientation
@@ -202,7 +200,7 @@ class sn_ScatteringBase(nn.Module):
 
         self.scattering, self.scattering.psi, self.scattering.wavelets, self.params_filters, self.n_coefficients, grid = create_scatteringExclusive(
             J,N,M,second_order, initialization=self.initialization,seed=seed,
-            requires_grad=learnable,device=self.device
+            requires_grad=learnable
         )
 
         if learnable:
@@ -223,9 +221,9 @@ class sn_ScatteringBase(nn.Module):
             if (self.training or self.scatteringTrain) and self.learnable:
                 self.scattering.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3], device=None)#next(self.scattering.buffers()).device)
+                                    self.params_filters[3])
                 phi, psi = self.scattering.load_filters()
-                self.scattering.psi = update_psi(self.scattering.J, psi, self.scattering.wavelets, None)# next(self.scattering.buffers()).device)
+                self.scattering.psi = update_psi(self.scattering.J, psi, self.scattering.wavelets)
                 self.scattering.register_filters()
 
                 #self.writeVideoFrame()
@@ -245,7 +243,7 @@ class sn_ScatteringBase(nn.Module):
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
                 J,N,M,second_order, initialization='Tight-Frame',seed=seed,
-                requires_grad=False,device=self.device
+                requires_grad=False
             )
 
             self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in self.compared_params[1:]],dim=1)
@@ -301,13 +299,11 @@ class sn_ScatteringBase(nn.Module):
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1).cpu()
         tempParamsAngle = (self.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
-        print(tempParamsGrouped.device, tempParamsAngle.device, self.compared_params_grouped.device, self.compared_params_angle.device)
         return compareParams(
             params1=tempParamsGrouped,
             angles1=tempParamsAngle, 
             params2=self.compared_params_grouped,
-            angles2=self.compared_params_angle,
-            device=self.device
+            angles2=self.compared_params_angle
         )
 
     def compareParamsVisualization(self):
@@ -315,13 +311,11 @@ class sn_ScatteringBase(nn.Module):
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1).cpu()
         tempParamsAngle = (self.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
-        print(tempParamsGrouped.device, tempParamsAngle.device, self.compared_params_grouped.device, self.compared_params_angle.device)
         return compareParamsVisualization(
             params1=tempParamsGrouped,
             angles1=tempParamsAngle, 
             params2=self.compared_params_grouped,
-            angles2=self.compared_params_angle,
-            device=self.device
+            angles2=self.compared_params_angle
         )
 
     def saveFilterValues(self,scatteringActive):
