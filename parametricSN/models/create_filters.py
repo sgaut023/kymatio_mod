@@ -3,7 +3,6 @@
 Authors: Benjamin Therien, Shanel Gauthier, Laurent Alsene-Racicot, Michael Eickenberg
 
 Functions: 
-    construct_scattering         -- Construct the scattering object
     update_psi                   -- Update the psi dictionnary with the new wavelets
     get_total_num_filters        -- Compute the total number of filters
     periodize_filter_fft         -- Periodize the filter in fourier space
