@@ -159,7 +159,8 @@ class sn_ScatteringBase(nn.Module):
         return getOneFilter(self.scattering.psi, count, scale, mode)
 
     def getAllFilters(self, totalCount, scale, mode):
-        return getAllFilters(self.scattering.psi, totalCount, scale, mode)
+        phi, psi = self.scattering.load_filters()
+        return getAllFilters(psi, totalCount, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
@@ -222,14 +223,16 @@ class sn_ScatteringBase(nn.Module):
                 self.scattering.wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], 
                                     self.params_filters[3])
+
                 phi, psi = self.scattering.load_filters()
                 self.scattering.psi = update_psi(self.scattering.J, psi, self.scattering.wavelets)
                 self.scattering.register_filters()
 
-                #self.writeVideoFrame()
-                
                 # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
+
+                self.writeVideoFrame()
+                
 
         self.register_forward_pre_hook(updateFilters_hook)
 
