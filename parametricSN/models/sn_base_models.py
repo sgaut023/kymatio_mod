@@ -216,12 +216,30 @@ class sn_ScatteringBase(nn.Module):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
 
 
+        def updateFilters_hook(self, ip):
+            """if were using learnable scattering, update the filters to reflect 
+            the new parameter values obtained from gradient descent"""
+            if (self.training or self.scatteringTrain) and self.learnable:
+                self.wavelets = morlets(self.grid, self.params_filters[0], 
+                                    self.params_filters[1], self.params_filters[2], 
+                                    self.params_filters[3], device=self.device)
+                                    
+                self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device)
+
+                self.writeVideoFrame()
+                
+                # scatteringTrain lags behind self.training
+                self.scatteringTrain = self.training
+
+        self.register_forward_pre_hook(updateFilters_hook)
+
+        # visualization code
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
 
         self.filters_plots_before = self.getFilterViz()
-        self.scatteringTrain = False
-
+        self.scatteringTrain = True
+                    
         if self.monitor_filters == True:
             _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
                 J,N,M,second_order, initialization='Tight-Frame',seed=seed,
@@ -243,35 +261,8 @@ class sn_ScatteringBase(nn.Module):
             self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
                                                  cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
 
-    def train(self,mode=True):
-        super().train(mode=mode)
-        self.scatteringTrain = True
-
-    def eval(self):
-        super().eval()
-        if self.scatteringTrain:
-            self.updateFilters()
-        self.scatteringTrain = False
-
-    def updateFilters(self):
-        """if were using learnable scattering, update the filters to reflect 
-        the new parameter values obtained from gradient descent"""
-        if self.learnable:
-            self.wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3], device=self.device)
-                                    
-            self.psi = update_psi(self.scattering.J, self.psi, self.wavelets, self.device)
-
-            self.writeVideoFrame()
-        else:
-            pass
-
     def forward(self, ip):
         """ apply the scattering transform to the input image """
-        if self.scatteringTrain: #update filters if training
-            self.updateFilters()
-            
         x = construct_scattering(ip, self.scattering, self.psi)
         x = x[:,:, -self.n_coefficients:,:,:]
         x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
