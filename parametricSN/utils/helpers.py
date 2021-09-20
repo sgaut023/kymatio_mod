@@ -36,6 +36,11 @@ sys.path.append(str(Path.cwd()))
 
 from parametricSN.models.models_utils import compareParams
 
+
+def countLearnableParams(model):
+    return sum(p.numel() for p in model.parameters())
+
+
 def get_context(parameters_file, full_path = False):
     """ Read yaml file that contains experiment parameters.
         Create dictionnaries from the yaml file.         

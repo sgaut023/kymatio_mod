@@ -19,7 +19,7 @@ import torch
 import math
 import kymatio.datasets as scattering_datasets
 import numpy as np
-
+from parametricSN.utils.helpers import countLearnableParams
 from parametricSN.utils.helpers import get_context, visualize_loss
 from parametricSN.utils.helpers import visualize_learning_rates
 from parametricSN.utils.helpers import  log_mlflow, getSimplePlot
@@ -140,7 +140,7 @@ def run_train(args):
     if params['scattering']['param_distance']: 
         param_distance.append(hybridModel.scatteringBase.checkParamDistance())
     
-    params['model']['trainable_parameters'] = '%fM' % (hybridModel.countLearnableParams() / 1000000.0)
+    params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
     train, test = train_test_factory(params['model']['loss'])

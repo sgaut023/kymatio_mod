@@ -26,7 +26,7 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
         )
 
         for group in optimizer.param_groups:
-            if 'maxi_lr' in group .keys():
+            if 'maxi_lr' in group.keys():
                 group['max_lr'] = group['maxi_lr']
 
     elif params['optim']['scheduler'] =='CosineAnnealingLR':
