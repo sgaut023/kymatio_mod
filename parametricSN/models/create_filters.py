@@ -147,7 +147,7 @@ def periodize_filter_fft(x, res, device):
                           will be done via compactly supported signals.           
     """
 
-    s1, s2 = x.shape
+    s1, s2 = x.shape[0], x.shape[1]
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 

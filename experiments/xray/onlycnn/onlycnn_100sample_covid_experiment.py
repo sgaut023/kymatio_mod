@@ -1,4 +1,3 @@
-
 import os
 import sys
 sys.path.append(str(os.getcwd()))
@@ -11,16 +10,16 @@ PROCESS_BATCH_SIZE = 1
 PARAMS_FILE = "parameters_xray.yml"
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
-LR = 0.1
-LRS = 0.01
-LRO = 0.01
-LRMAX = 0.001
+LR = 0.01
+LRS = 0.1
+LRO = 0.1
+LRMAX = 0.01
 DF = 25
-EPOCHS = 200
+EPOCHS = 600
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
+TRAIN_SAMPLE_NUM = 100
 TEST_BATCH_SIZE = 8
 TRAIN_BATCH_SIZE = 8
 AUGMENT = "original-cifar"
@@ -28,7 +27,6 @@ SECOND_ORDER = 0
 MODEL = 'wrn'
 MODEL_WIDTH = 8
 SCATT_ARCH = 'identity'
-ACCUM_STEP_MULTIPLE = 128
 MODEL_LOSS = 'cross-entropy-accum'
 
 
@@ -39,7 +37,7 @@ if __name__ == '__main__':
 
     for SEED in [22942091,313350229,433842091,637789757,706825958,750490779,884698041,1065155395,1452034008,1614090550]:
         args1 = "-daug {} -en {} -pf {} -sso {} -mname {} {}".format(
-        AUGMENT,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
+            AUGMENT,mlflow_exp_name,PARAMS_FILE,SECOND_ORDER,MODEL,DATA_ARG)
 
         args2 = "-oname {} -olr {} -gseed {} -me {} -omaxlr {} -odivf {} -dtsn {} -dtbs {} -os {}".format(
             OPTIM,LR,SEED,EPOCHS,LRMAX,DF,TRAIN_SAMPLE_NUM,TRAIN_BATCH_SIZE,SCHEDULER)
