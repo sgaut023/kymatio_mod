@@ -5,9 +5,17 @@ import numpy as np  #TODO REMOVE
 
 from parametricSN.models.create_filters import morlets, update_psi
 from .visualization_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
+#TODO move to utils
+def toNumpy(x):
+    return x.clone().cpu().numpy()
 
-#class filterVideo(object):
-#    """A visualizer class for observing scattering transform filters over time"""
+def getValue(x):
+    return toNumpy(x.detach())
+
+def getGrad(x):
+    return toNumpy(x.grad)
+
+
 class filterVisualizer(object):
     def __init__(self, scat):
         super(filterVisualizer, self).__init__()
@@ -38,12 +46,16 @@ class filterVisualizer(object):
         scat.backward_hook_handle = scat.register_full_backward_hook(updateFilterGrad_hook)
 
         compared_params = scat.params_filters
+
+        #TODO turn into util function
         self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]], dim=1)
         self.compared_params_angle = compared_params[0] % (2 * np.pi)
+
         self.params_history = []
 
         self.scattering = scat
 
+        #TODO turn into util function
         self.videoWriters = {}
         self.videoWriters['real'] = cv2.VideoWriter('videos/scatteringFilterProgressionReal{}epochs.avi'.format("--"),
                                           cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
@@ -72,6 +84,8 @@ class filterVisualizer(object):
         """Writes frames to the appropriate video writer objects"""
         print("FSD")
         for vizType in self.videoWriters.keys():
+
+            #TODO turn into util function
             temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
             temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             self.videoWriters[vizType].write(temp)
@@ -90,7 +104,6 @@ class filterVisualizer(object):
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, self.scattering.J, 8, mode=mode) 
             filter_viz[mode] = f  
-
         return filter_viz
 
     def checkParamDistance(self):
@@ -104,6 +117,7 @@ class filterVisualizer(object):
         return: 
             minimal distance
         """
+        #TODO turn into util function
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.scattering.params_filters[1:]], dim=1).cpu()
         tempParamsAngle = (self.scattering.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
@@ -116,6 +130,7 @@ class filterVisualizer(object):
 
     def compareParamsVisualization(self):
         """visualize the matched filters"""
+        #TODO turn into util function
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.scattering.params_filters[1:]], dim=1).cpu()
         tempParamsAngle = (self.scattering.params_filters[0] % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
@@ -126,39 +141,19 @@ class filterVisualizer(object):
             angles2=self.compared_params_angle
         )
 
-    def saveFilterValues(self,scatteringActive):
-        try:
-            if scatteringActive:
-                orientations1 = self.scattering.params_filters[0].detach().clone()
-                self.filterTracker['1'].append(self.scattering.params_filters[1].detach().clone())
-                self.filterTracker['2'].append(self.scattering.params_filters[2].detach().clone()) 
-                self.filterTracker['3'].append(self.scattering.params_filters[3].detach().clone()) 
-                scale = torch.mul(self.scattering.params_filters[1].detach().clone(), self.scattering.params_filters[2].detach().clone())
-                self.filterTracker['scale'].append(scale) 
-                self.filterTracker['angle'].append(orientations1) 
-
-            else:
-                self.filterGradTracker['angle'].append(torch.zeros(self.scattering.params_filters[1].shape[0])) 
-                self.filterGradTracker['1'].append(torch.zeros(self.scattering.params_filters[1].shape[0])) 
-                self.filterGradTracker['2'].append(torch.zeros(self.scattering.params_filters[1].shape[0]))
-                self.filterGradTracker['3'].append(torch.zeros(self.scattering.params_filters[1].shape[0]))
-        except Exception:
-            pass
+    def saveFilterValues(self, scatteringActive):
+        #TODO turn into util function
+        self.filterTracker['angle'].append(getValue(self.scattering.params_filters[0]))
+        self.filterTracker['1'].append(getValue(self.scattering.params_filters[1]))
+        self.filterTracker['2'].append(getValue(self.scattering.params_filters[2]))
+        self.filterTracker['3'].append(getValue(self.scattering.params_filters[3]))
+        self.filterTracker['scale'].append(np.multiply(self.filterTracker['1'][-1], self.filterTracker['2'][-1]))
 
     def saveFilterGrads(self,scatteringActive):
-        try:
-            if scatteringActive:
-                self.filterGradTracker['angle'].append(self.scattering.params_filters[0].grad.clone()) 
-                self.filterGradTracker['1'].append(self.scattering.params_filters[1].grad.clone()) 
-                self.filterGradTracker['2'].append(self.scattering.params_filters[2].grad.clone()) 
-                self.filterGradTracker['3'].append(self.scattering.params_filters[3].grad.clone()) 
-            else:
-                self.filterGradTracker['angle'].append(torch.zeros(self.scattering.params_filters[1].shape[0])) 
-                self.filterGradTracker['1'].append(torch.zeros(self.scattering.params_filters[1].shape[0])) 
-                self.filterGradTracker['2'].append(torch.zeros(self.scattering.params_filters[1].shape[0]))
-                self.filterGradTracker['3'].append(torch.zeros(self.scattering.params_filters[1].shape[0]))
-        except Exception:
-            pass
+        self.filterTracker['angle'].append(getGrad(self.scattering.params_filters[0]))
+        self.filterTracker['1'].append(getGrad(self.scattering.params_filters[1]))
+        self.filterTracker['2'].append(getGrad(self.scattering.params_filters[2]))
+        self.filterTracker['3'].append(getGrad(self.scattering.params_filters[3]))
 
     def get_param_grad_per_epoch(self, x):
         return {
@@ -208,12 +203,10 @@ class filterVisualizer(object):
                 axarr[int(x/col),x%col].legend()
 
         return f
-
-    
     
     def plotFilterValues(self):
         """plots the graph of the filter values"""
-        paramsNum=  self.params_filters[0].shape[0]
+        paramsNum = self.params_filters[0].shape[0]
         if self.equivariant:
             col = paramsNum
             row = 1
@@ -242,7 +235,6 @@ class filterVisualizer(object):
                 axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
                 axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
                 axarr[int(x/col),x%col].legend()
-
         return f
 
      def plotParameterValues(self):
@@ -252,14 +244,9 @@ class filterVisualizer(object):
         label = ['theta', 'xis', 'sigma', 'slant']
 
         for idx,param in enumerate(['angle', "1", '2', '3']):#iterate over all the parameters
-            for idx2, filter in enumerate(torch.stack(self.filterTracker[param]).T):
-                filter = filter.cpu().numpy()
+            for idx2, filter in enumerate(np.stack(self.filterTracker[param]).T):
                 axarr[int(idx/2), idx%2].plot([x for x in range(len(filter))], filter)
             axarr[int(idx/2), idx%2].set_title(label[idx], fontsize=16)
             axarr[int(idx/2), idx%2].set_xlabel('Epoch', fontsize=12) # Or ITERATION to be more precise
             axarr[int(idx/2), idx%2].set_ylabel('Value', fontsize=12)
         return f
-
-       
-
-
