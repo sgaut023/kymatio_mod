@@ -36,14 +36,6 @@ class sn_HybridModel(nn.Module):
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))
 
-    def train(self):
-        self.scatteringBase.train()
-        self.top.train()
-
-    def eval(self):
-        self.scatteringBase.eval()
-        self.top.eval()
-
     def setEpoch(self, epoch):
         self.scatteringBase.setEpoch(epoch)
 
