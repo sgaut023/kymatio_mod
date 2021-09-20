@@ -76,7 +76,8 @@ def create_scatteringExclusive(J,N,M,second_order,initialization,seed=0,requires
     wavelets  = morlets(shape, params_filters[0], params_filters[1], 
                     params_filters[2], params_filters[3])
     
-    psi = update_psi(J, psi, wavelets) #update psi to reflect the new conv filters
+    scattering.psi = update_psi(J, psi, wavelets) #update psi to reflect the new conv filters
+    scattering.register_filters()
 
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
