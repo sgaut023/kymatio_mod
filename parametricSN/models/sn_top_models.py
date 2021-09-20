@@ -48,25 +48,6 @@ class sn_MLP(nn.Module):
         return self.layers(x)
 
 
-class sn_LinearLayer(nn.Module):
-    """
-    Linear layer fitted for scattering input
-    """
-    def __init__(self, num_classes=10, n_coefficients=81, M_coefficient=8, N_coefficient=8):
-        super(sn_LinearLayer,self).__init__()
-        self.n_coefficients = n_coefficients
-        self.num_classes = num_classes
-
-        self.fc1 = nn.Linear(int(3*M_coefficient*N_coefficient*n_coefficients), num_classes)
-        self.bn0 = nn.BatchNorm2d(self.n_coefficients*3, eps=1e-5, affine=True)
-
-    def forward(self, x):
-        x = self.bn0(x)
-        x = x.reshape(x.shape[0], -1)
-        x = self.fc1(x)
-        return x
-
-
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
