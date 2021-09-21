@@ -160,19 +160,16 @@ class sn_ScatteringBase(Scattering2D):
             self.params_filters = create_filters_params_random(J*L, learnable) #random init
         else:
             raise InvalidInitializationException
-
         shape = (self.M_padded, self.N_padded,)
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
-
-		wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
-		                self.params_filters[2], self.params_filters[3])
-		
-		self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
-		self.register_filters()
+        wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
+                self.params_filters[2], self.params_filters[3])
 
 
-
+        self.register_single_filter = types.MethodType(_register_single_filter, self)
+        self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
+        self.register_filters()
         if learnable:
             for i in range(0, len(self.params_filters)):
                 self.params_filters[i] = nn.Parameter(self.params_filters[i])
@@ -181,7 +178,6 @@ class sn_ScatteringBase(Scattering2D):
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
-        self.register_single_filter = types.MethodType(_register_single_filter, self)
 
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
