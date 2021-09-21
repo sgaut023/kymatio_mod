@@ -31,6 +31,8 @@ class InvalidInitializationException(Exception):
     pass
 
 
+def _register_single_filter(self, v, n):
+    self.register_buffer('tensor' + str(n), v)
 def create_scatteringExclusive(J,N,M,second_order,initialization,seed=0,requires_grad=True):
     """Creates scattering parameters and replaces then with the specified initialization
 
@@ -77,8 +79,8 @@ def create_scatteringExclusive(J,N,M,second_order,initialization,seed=0,requires
                     params_filters[2], params_filters[3])
     
     scattering.psi = update_psi(J, psi, wavelets) #update psi to reflect the new conv filters
+    scattering.register_single_filter = types.MethodType(_register_single_filter, scattering)
     scattering.register_filters()
-
     return scattering, psi, wavelets, params_filters, n_coefficients, grid
 
 
@@ -126,8 +128,6 @@ class sn_Identity(nn.Module):
         pass
     
 
-def _register_single_filter(self, v, n):
-    self.register_buffer('tensor' + str(n), v)
 
 
 class sn_ScatteringBase(nn.Module):
@@ -150,10 +150,10 @@ class sn_ScatteringBase(nn.Module):
     def getFilterViz(self):
         """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
         filter_viz = {}
+        phi, psi = self.scattering.load_filters()
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(self.scattering.psi, self.J, 8, mode=mode) 
+            f = get_filters_visualization(psi, self.J, 8, mode=mode) 
             filter_viz[mode] = f  
-
         return filter_viz
 
     def getOneFilter(self, count, scale, mode):
@@ -214,7 +214,6 @@ class sn_ScatteringBase(nn.Module):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
 
-        self.scattering.register_single_filter = types.MethodType(_register_single_filter, self.scattering)
 
 
         def updateFilters_hook(self, ip):
