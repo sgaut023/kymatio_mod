@@ -34,7 +34,7 @@ from pathlib import Path
 
 sys.path.append(str(Path.cwd()))
 
-from parametricSN.models.models_utils import compareParams
+from parametricSN.visualization.visualization_utils import compareParams
 
 
 def countLearnableParams(model):
