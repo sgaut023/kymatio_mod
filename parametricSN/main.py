@@ -28,6 +28,7 @@ from parametricSN.utils.helpers import estimateRemainingTime
 from parametricSN.utils.optimizer_factory import optimizerFactory
 from parametricSN.utils.scheduler_factory import schedulerFactory
 from parametricSN.data_loading.dataset_factory import datasetFactory
+from parametricSN.visualization.viewer import filterVisualizer
 
 from parametricSN.models.models_factory import topModelFactory, baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
@@ -103,6 +104,8 @@ def run_train(args):
         width= params['model']['width'], 
     )
 
+    viewers = filterVisualizer(scatteringBase)
+
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
@@ -132,9 +135,12 @@ def run_train(args):
 
     trainTime = []
     testTime = []
-
+    print(params['scattering']['param_distance'])
+    print(params['scattering']['filter_video'])
+         
+    #TODO
     if params['scattering']['param_distance']: 
-        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+        param_distance.append(viewers.checkParamDistance())
     
     params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
@@ -143,8 +149,10 @@ def run_train(args):
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
-        hybridModel.scatteringBase.setEpoch(epoch)
+        #TODO
+        viewers.setEpoch(epoch)
 
+        #TODO
         try:
             lrs.append(optimizer.param_groups[0]['lr'])
             if params['scattering']['learnable']:
@@ -158,8 +166,9 @@ def run_train(args):
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         
+        #TODO
         if params['scattering']['param_distance']: 
-            param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+            param_distance.append(viewers.checkParamDistance())
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -171,12 +180,14 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
+    #TODO
     if params['scattering']['filter_video']:
-        hybridModel.scatteringBase.releaseVideoWriters()
+        viewers.releaseVideoWriters()
 
+    #TODO
     if params['scattering']['param_distance']:
-        compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
-        torch.save(hybridModel.scatteringBase.params_history,
+        compareParamsVisualization = viewers.compareParamsVisualization()
+        torch.save(viewers.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
 
 
@@ -199,20 +210,22 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
+    #TODO
     paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
         title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
         xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
 
 
+    #TODO
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
         # THIS CODE GETS BROKCEN? 
-        filters_plots_before = hybridModel.scatteringBase.filters_plots_before
+        filters_plots_before = viewers.filters_plots_before
         #hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
-        filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-        filters_values = hybridModel.scatteringBase.plotFilterValues()
-        filters_grad = hybridModel.scatteringBase.plotFilterGrads()
-        filters_parameters = hybridModel.scatteringBase.plotParameterValues()
+        filters_plots_after = viewers.getFilterViz() #get filter plots
+        filters_values = viewers.plotFilterValues()
+        filters_grad = viewers.plotFilterGrads()
+        filters_parameters = viewers.plotParameterValues()
     else:
         filters_plots_before = None
         filters_plots_after = None
