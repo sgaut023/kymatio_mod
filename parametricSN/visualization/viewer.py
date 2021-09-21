@@ -25,20 +25,19 @@ class filterVisualizer(object):
         def updateFiltersVideo_hook(scattering, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
-            if (scattering.training or scattering.scatteringTrain) and scattering.learnable:
-                wavelets = morlets(scattering.grid, scattering.params_filters[0], 
-                                    scattering.params_filters[1], scattering.params_filters[2], 
-                                    scattering.params_filters[3])
+            if (scattering.training or scattering.scatteringTrain):
+                if scattering.learnable:
+                    wavelets = morlets(scattering.grid, scattering.params_filters[0], 
+                                        scattering.params_filters[1], scattering.params_filters[2], 
+                                        scattering.params_filters[3])
+                    phi, psi = scattering.load_filters()
+                    scattering.psi = update_psi(scattering.J, psi, wavelets)
+                    scattering.register_filters()
+                self.writeVideoFrame()
+                self.saveFilterValues(True)
 
-                phi, psi = scattering.load_filters()
-                scattering.psi = update_psi(scattering.J, psi, wavelets)
-                scattering.register_filters()
                 # scatteringTrain lags behind scattering.training
                 scattering.scatteringTrain = scattering.training
-
-                self.writeVideoFrame()
-                print("FS")
-                self.saveFilterValues(True)
         scat.pre_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
 
         def updateFilterGrad_hook(scattering, grad_input, grad_output):
@@ -143,6 +142,7 @@ class filterVisualizer(object):
 
     def saveFilterValues(self, scatteringActive):
         #TODO turn into util function
+        print("llssD")
         self.filterTracker['angle'].append(getValue(self.scattering.params_filters[0]))
         self.filterTracker['1'].append(getValue(self.scattering.params_filters[1]))
         self.filterTracker['2'].append(getValue(self.scattering.params_filters[2]))
