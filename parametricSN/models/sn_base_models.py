@@ -98,8 +98,9 @@ class sn_ScatteringBase(Scattering2D):
     def getFilterViz(self):
         """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
         filter_viz = {}
+        phi, psi = self.load_filters()
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(self.psi, self.J, 8, mode=mode) 
+            f = get_filters_visualization(psi, self.J, 8, mode=mode) 
             filter_viz[mode] = f  
 
         return filter_viz
@@ -163,6 +164,14 @@ class sn_ScatteringBase(Scattering2D):
         shape = (self.M_padded, self.N_padded,)
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
+
+		wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
+		                self.params_filters[2], self.params_filters[3])
+		
+		self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
+		self.register_filters()
+
+
 
         if learnable:
             for i in range(0, len(self.params_filters)):
