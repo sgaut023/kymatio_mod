@@ -13,6 +13,8 @@ def getValue(x):
     return toNumpy(x.detach())
 
 def getGrad(x):
+    print(x)
+    print(x.grad)
     return toNumpy(x.grad)
 
 
@@ -25,6 +27,7 @@ class filterVisualizer(object):
         def updateFiltersVideo_hook(scattering, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
+            print(ip[0].requires_grad)
             if (scattering.training or scattering.scatteringTrain):
                 if scattering.learnable:
                     wavelets = morlets(scattering.grid, scattering.params_filters[0], 
@@ -33,15 +36,25 @@ class filterVisualizer(object):
                     phi, psi = scattering.load_filters()
                     scattering.psi = update_psi(scattering.J, psi, wavelets)
                     scattering.register_filters()
-                self.writeVideoFrame()
+
                 if scattering.scatteringTrain:
                     self.saveFilterValues(True)
 
+                # i think a more 'correct' way of doing this would be to place
+                # this in the if statement above. Thoughts?
+                self.writeVideoFrame()
+
                 # scatteringTrain lags behind scattering.training
+                # should we place this as a post forward hook?
+                # we wouldnt need to define the rest of the code above. 
                 scattering.scatteringTrain = scattering.training
+            #ip[0].requires_grad=True
+            return ip
         scat.pre_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
+            
 
         def updateFilterGrad_hook(scattering, grad_input, grad_output):
+            print("ggggggggggggggggggggggg")
             self.saveFilterGrads(True)
         scat.backward_hook_handle = scat.register_full_backward_hook(updateFilterGrad_hook)
 
@@ -151,6 +164,7 @@ class filterVisualizer(object):
         self.filterTracker['scale'].append(np.multiply(self.filterTracker['1'][-1], self.filterTracker['2'][-1]))
 
     def saveFilterGrads(self,scatteringActive):
+        print("shooooooooo")
         self.filterGradTracker['angle'].append(getGrad(self.scattering.params_filters[0]))
         self.filterGradTracker['1'].append(getGrad(self.scattering.params_filters[1]))
         self.filterGradTracker['2'].append(getGrad(self.scattering.params_filters[2]))
@@ -202,7 +216,6 @@ class filterVisualizer(object):
                 axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
                 axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
                 axarr[int(x/col),x%col].legend()
-
         return f
     
     def plotFilterValues(self):
