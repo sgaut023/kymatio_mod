@@ -27,7 +27,6 @@ class filterVisualizer(object):
         def updateFiltersVideo_hook(scattering, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
-            print(ip[0].requires_grad)
             if (scattering.training or scattering.scatteringTrain):
                 if scattering.learnable:
                     wavelets = morlets(scattering.grid, scattering.params_filters[0], 
@@ -48,16 +47,17 @@ class filterVisualizer(object):
                 # should we place this as a post forward hook?
                 # we wouldnt need to define the rest of the code above. 
                 scattering.scatteringTrain = scattering.training
-            #ip[0].requires_grad=True
-            return ip
         scat.pre_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
-            
 
-        def updateFilterGrad_hook(scattering, grad_input, grad_output):
-            print("ggggggggggggggggggggggg")
-            self.saveFilterGrads(True)
-        scat.backward_hook_handle = scat.register_full_backward_hook(updateFilterGrad_hook)
-
+        def print_hook(name):
+            def updateFilterGrad(grad):
+                self.filterGradTracker[name].append(toNumpy(grad))
+            return updateFilterGrad
+        scat.params_filters[0].register_hook(print_hook('angle'))
+        scat.params_filters[1].register_hook(print_hook('1'))
+        scat.params_filters[2].register_hook(print_hook('2'))
+        scat.params_filters[3].register_hook(print_hook('3'))
+        
         compared_params = scat.params_filters
 
         #TODO turn into util function
@@ -95,7 +95,6 @@ class filterVisualizer(object):
 
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
-        print("FSD")
         for vizType in self.videoWriters.keys():
 
             #TODO turn into util function
@@ -156,7 +155,6 @@ class filterVisualizer(object):
 
     def saveFilterValues(self, scatteringActive):
         #TODO turn into util function
-        print("llssD")
         self.filterTracker['angle'].append(getValue(self.scattering.params_filters[0]))
         self.filterTracker['1'].append(getValue(self.scattering.params_filters[1]))
         self.filterTracker['2'].append(getValue(self.scattering.params_filters[2]))
@@ -256,9 +254,6 @@ class filterVisualizer(object):
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
         plt.subplots_adjust(hspace=0.35, wspace=0.35)
         label = ['theta', 'xis', 'sigma', 'slant']
-        a = np.stack(self.filterTracker['1']).T[0]
-        print(a[0] - a[1])
-        print(a)
         for idx,param in enumerate(['angle', "1", '2', '3']):#iterate over all the parameters
             for idx2, filter in enumerate(np.stack(self.filterTracker[param]).T):
                 axarr[int(idx/2), idx%2].plot([x for x in range(len(filter))], filter)
