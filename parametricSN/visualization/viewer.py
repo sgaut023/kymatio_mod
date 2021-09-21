@@ -34,7 +34,8 @@ class filterVisualizer(object):
                     scattering.psi = update_psi(scattering.J, psi, wavelets)
                     scattering.register_filters()
                 self.writeVideoFrame()
-                self.saveFilterValues(True)
+                if scattering.scatteringTrain:
+                    self.saveFilterValues(True)
 
                 # scatteringTrain lags behind scattering.training
                 scattering.scatteringTrain = scattering.training
@@ -150,10 +151,10 @@ class filterVisualizer(object):
         self.filterTracker['scale'].append(np.multiply(self.filterTracker['1'][-1], self.filterTracker['2'][-1]))
 
     def saveFilterGrads(self,scatteringActive):
-        self.filterTracker['angle'].append(getGrad(self.scattering.params_filters[0]))
-        self.filterTracker['1'].append(getGrad(self.scattering.params_filters[1]))
-        self.filterTracker['2'].append(getGrad(self.scattering.params_filters[2]))
-        self.filterTracker['3'].append(getGrad(self.scattering.params_filters[3]))
+        self.filterGradTracker['angle'].append(getGrad(self.scattering.params_filters[0]))
+        self.filterGradTracker['1'].append(getGrad(self.scattering.params_filters[1]))
+        self.filterGradTracker['2'].append(getGrad(self.scattering.params_filters[2]))
+        self.filterGradTracker['3'].append(getGrad(self.scattering.params_filters[3]))
 
     def plotFilterGrads(self):
         """plots the graph of the filter gradients"""
@@ -211,7 +212,9 @@ class filterVisualizer(object):
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
         plt.subplots_adjust(hspace=0.35, wspace=0.35)
         label = ['theta', 'xis', 'sigma', 'slant']
-
+        a = np.stack(self.filterTracker['1']).T[0]
+        print(a[0] - a[1])
+        print(a)
         for idx,param in enumerate(['angle', "1", '2', '3']):#iterate over all the parameters
             for idx2, filter in enumerate(np.stack(self.filterTracker[param]).T):
                 axarr[int(idx/2), idx%2].plot([x for x in range(len(filter))], filter)
