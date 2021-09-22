@@ -18,20 +18,15 @@ class sn_HybridModel(nn.Module):
     def __str__(self):
         return str(self.scatteringBase)
 
-    def __init__(self, scatteringBase, top, use_cuda=True):
+    def __init__(self, scatteringBase, top):
         """Constructor for a HybridModel
 
         scatteringBase -- the scattering nn.Module
         top -- the nn.Module used after scatteringBase
-        use_cuda -- True if using GPU
         """
         super(sn_HybridModel,self).__init__()
-        if use_cuda:
-            self.scatteringBase = scatteringBase.cuda()
-            self.top = top.cuda()
-        else:
-            self.scatteringBase = scatteringBase.cpu()
-            self.top = top.cpu()
+        self.scatteringBase = scatteringBase
+        self.top = top
 
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))

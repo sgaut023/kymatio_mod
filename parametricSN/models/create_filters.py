@@ -3,7 +3,6 @@
 Authors: Benjamin Therien, Shanel Gauthier, Laurent Alsene-Racicot, Michael Eickenberg
 
 Functions: 
-    construct_scattering         -- Construct the scattering object
     update_psi                   -- Update the psi dictionnary with the new wavelets
     get_total_num_filters        -- Compute the total number of filters
     periodize_filter_fft         -- Periodize the filter in fourier space
@@ -25,57 +24,13 @@ sys.path.append(str(Path.cwd()))
 import torch
 
 
-def construct_scattering(input, scattering, psi):
-    """ Construct the scattering object
-
-        Parameters:
-            input      -- input data
-            scattering -- Kymatio (https://www.kymat.io/) scattering object
-            psi        -- dictionnary of filters that is used in the kymatio code
-        Returns:
-            S -- output of the scattering network
-    """
-    if not torch.is_tensor(input):
-        raise TypeError('The input should be a PyTorch Tensor.')
-
-    if len(input.shape) < 2:
-        raise RuntimeError('Input tensor must have at least two dimensions.')
-
-    if not input.is_contiguous():
-        raise RuntimeError('Tensor must be contiguous.')
-
-    if (input.shape[-1] != scattering.N or input.shape[-2] != scattering.M) and not scattering.pre_pad:
-        raise RuntimeError('Tensor must be of spatial size (%i,%i).' % (scattering.M, scattering.N))
-
-    if (input.shape[-1] != scattering.N_padded or input.shape[-2] != scattering.N_padded) and scattering.pre_pad:
-        raise RuntimeError('Padded tensor must be of spatial size (%i,%i).' % (scattering.M_padded, scattering.N_padded))
-
-    if not scattering.out_type in ('array', 'list'):
-        raise RuntimeError("The out_type must be one of 'array' or 'list'.")
-
-    batch_shape = input.shape[:-2]
-    signal_shape = input.shape[-2:]
-
-    input = input.reshape((-1,) + signal_shape)
-
-
-    S = scattering2d(input, scattering.pad, scattering.unpad, scattering.backend, scattering.J,
-                        scattering.L, scattering.phi, psi, scattering.max_order, scattering.out_type)
-
-    if scattering.out_type == 'array':
-        scattering_shape = S.shape[-3:]
-        S = S.reshape(batch_shape + scattering_shape)
-
-    return S
-
-def update_psi(J, psi, wavelets, device):
+def update_psi(J, psi, wavelets):
     """ Update the psi dictionnary with the new wavelets
 
         Parameters:
             J -- scale for the scattering
             psi -- dictionnary of filters
             wavelets -- wavelet filters
-            device -- device cuda or cpu
 
         Returns:
             psi -- dictionnary of filters
@@ -93,7 +48,7 @@ def update_psi(J, psi, wavelets, device):
                     if res == 0:
                         d[res] = wavelets[i]
                     else:
-                        d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res, device).unsqueeze(2)
+                        d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res).unsqueeze(2)
                 
     return psi
 
@@ -112,13 +67,12 @@ def get_total_num_filters(J, L):
         num_filters += j *L
     return num_filters  
 
-def periodize_filter_fft(x, res, device):
+def periodize_filter_fft(x, res):
     """ Periodize the filter in fourier space
 
         Parameters:
             x -- signal to periodize in Fourier 
             res -- resolution to which the signal is cropped
-            device -- device cuda or cpu
             
 
         Returns:
@@ -130,13 +84,12 @@ def periodize_filter_fft(x, res, device):
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
-def create_filters_params_random(n_filters, is_scattering_dif, device):
+def create_filters_params_random(n_filters, is_scattering_dif):
     """ Create reusable randomly initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
             n_filters -- the number of filters in the filter bank
             is_scattering_dif -- boolean for the differentiability of the scattering
-            device -- device cuda or cpu
 
         Returns:
             params -- list that contains the parameters of the filters
@@ -146,10 +99,10 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
     xis = np.random.uniform(0.5, 1, n_filters )
     sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
     
-    xis = torch.tensor(xis, dtype=torch.float32, device=device)
-    sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
-    slants = torch.tensor(slants, dtype=torch.float32, device=device)
-    orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
+    xis = torch.tensor(xis, dtype=torch.float32)
+    sigmas = torch.tensor(sigmas, dtype=torch.float32)
+    slants = torch.tensor(slants, dtype=torch.float32)
+    orientations = torch.tensor(orientations, dtype=torch.float32)  
     params = [orientations, xis, sigmas, slants]
 
     if is_scattering_dif:
@@ -158,14 +111,13 @@ def create_filters_params_random(n_filters, is_scattering_dif, device):
 
     return  params
 
-def create_filters_params(J, L, is_scattering_dif, device):
+def create_filters_params(J, L, is_scattering_dif):
     """ Create reusable tight frame initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
             J -- scale of the scattering
             L -- number of orientation for the scattering
             is_scattering_dif -- boolean for the differentiability of the scattering
-            device -- device cuda or cpu
 
         Returns:
             params -- list that contains the parameters of the filters
@@ -185,10 +137,10 @@ def create_filters_params(J, L, is_scattering_dif, device):
             slants.append(slant)
             orientations.append(t) 
      
-    xis = torch.tensor(xis, dtype=torch.float32, device=device)
-    sigmas = torch.tensor(sigmas, dtype=torch.float32, device=device)
-    slants = torch.tensor(slants, dtype=torch.float32, device=device)
-    orientations = torch.tensor(orientations, dtype=torch.float32, device=device)  
+    xis = torch.tensor(xis, dtype=torch.float32)
+    sigmas = torch.tensor(sigmas, dtype=torch.float32)
+    slants = torch.tensor(slants, dtype=torch.float32)
+    orientations = torch.tensor(orientations, dtype=torch.float32)  
 
     params = [orientations, xis, sigmas, slants]
     if is_scattering_dif:
@@ -214,11 +166,10 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
     """
     n_filters, n_dim = wave_vectors.shape
     assert gaussian_bases.shape == (n_filters, n_dim, n_dim)
-    device = wave_vectors.device
 
     if isinstance(grid_or_shape, tuple):
         shape = grid_or_shape
-        ranges = [torch.arange(-(s // 2), -(s // 2) + s, device=device, dtype=torch.float) for s in shape]
+        ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
     else:
         shape = grid_or_shape.shape[1:]
@@ -246,7 +197,7 @@ def raw_morlets(grid_or_shape, wave_vectors, gaussian_bases, morlet=True, ifftsh
 
     return filters
 
-def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True, ifftshift=True, fft=True):
+def morlets(grid_or_shape, theta, xis, sigmas, slants, morlet=True, ifftshift=True, fft=True):
     """Creates morlet wavelet filters from inputs
 
         Parameters:
@@ -255,7 +206,6 @@ def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True,
             xis -- frequency scales of the wavelets
             sigmas -- gaussian window scales of the wavelets
             slants -- slants of the wavelets
-            device -- device cuda or cpu
             morlet -- boolean for morlet or gabor wavelet
             ifftshift -- boolean for the ifftshift (inverse fast fourier transform shift)
             fft -- boolean for the fft (fast fourier transform)
@@ -264,14 +214,12 @@ def morlets(grid_or_shape, theta, xis, sigmas, slants, device=None, morlet=True,
             wavelets -- the wavelet filters
 
     """
-    if device is None:
-        device = theta.device
     orientations = torch.cat((torch.cos(theta).unsqueeze(1),torch.sin(theta).unsqueeze(1)), dim =1)
     n_filters, ndim = orientations.shape
     wave_vectors = orientations * xis[:, np.newaxis]
     _, _, gauss_directions = torch.linalg.svd(orientations[:, np.newaxis])
     gauss_directions = gauss_directions / sigmas[:, np.newaxis, np.newaxis]
-    indicator = torch.arange(ndim,device=device) < 1
+    indicator = torch.arange(ndim, device=slants.device) < 1
     slant_modifications = (1.0 * indicator + slants[:, np.newaxis] * ~indicator)
     gauss_directions = gauss_directions * slant_modifications[:, :, np.newaxis]
 
