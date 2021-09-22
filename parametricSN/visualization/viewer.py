@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch  #TODO REMOVE
 import numpy as np  #TODO REMOVE
 
-from parametricSN.models.create_filters import morlets, update_psi
+from parametricSN.models.create_filters import morlets, update_psi, create_filters_params
 from .visualization_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
 #TODO move to utils
 def toNumpy(x):
@@ -13,8 +13,6 @@ def getValue(x):
     return toNumpy(x.detach())
 
 def getGrad(x):
-    print(x)
-    print(x.grad)
     return toNumpy(x.grad)
 
 
@@ -57,8 +55,8 @@ class filterVisualizer(object):
         scat.params_filters[1].register_hook(print_hook('1'))
         scat.params_filters[2].register_hook(print_hook('2'))
         scat.params_filters[3].register_hook(print_hook('3'))
-        
-        compared_params = scat.params_filters
+
+        compared_params = create_filters_params(scat.J, scat.L, scat.learnable) #kymatio init
 
         #TODO turn into util function
         self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]], dim=1)

@@ -19,9 +19,7 @@ def test(model, device, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device, dtype=torch.long)  
-            print("fsdhwakhkDS")
             output = model(data)
-            print("FSFQWQ")
             test_loss += F.cross_entropy(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -43,7 +41,6 @@ def train(model, device, train_loader, scheduler, optimizer, epoch, accum_step_m
 
         optimizer.zero_grad()
         output = model(data)
-        print("DS", batch_idx)
         loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
