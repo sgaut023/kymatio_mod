@@ -31,6 +31,11 @@ class InvalidInitializationException(Exception):
     pass
 
 
+
+def _register_single_filter(self, v, n):
+    self.register_buffer('tensor' + str(n), v)
+
+    
 class sn_Identity(nn.Module):
     """Identity nn.Module for identity"""
     def __init__(self, *args, **kwargs):
@@ -74,8 +79,6 @@ class sn_Identity(nn.Module):
         pass
     
 
-def _register_single_filter(self, v, n):
-    self.register_buffer('tensor' + str(n), v)
 
 
 class sn_ScatteringBase(Scattering2D):
@@ -102,7 +105,6 @@ class sn_ScatteringBase(Scattering2D):
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, self.J, 8, mode=mode) 
             filter_viz[mode] = f  
-
         return filter_viz
 
     def getOneFilter(self, count, scale, mode):
@@ -179,6 +181,7 @@ class sn_ScatteringBase(Scattering2D):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
 
+        
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
