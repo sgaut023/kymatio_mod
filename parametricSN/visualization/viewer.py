@@ -170,7 +170,6 @@ class filterVisualizer(object):
 
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
-        print(self.filterGradTracker['angle'][0])
 
         for x in range(filterNum):#iterate over all the filters
             temp = {
@@ -197,6 +196,7 @@ class filterVisualizer(object):
 
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
+        print(self.filterTracker['angle'][0])
         for x in range(filterNum):#iterate over all the filters
             temp = {
                 'orientation1': [filters[x] for filters in self.filterTracker['angle']],
