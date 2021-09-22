@@ -20,10 +20,10 @@ import cv2
 
 import torch.nn as nn
 
-from kymatio import Scattering2D
+from kymatio.torch import Scattering2D
 
 from .create_filters import *
-from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams, compareParamsVisualization
+from .models_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
 
 
 class InvalidInitializationException(Exception):
@@ -31,60 +31,11 @@ class InvalidInitializationException(Exception):
     pass
 
 
+
 def _register_single_filter(self, v, n):
     self.register_buffer('tensor' + str(n), v)
-def create_scatteringExclusive(J,N,M,second_order,initialization,seed=0,requires_grad=True):
-    """Creates scattering parameters and replaces then with the specified initialization
 
-    Creates the scattering network and returns it for modification. Next,
-    based on input, we modify the filter initialization and use it to create new conv kernels. Then, we
-    update the psi Kymatio object to match the Kymatio API.
-
-    arguments:
-    J -- scale of scattering (always 2 for now)
-    N -- height of the input image
-    M -- width of the input image
-    initilization -- the type of init: ['Tight-Frame' or 'Random']
-    seed -- the seed used for creating randomly initialized filters
-    requires_grad -- boolean idicating whether we want to learn params
-    """
-    scattering = Scattering2D(J=J, shape=(M, N), frontend='torch')
-
-    L = scattering.L
-    if second_order:
-        n_coefficients=  L*L*J*(J-1)//2
-    else: 
-        n_coefficients=  L*L*J*(J-1)//2 + 1 + L*J  
     
-    K = n_coefficients*3
-
-    phi, psi  = scattering.load_filters()
-    
-    params_filters = []
-
-    if initialization == "Tight-Frame":
-        params_filters = create_filters_params(J,L,requires_grad) #kymatio init
-    elif initialization == "Random":
-        num_filters= J*L
-        params_filters = create_filters_params_random(num_filters,requires_grad) #random init
-    else:
-        raise InvalidInitializationException
-
-    shape = (scattering.M_padded, scattering.N_padded,)
-    ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
-    grid = torch.stack(torch.meshgrid(*ranges), 0)
-    params_filters =  [ param for param in params_filters]
-
-    wavelets  = morlets(shape, params_filters[0], params_filters[1], 
-                    params_filters[2], params_filters[3])
-    
-    scattering.psi = update_psi(J, psi, wavelets) #update psi to reflect the new conv filters
-    scattering.register_single_filter = types.MethodType(_register_single_filter, scattering)
-    scattering.register_filters()
-    return scattering, psi, wavelets, params_filters, n_coefficients, grid
-
-
-
 class sn_Identity(nn.Module):
     """Identity nn.Module for identity"""
     def __init__(self, *args, **kwargs):
@@ -130,7 +81,7 @@ class sn_Identity(nn.Module):
 
 
 
-class sn_ScatteringBase(nn.Module):
+class sn_ScatteringBase(Scattering2D):
     """A learnable scattering nn.module 
 
     parameters:
@@ -150,17 +101,17 @@ class sn_ScatteringBase(nn.Module):
     def getFilterViz(self):
         """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
         filter_viz = {}
-        phi, psi = self.scattering.load_filters()
+        phi, psi = self.load_filters()
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
             f = get_filters_visualization(psi, self.J, 8, mode=mode) 
             filter_viz[mode] = f  
         return filter_viz
 
     def getOneFilter(self, count, scale, mode):
-        return getOneFilter(self.scattering.psi, count, scale, mode)
+        return getOneFilter(self.psi, count, scale, mode)
 
     def getAllFilters(self, totalCount, scale, mode):
-        phi, psi = self.scattering.load_filters()
+        phi, psi = self.load_filters()
         return getAllFilters(psi, totalCount, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
@@ -185,10 +136,8 @@ class sn_ScatteringBase(nn.Module):
             filter_video -- whether to create filters from 
 
         """
-        super(sn_ScatteringBase,self).__init__()
-        self.J = J
-        self.N = N
-        self.M = M
+        super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N))
+
         self.second_order = second_order
         self.learnable = learnable
         self.initialization = initialization
@@ -200,11 +149,29 @@ class sn_ScatteringBase(nn.Module):
         self.filter_video = filter_video
         self.epoch = 0
 
-        self.scattering, self.scattering.psi, self.scattering.wavelets, self.params_filters, self.n_coefficients, grid = create_scatteringExclusive(
-            J,N,M,second_order, initialization=self.initialization,seed=seed,
-            requires_grad=learnable
-        )
+        L = self.L
 
+        if second_order:
+            self.n_coefficients =  L*L*J*(J-1)//2
+        else: 
+            self.n_coefficients =  L*L*J*(J-1)//2 + 1 + L*J  
+
+        if initialization == "Tight-Frame":
+            self.params_filters = create_filters_params(J, L, learnable) #kymatio init
+        elif initialization == "Random":
+            self.params_filters = create_filters_params_random(J*L, learnable) #random init
+        else:
+            raise InvalidInitializationException
+        shape = (self.M_padded, self.N_padded,)
+        ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
+        grid = torch.stack(torch.meshgrid(*ranges), 0)
+        wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
+                self.params_filters[2], self.params_filters[3])
+
+
+        self.register_single_filter = types.MethodType(_register_single_filter, self)
+        self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
+        self.register_filters()
         if learnable:
             for i in range(0, len(self.params_filters)):
                 self.params_filters[i] = nn.Parameter(self.params_filters[i])
@@ -214,27 +181,30 @@ class sn_ScatteringBase(nn.Module):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
 
-
-
+        
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                self.scattering.wavelets = morlets(self.grid, self.params_filters[0], 
+                wavelets = morlets(self.grid, self.params_filters[0], 
                                     self.params_filters[1], self.params_filters[2], 
                                     self.params_filters[3])
 
-                phi, psi = self.scattering.load_filters()
-                self.scattering.psi = update_psi(self.scattering.J, psi, self.scattering.wavelets)
-                self.scattering.register_filters()
+                phi, psi = self.load_filters()
+                self.psi = update_psi(self.J, psi, wavelets)
+                self.register_filters()
 
                 # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
 
                 self.writeVideoFrame()
-                
-
         self.register_forward_pre_hook(updateFilters_hook)
+
+        def reshape_hook(self, x, S):
+            S = S[:,:, -self.n_coefficients:,:,:]
+            S = S.reshape(S.size(0), self.n_coefficients*3, S.size(3), S.size(4))
+            return S
+        self.register_forward_hook(reshape_hook)
 
         # visualization code
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
@@ -244,15 +214,9 @@ class sn_ScatteringBase(nn.Module):
         self.scatteringTrain = True
                     
         if self.monitor_filters == True:
-            _, self.compared_psi, self.compared_wavelets, self.compared_params, _, _ = create_scatteringExclusive(
-                J,N,M,second_order, initialization='Tight-Frame',seed=seed,
-                requires_grad=False
-            )
-
-            self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in self.compared_params[1:]],dim=1)
-            self.compared_params_angle = self.compared_params[0] % (2 * np.pi)
-            self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
-            self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
+            compared_params = self.params_filters
+            self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]],dim=1)
+            self.compared_params_angle = compared_params[0] % (2 * np.pi)
             self.params_history = []
 
         if self.filter_video:
@@ -263,13 +227,6 @@ class sn_ScatteringBase(nn.Module):
                                               cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
             self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
                                                  cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
-
-    def forward(self, ip):
-        """ apply the scattering transform to the input image """
-        x = self.scattering(ip)
-        x = x[:,:, -self.n_coefficients:,:,:]
-        x = x.reshape(x.size(0), self.n_coefficients*3, x.size(3), x.size(4))
-        return x
 
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
