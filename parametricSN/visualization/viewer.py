@@ -34,23 +34,21 @@ class filterVisualizer(object):
                     scattering.psi = update_psi(scattering.J, psi, wavelets)
                     scattering.register_filters()
 
-                if scattering.scatteringTrain:
-                    self.saveFilterValues(True)
-
-                # i think a more 'correct' way of doing this would be to place
-                # this in the if statement above. Thoughts?
+                # define hooks
                 self.writeVideoFrame()
-
-                # scatteringTrain lags behind scattering.training
-                # should we place this as a post forward hook?
-                # we wouldnt need to define the rest of the code above. 
+                # define hooks
                 scattering.scatteringTrain = scattering.training
-        scat.pre_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
+        scat.pres_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
+
+        def recordFilterValues_hook(scattering, ip):
+            if scattering.training:
+                self.saveFilterValues()
+        scat.pre_filter_value_hook = scat.register_forward_pre_hook(recordFilterValues_hook)
 
         def print_hook(name):
-            def updateFilterGrad(grad):
+            def recordFilterGrad(grad):
                 self.filterGradTracker[name].append(toNumpy(grad))
-            return updateFilterGrad
+            return recordFilterGrad
         scat.params_filters[0].register_hook(print_hook('angle'))
         scat.params_filters[1].register_hook(print_hook('1'))
         scat.params_filters[2].register_hook(print_hook('2'))
@@ -82,15 +80,17 @@ class filterVisualizer(object):
         # take scattering as object
         self.filters_plots_before = self.getFilterViz()
                    
-
+    # move to video recorder class
     def getOneFilter(self, count, scale, mode):
         phi, psi = self.scattering.load_filters()
         return getOneFilter(psi, count, scale, mode)
 
+    # move to video recorder class
     def getAllFilters(self, totalCount, scale, mode):
         phi, psi = self.scattering.load_filters()
         return getAllFilters(psi, totalCount, scale, mode)
 
+    # move to video recorder class
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
         for vizType in self.videoWriters.keys():
@@ -100,10 +100,12 @@ class filterVisualizer(object):
             temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             self.videoWriters[vizType].write(temp)
 
+    # move to video recorder class
     def releaseVideoWriters(self):
         for vizType in self.videoWriters.keys():
             self.videoWriters[vizType].release()
 
+    # move to video recorder class
     def setEpoch(self, epoch):
         self.epoch = epoch
 
@@ -151,7 +153,7 @@ class filterVisualizer(object):
             angles2=self.compared_params_angle
         )
 
-    def saveFilterValues(self, scatteringActive):
+    def saveFilterValues(self):
         #TODO turn into util function
         self.filterTracker['angle'].append(getValue(self.scattering.params_filters[0]))
         self.filterTracker['1'].append(getValue(self.scattering.params_filters[1]))
@@ -193,11 +195,7 @@ class filterVisualizer(object):
         size = (80, 10*row,)
 
         f, axarr = plt.subplots(row, col, figsize=size) # create plots
-
-        print(self.filterTracker['angle'][0])
-        b =[float(y) for y in self.filterTracker['angle'][0]] 
-        print(b)
-        print(len(b))
+        print([filters[0] for filters in self.filterTracker['angle']])
         for x in range(filterNum):#iterate over all the filters
             temp = {
                 'orientation1': [filters[x] for filters in self.filterTracker['angle']],
@@ -220,6 +218,7 @@ class filterVisualizer(object):
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
         plt.subplots_adjust(hspace=0.35, wspace=0.35)
         label = ['theta', 'xis', 'sigma', 'slant']
+        print(np.stack(self.filterTracker['angle']).T[0])
         for idx,param in enumerate(['angle', "1", '2', '3']):#iterate over all the parameters
             for idx2, filter in enumerate(np.stack(self.filterTracker[param]).T):
                 axarr[int(idx/2), idx%2].plot([x for x in range(len(filter))], filter)
