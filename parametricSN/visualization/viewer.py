@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import torch  #TODO REMOVE
 import numpy as np  #TODO REMOVE
+import cmapy
 
 from parametricSN.models.create_filters import morlets, update_psi, create_filters_params
 from .visualization_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
@@ -17,7 +18,7 @@ def getGrad(x):
 
 
 class filterVisualizer(object):
-    def __init__(self, scat):
+    def __init__(self, scat, seed):
         super(filterVisualizer, self).__init__()
         self.epoch = 0
 
@@ -72,13 +73,33 @@ class filterVisualizer(object):
                                           cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
         self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
-
+        self.videoWriter_lp = cv2.VideoWriter('videos/scattering_{}_LP{}epochs.avi'.format(seed, "--"),
+                                          cv2.VideoWriter_fourcc(*'DIVX'), 30,
+                                          (40,40), isColor=True)
+      
         # visualization code
         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
 
         # take scattering as object
         self.filters_plots_before = self.getFilterViz()
+
+    # dekha means visualize/look/see in Punjabi
+    def littlewood_paley_dekha(self):
+      wavelets = morlets(self.scattering.grid, self.scattering.params_filters[0], 
+                                        self.scattering.params_filters[1], self.scattering.params_filters[2], 
+                                        self.scattering.params_filters[3]).cpu().detach().numpy()
+      lp = (np.abs(wavelets) ** 2).sum(0)
+      fig = plt.figure()
+      ax = plt.subplot()
+      ax.imshow(np.fft.fftshift(lp))
+      return fig
+    def littlewood_paley_lollywood(self):
+      wavelets = morlets(self.scattering.grid, self.scattering.params_filters[0], 
+                                        self.scattering.params_filters[1], self.scattering.params_filters[2], 
+                                        self.scattering.params_filters[3]).cpu().detach().numpy()
+      lp = (np.abs(wavelets) ** 2).sum(0)
+      return np.fft.fftshift(lp)
                    
     # move to video recorder class
     def getOneFilter(self, count, scale, mode):
@@ -99,9 +120,17 @@ class filterVisualizer(object):
             temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
             temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             self.videoWriters[vizType].write(temp)
+        lp = self.littlewood_paley_lollywood()
+        lp = lp - lp.min()
+        lp = lp / lp.max() * 255
+        temp = cv2.applyColorMap(np.uint8(lp), cmapy.cmap('viridis'))
+        #temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(0, 4),
+        #        cv2.FONT_HERSHEY_SIMPLEX, 0.10, (255, 255, 255), 1)
+        self.videoWriter_lp.write(temp)
 
     # move to video recorder class
     def releaseVideoWriters(self):
+        self.videoWriter_lp.release()
         for vizType in self.videoWriters.keys():
             self.videoWriters[vizType].release()
 
@@ -254,7 +283,6 @@ class filterVisualizer(object):
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
         plt.subplots_adjust(hspace=0.35, wspace=0.35)
         label = ['theta', 'xis', 'sigma', 'slant']
-        print(np.stack(self.filterTracker['angle']).T[0])
         for idx,param in enumerate(['angle', "1", '2', '3']):#iterate over all the parameters
             for idx2, filter in enumerate(np.stack(self.filterTracker[param]).T):
                 axarr[int(idx/2), idx%2].plot([x for x in range(len(filter))], filter)

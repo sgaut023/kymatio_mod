@@ -67,6 +67,13 @@ def run_train(args):
     params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
+    print(params['dataset']['train_sample_num'],
+            params['dataset']['test_sample_num'],
+            params['dataset']['train_batch_size'],
+            params['dataset']['test_batch_size'], 
+            params['dataset']['augment'])
+
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     DATA_DIR = get_data_root(params['dataset']['name'], params['dataset']['data_root'], params['dataset']['data_folder'])
@@ -105,7 +112,8 @@ def run_train(args):
         width= params['model']['width'], 
     )
 
-    viewers = filterVisualizer(scatteringBase)
+    viewers = filterVisualizer(scatteringBase, params['general']['seed'])
+    lp_init = viewers.littlewood_paley_dekha()
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
 
@@ -228,6 +236,7 @@ def run_train(args):
         filters_values = viewers.plotFilterValues()
         filters_grad = viewers.plotFilterGrads()
         filters_parameters = viewers.plotParameterValues()
+        lp_end = viewers.littlewood_paley_dekha()
     else:
         filters_plots_before = None
         filters_plots_after = None
@@ -241,7 +250,8 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot,compareParamsVisualization]
+        filters_values, filters_parameters, f_lr,
+        paramDistancePlot,compareParamsVisualization, lp_init, lp_end]
     )
     
 

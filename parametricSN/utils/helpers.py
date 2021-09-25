@@ -221,6 +221,10 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
 
         if params['scattering']['param_distance'] and params['scattering']['parameterization']=='canonical':
             mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization.pdf')
+        mlflow.log_figure(misc_plots[9], f'learnable_parameters/lp_init_dekha.pdf')
+        mlflow.log_figure(misc_plots[10], f'learnable_parameters/lp_end_dekha.pdf')
+
+
 
 
         # saving all accuracies
