@@ -6,7 +6,7 @@ import cmapy
 
 from parametricSN.models.create_filters import morlets, update_psi, create_filters_params
 from .visualization_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
-#TODO move to utils
+
 def toNumpy(x):
     return x.clone().cpu().numpy()
 
@@ -23,37 +23,31 @@ class filterVisualizer(object):
         self.epoch = 0
 
         scat.pre_hook.remove()
-        def updateFiltersVideo_hook(scattering, ip):
-            """if were using learnable scattering, update the filters to reflect 
-            the new parameter values obtained from gradient descent"""
+        def recordFilterVideos_hook(scattering, ip):
             if (scattering.training or scattering.scatteringTrain):
-                if scattering.learnable:
-                    wavelets = morlets(scattering.grid, scattering.params_filters[0], 
-                                        scattering.params_filters[1], scattering.params_filters[2], 
-                                        scattering.params_filters[3])
-                    phi, psi = scattering.load_filters()
-                    scattering.psi = update_psi(scattering.J, psi, wavelets)
-                    scattering.register_filters()
-
-                # define hooks
                 self.writeVideoFrame()
-                # define hooks
-                scattering.scatteringTrain = scattering.training
-        scat.pres_hook = scat.register_forward_pre_hook(updateFiltersVideo_hook)
+        scat.recordFilterVideos_hook = scat.register_forward_pre_hook(recordFilterVideos_hook)
 
         def recordFilterValues_hook(scattering, ip):
             if scattering.training:
                 self.saveFilterValues()
-        scat.pre_filter_value_hook = scat.register_forward_pre_hook(recordFilterValues_hook)
+        scat.recordFilterValues_hook = scat.register_forward_pre_hook(recordFilterValues_hook)
+
+        def pre_forward_hook(self, ip):
+            self.scatteringTrain = self.training
+        scat.pre_hook = scat.register_forward_pre_hook(pre_forward_hook)
 
         def print_hook(name):
             def recordFilterGrad(grad):
                 self.filterGradTracker[name].append(toNumpy(grad))
             return recordFilterGrad
-        scat.params_filters[0].register_hook(print_hook('angle'))
-        scat.params_filters[1].register_hook(print_hook('1'))
-        scat.params_filters[2].register_hook(print_hook('2'))
-        scat.params_filters[3].register_hook(print_hook('3'))
+        #TODO check for case when requires_grad=False
+
+        if getattr(scat, 'scattering_params_0').requires_grad:
+            getattr(scat, 'scattering_params_0').register_hook(print_hook('angle'))
+            getattr(scat, 'scattering_params_1').register_hook(print_hook('1'))
+            getattr(scat, 'scattering_params_2').register_hook(print_hook('2')) 
+            getattr(scat, 'scattering_params_2').register_hook(print_hook('3'))
 
         compared_params = create_filters_params(scat.J, scat.L, scat.learnable) #kymatio init
 
@@ -84,23 +78,29 @@ class filterVisualizer(object):
         # take scattering as object
         self.filters_plots_before = self.getFilterViz()
 
+    def littlewood_paley(self):
+        wavelets = morlets(self.scattering.grid, getattr(self.scattering, 'scattering_params_0'), 
+                                        getattr(self.scattering, 'scattering_params_1'), 
+                                        getattr(self.scattering, 'scattering_params_2'), 
+                                        getattr(self.scattering, 'scattering_params_3')).cpu().detach().numpy()
+        lp = (np.abs(wavelets) ** 2).sum(0)
+        return np.fft.fftshift(lp)
+  
     # dekha means visualize/look/see in Punjabi
     def littlewood_paley_dekha(self):
-      wavelets = morlets(self.scattering.grid, self.scattering.params_filters[0], 
-                                        self.scattering.params_filters[1], self.scattering.params_filters[2], 
-                                        self.scattering.params_filters[3]).cpu().detach().numpy()
-      lp = (np.abs(wavelets) ** 2).sum(0)
-      fig = plt.figure()
-      ax = plt.subplot()
-      ax.imshow(np.fft.fftshift(lp))
-      return fig
+        lp = self.littlewood_paley()
+        fig = plt.figure()
+        ax = plt.subplot()
+        ax.imshow(lp)
+        return fig
+
+    # lahore film scene
     def littlewood_paley_lollywood(self):
-      wavelets = morlets(self.scattering.grid, self.scattering.params_filters[0], 
-                                        self.scattering.params_filters[1], self.scattering.params_filters[2], 
-                                        self.scattering.params_filters[3]).cpu().detach().numpy()
-      lp = (np.abs(wavelets) ** 2).sum(0)
-      return np.fft.fftshift(lp)
-                   
+        lp = self.littlewood_paley()
+        lp = lp - lp.min()
+        lp = lp / lp.max() * 255
+        return np.uint8(lp)
+                 
     # move to video recorder class
     def getOneFilter(self, count, scale, mode):
         phi, psi = self.scattering.load_filters()
@@ -115,15 +115,11 @@ class filterVisualizer(object):
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
         for vizType in self.videoWriters.keys():
-
             #TODO turn into util function
             temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
             temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             self.videoWriters[vizType].write(temp)
-        lp = self.littlewood_paley_lollywood()
-        lp = lp - lp.min()
-        lp = lp / lp.max() * 255
-        temp = cv2.applyColorMap(np.uint8(lp), cmapy.cmap('viridis'))
+        temp = cv2.applyColorMap(self.littlewood_paley_lollywood(), cmapy.cmap('viridis'))
         #temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(0, 4),
         #        cv2.FONT_HERSHEY_SIMPLEX, 0.10, (255, 255, 255), 1)
         self.videoWriter_lp.write(temp)
@@ -159,8 +155,13 @@ class filterVisualizer(object):
             minimal distance
         """
         #TODO turn into util function
-        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.scattering.params_filters[1:]], dim=1).cpu()
-        tempParamsAngle = (self.scattering.params_filters[0] % (2 * np.pi)).cpu()
+        params_list = []
+        for i in range(1, 4):
+            params_list.append(getattr(self.scattering,
+                'scattering_params_'+str(i)))
+
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in params_list], dim=1).cpu()
+        tempParamsAngle = (getattr(self.scattering, 'scattering_params_'+str(0)) % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
         return compareParams(
             params1=tempParamsGrouped,
@@ -172,8 +173,13 @@ class filterVisualizer(object):
     def compareParamsVisualization(self):
         """visualize the matched filters"""
         #TODO turn into util function
-        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.scattering.params_filters[1:]], dim=1).cpu()
-        tempParamsAngle = (self.scattering.params_filters[0] % (2 * np.pi)).cpu()
+        params_list = []
+        for i in range(1, 4):
+            params_list.append(getattr(self.scattering,
+                'scattering_params_'+str(i)))
+
+        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in params_list], dim=1).cpu()
+        tempParamsAngle = (getattr(self.scattering, 'scattering_params_'+str(0)) % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
         return compareParamsVisualization(
             params1=tempParamsGrouped,
@@ -184,15 +190,15 @@ class filterVisualizer(object):
 
     def saveFilterValues(self):
         #TODO turn into util function
-        self.filterTracker['angle'].append(getValue(self.scattering.params_filters[0]))
-        self.filterTracker['1'].append(getValue(self.scattering.params_filters[1]))
-        self.filterTracker['2'].append(getValue(self.scattering.params_filters[2]))
-        self.filterTracker['3'].append(getValue(self.scattering.params_filters[3]))
+        self.filterTracker['angle'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(0))))
+        self.filterTracker['1'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(1))))
+        self.filterTracker['2'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(2))))
+        self.filterTracker['3'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(3))))
         self.filterTracker['scale'].append(np.multiply(self.filterTracker['1'][-1], self.filterTracker['2'][-1]))
 
     def plotFilterGrads(self):
         """plots the graph of the filter gradients"""
-        filterNum = self.scattering.params_filters[1].shape[0]
+        filterNum = getattr(self.scattering, 'scattering_params_'+str(1)).shape[0]
         col = 8
         row = int(filterNum/col)
         size = (80, 10*row,)
@@ -214,7 +220,7 @@ class filterVisualizer(object):
     
     def plotFilterValues(self):
         """plots the graph of the filter values"""
-        filterNum = self.scattering.params_filters[1].shape[0]
+        filterNum = getattr(self.scattering, 'scattering_params_'+str(1)).shape[0]
         col = 8
         row = int(filterNum/col)
         size = (80, 10*row,)

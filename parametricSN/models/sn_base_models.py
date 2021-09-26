@@ -99,28 +99,32 @@ class sn_ScatteringBase(Scattering2D):
             self.n_coefficients =  L*L*J*(J-1)//2 + 1 + L*J  
 
         if initialization == "Tight-Frame":
-            self.params_filters = create_filters_params(J, L, learnable) #kymatio init
+            _params_filters = create_filters_params(J, L, learnable) #kymatio init
         elif initialization == "Random":
-            self.params_filters = create_filters_params_random(J*L, learnable) #random init
+            _params_filters = create_filters_params_random(J*L, learnable) #random init
         else:
             raise InvalidInitializationException
         shape = (self.M_padded, self.N_padded,)
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
-        wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
-                self.params_filters[2], self.params_filters[3])
-
+        wavelets  = morlets(shape, _params_filters[0], _params_filters[1],
+                _params_filters[2], _params_filters[3])
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)
         self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
         self.register_filters()
+
+
+        self.params_filters = []
         if learnable:
-            for i in range(0, len(self.params_filters)):
-                self.params_filters[i] = nn.Parameter(self.params_filters[i])
-                self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
+            for i in range(0, len(_params_filters)):
+                _params_filters[i] = nn.Parameter(_params_filters[i])
+                self.register_parameter(name='scattering_params_'+str(i), param=_params_filters[i])
+                self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
         else:
-            for i in range(0, len(self.params_filters)):
-                self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+            for i in range(0, len(_params_filters)):
+                self.register_buffer(name='scattering_params_'+str(i), tensor=_params_filters[i])
+                self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
         self.register_buffer(name='grid', tensor=grid)
 
         
@@ -128,17 +132,21 @@ class sn_ScatteringBase(Scattering2D):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3])
+                wavelets = morlets(self.grid, getattr(self, 'scattering_params_0'), 
+                                    getattr(self, 'scattering_params_1'),
+                                    getattr(self, 'scattering_params_2'), 
+                                    getattr(self, 'scattering_params_2'))
 
                 phi, psi = self.load_filters()
                 self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
+        self.updateFilters_hook = self.register_forward_pre_hook(updateFilters_hook)
 
-                # scatteringTrain lags behind self.training
-                self.scatteringTrain = self.training
-        self.pre_hook = self.register_forward_pre_hook(updateFilters_hook)
+ 
+        def pre_forward_hook(self, ip):
+            self.scatteringTrain = self.training
+        self.pre_hook = self.register_forward_pre_hook(pre_forward_hook)
+
 
         def reshape_hook(self, x, S):
             S = S[:,:, -self.n_coefficients:,:,:]
