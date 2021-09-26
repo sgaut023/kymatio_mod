@@ -118,8 +118,7 @@ class sn_ScatteringBase(Scattering2D):
         self.params_filters = []
         if learnable:
             for i in range(0, len(_params_filters)):
-                _params_filters[i] = nn.Parameter(_params_filters[i])
-                self.register_parameter(name='scattering_params_'+str(i), param=_params_filters[i])
+                self.register_parameter(name='scattering_params_'+str(i), param=nn.Parameter(_params_filters[i]))
                 self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
         else:
             for i in range(0, len(_params_filters)):
@@ -140,6 +139,7 @@ class sn_ScatteringBase(Scattering2D):
                 phi, psi = self.load_filters()
                 self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
+                print("FSD")
         self.updateFilters_hook = self.register_forward_pre_hook(updateFilters_hook)
 
  

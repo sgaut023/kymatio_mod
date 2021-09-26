@@ -33,8 +33,8 @@ class filterVisualizer(object):
                 self.saveFilterValues()
         scat.recordFilterValues_hook = scat.register_forward_pre_hook(recordFilterValues_hook)
 
-        def pre_forward_hook(self, ip):
-            self.scatteringTrain = self.training
+        def pre_forward_hook(scattering, ip):
+            scattering.scatteringTrain = scattering.training
         scat.pre_hook = scat.register_forward_pre_hook(pre_forward_hook)
 
         def print_hook(name):
