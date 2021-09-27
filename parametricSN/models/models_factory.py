@@ -19,7 +19,7 @@ class InvalidArchitectureError(Exception):
     pass
 
 
-def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, device,pixelwise=False, 
+def baseModelFactory(architecture, J, N, M, second_order, initialization,num_channels, seed, device,pixelwise=False, 
                      learnable=True, lr_orientation=0.1, lr_scattering=0.1, filter_video=False,
                      equivariance =False,use_cuda=True):
     """Factory for the creation of the first layer of a hybrid model

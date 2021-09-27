@@ -4,9 +4,9 @@ sys.path.append(str(os.getcwd()))
 
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
-mlflow_exp_name = os.path.basename(__file__)
+mlflow_exp_name = os.path.basename(__file__) + "_PIXELWISE"
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 2
 
 RUN_FILE = "parametricSN/main.py"
 
@@ -25,6 +25,7 @@ SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 MODEL = 'wrn'
 MODEL_LOSS = 'cross-entropy'
+PIXELWISE = 1
 
 
 if __name__ == '__main__':
@@ -39,8 +40,8 @@ if __name__ == '__main__':
                 if x % 2 == 0  and x != 0:
                     INIT = "Random" if INIT == "Tight-Frame" else "Tight-Frame"
 
-                command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -en {} -mname {} -pf {} -dsam {} -mloss {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,mlflow_exp_name, MODEL, PARAMS_FILE, sample, MODEL_LOSS, DATA_ARG)
+                command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -en {} -mname {} -pf {} -dsam {} -mloss {} -spw {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,mlflow_exp_name, MODEL, PARAMS_FILE, sample, MODEL_LOSS,PIXELWISE, DATA_ARG)
 
                 commands.append(command)
         

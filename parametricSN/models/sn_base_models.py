@@ -537,10 +537,3 @@ class sn_ScatteringBase(nn.Module):
             
 
         return f
-<<<<<<< HEAD
-=======
-    
-
-
-
->>>>>>> origin/clean_master

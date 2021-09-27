@@ -239,6 +239,7 @@ def run_train(args):
         filters_plots_after = None
         filters_values = None
         filters_grad = None
+        filters_parameters = None
 
     log_mlflow(
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 

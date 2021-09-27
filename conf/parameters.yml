@@ -36,8 +36,8 @@ scattering:
   second_order: False
   architecture: 'scattering'
   pixelwise: True
-  filter_video: True
-  param_distance: True
+  filter_video: False
+  param_distance: False
   equivariance: False
 
 optim: 

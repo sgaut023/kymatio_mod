@@ -6,7 +6,7 @@ from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 mlflow_exp_name = os.path.basename(__file__)
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 4
 
 RUN_FILE = "parametricSN/main.py"
 
@@ -25,6 +25,7 @@ SCHEDULER = "OneCycleLR"
 AUGMENT = "original-cifar"
 MODEL = 'linear_layer'
 MODEL_LOSS = 'cross-entropy'
+
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()

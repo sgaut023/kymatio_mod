@@ -37,8 +37,8 @@ if __name__ == '__main__':
 
     commands = []
 
-    for SEED in [207715039, 491659600,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
-        for aa in [(1,"Tight-Frame"),(0,"Tight-Frame"),(1,"Random"),(0,"Random")]:
+    for SEED in [493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:#207715039, 491659600,737523103,
+        for aa in [(1,"Tight-Frame"),(1,"Random")]:#,(0,"Tight-Frame"),(0,"Random")
             LEARNABLE, INIT = aa
 
             args1 = "-oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {}".format(
