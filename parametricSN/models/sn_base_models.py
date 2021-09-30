@@ -117,7 +117,7 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False):
+                 filter_video=False, pixelwise=True):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -148,6 +148,7 @@ class sn_ScatteringBase(Scattering2D):
         self.monitor_filters = monitor_filters
         self.filter_video = filter_video
         self.epoch = 0
+        self.pixelwise = pixelwise
 
         L = self.L
 
@@ -173,9 +174,17 @@ class sn_ScatteringBase(Scattering2D):
         self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
         self.register_filters()
         if learnable:
-            for i in range(0, len(self.params_filters)):
-                self.params_filters[i] = nn.Parameter(self.params_filters[i])
-                self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
+            if pixelwise:
+                self.register_parameter(name='scattering_wavelets',
+                        param=nn.Parameter(wavelets))
+                phi, psi = self.load_filters()
+                self.psi = update_psi(self.J, self.psi, self.scattering_wavelets)
+                for i in range(0, len(self.params_filters)):
+                    self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+            else:
+                for i in range(0, len(self.params_filters)):
+                    self.params_filters[i] = nn.Parameter(self.params_filters[i])
+                    self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
         else:
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
@@ -186,14 +195,16 @@ class sn_ScatteringBase(Scattering2D):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                wavelets = morlets(self.grid, self.params_filters[0], 
-                                    self.params_filters[1], self.params_filters[2], 
-                                    self.params_filters[3])
+                if not pixelwise:
+                    wavelets = morlets(self.grid, self.params_filters[0], 
+                                        self.params_filters[1], self.params_filters[2], 
+                                        self.params_filters[3])
+                else:
+                    wavelets = self.scattering_wavelets
 
                 phi, psi = self.load_filters()
                 self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
-
                 # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
 
