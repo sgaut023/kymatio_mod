@@ -26,6 +26,7 @@ AUGMENT = "autoaugment"
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
+PIXELWISE = 1
 
 
 

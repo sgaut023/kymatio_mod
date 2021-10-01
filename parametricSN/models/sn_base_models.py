@@ -117,7 +117,7 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, pixelwise=True):
+                 filter_video=False, pixelwise=False):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable

@@ -20,7 +20,8 @@ class InvalidArchitectureError(Exception):
 
 
 def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
-                     learnable=True, lr_orientation=0.1, lr_scattering=0.1, filter_video=False):
+                     learnable=True, lr_orientation=0.1, lr_scattering=0.1,
+                     filter_video=False, pixelwise=False):
     """Factory for the creation of the first layer of a hybrid model
     
         parameters: 
@@ -51,6 +52,7 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed,
             lr_orientation=lr_orientation,
             lr_scattering=lr_scattering,
             filter_video=filter_video,
+            pixelwise=pixelwise,
         )
 
     else:

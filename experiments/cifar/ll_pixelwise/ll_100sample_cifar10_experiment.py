@@ -24,6 +24,7 @@ TRAIN_SAMPLE_NUM = 100
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "autoaugment"
 
+PIXELWISE = 1
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
