@@ -39,9 +39,8 @@ if __name__ == '__main__':
         for aa in [(1,"Random"),(1,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -smaxlr {} -sdivf {} -stp {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,
-                SCATT_LRMAX, SCATT_DF, SCATT_THREE_PHASE, DATA_ARG)
+            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -smaxlr {} -sdivf {} -stp {} -spw {} {}".format(
+                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE, SCATT_LRMAX, SCATT_DF, SCATT_THREE_PHASE, PIXELWISE, DATA_ARG)
 
             commands.append(command)
     
