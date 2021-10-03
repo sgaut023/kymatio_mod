@@ -179,7 +179,8 @@ def run_train(args):
         compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
-
+    else:
+        compareParamsVisualization = None
 
     #MLFLOW logging below
     f_loss = visualize_loss(
