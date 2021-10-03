@@ -1,7 +1,5 @@
 """Helpers for the main script
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 Functions:
     get_context              -- Create dictionnaries from yaml files
     visualize_loss           -- Plot Loss/accuracy   

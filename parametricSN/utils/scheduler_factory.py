@@ -1,7 +1,5 @@
 """Factory for scheduler loading
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 functions: 
     schedulerFactory -- Factory for OneCycle, CosineAnnealing, Lambda, Cyclic, and step schedulers
 """
