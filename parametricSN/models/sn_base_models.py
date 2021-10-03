@@ -1,7 +1,5 @@
 """Contains all the base pytorch NN.modules for this project
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 Functions: 
     create_scatteringExclusive -- creates scattering parameters
 

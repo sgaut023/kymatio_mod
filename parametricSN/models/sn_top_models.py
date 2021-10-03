@@ -1,7 +1,5 @@
 """Contains all the 'top' pytorch NN.modules for this project
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 Functions: 
     conv3x3              -- 3x3 convolution with padding
     countLearnableParams -- returns the amount of learnable parameters in this model

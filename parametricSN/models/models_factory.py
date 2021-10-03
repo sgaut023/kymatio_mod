@@ -1,7 +1,5 @@
 """Contains the factories for selecting different models
 
-Author: Benjamin Therien
-
 Functions: 
     baseModelFactory -- Factory for the creation of the first part of a hybrid model
     topModelFactory -- Factory for the creation of seconds part of a hybrid model

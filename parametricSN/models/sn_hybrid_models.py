@@ -1,7 +1,5 @@
 """Contains all the hybrid pytorch nn.modules for this project
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 Classes: 
     sn_HybridModel -- combinations of a scattering and other nn.modules
 """

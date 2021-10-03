@@ -1,7 +1,5 @@
 """Helper functions for regenerating the scattering filters on the fly
 
-Authors: Benjamin Therien, Shanel Gauthier, Laurent Alsene-Racicot, Michael Eickenberg
-
 Functions: 
     update_psi                   -- Update the psi dictionnary with the new wavelets
     get_total_num_filters        -- Compute the total number of filters
