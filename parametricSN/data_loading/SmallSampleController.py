@@ -1,7 +1,5 @@
 """Wrapper for subsampling a dataset
 
-Author: Benjamin Therien
-
 Exceptions: 
     ImpossibleSampleNumException
     IncompatibleBatchSizeException
