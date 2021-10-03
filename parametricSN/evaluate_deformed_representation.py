@@ -1,12 +1,10 @@
 """Evaluate representation stability of deformed images
 
-Authors: Laurent Alsene-Racicot, Shanel Gauthier
-
 This script computes distances between scattering representations from image and transformed versions
 of the original image. The figures generated from this script are saved in mlflow.
 
 To run the script, you to pass as command line arguments one or multiple paths to the model folder such as:
-"/NOBACKUP/gauthiers/kymatio_mod/mlruns/5/03f1f015288f47dc81d0529b23c25bf1/artifacts/model" 
+"/.../kymatio_mod/mlruns/5/03f1f015288f47dc81d0529b23c25bf1/artifacts/model" 
 
 Functions: 
     append_to_list         -- Append element to lists

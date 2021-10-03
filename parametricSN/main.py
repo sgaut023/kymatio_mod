@@ -1,7 +1,5 @@
 """Main module for Learnable Scattering Networks
 
-Authors: Benjamin Therien, Shanel Gauthier
-
 Functions: 
     run_train -- callable functions for the program
     main -- parses arguments an calls specified callable

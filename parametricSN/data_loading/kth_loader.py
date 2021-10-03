@@ -1,7 +1,5 @@
 """Contains classes and functions for downloading and sampling the KTH-TIPS2 dataset
 
-Author: Benjamin Therien, Shanel Gauthier
-
 Dataset folder organization
 ├── a    <- Folder contains 11 folders (one per material)   
 ├── b    <- Folder contains 11 folders (one per material) 

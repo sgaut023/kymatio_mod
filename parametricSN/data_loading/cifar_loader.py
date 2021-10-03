@@ -1,7 +1,5 @@
 """Subsamples cifar-10
 
-Author: Benjamin Therien
-
 Functions:
     cifar_getDataloaders -- samples from the cifar-10 dataset based on input
     cifar_augmentationFactory -- returns different augmentations for cifar-10

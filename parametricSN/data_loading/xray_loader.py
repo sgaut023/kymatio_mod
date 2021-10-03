@@ -1,7 +1,5 @@
 """Subsamples COVIDX-CRX2
 
-Author: Benjamin Therien, Shanel Gauthier
-
 Functions:
     xray_augmentationFactory -- returns different augmentations for COVIDX-CRX2
     xray_getDataloaders -- returns different augmentations for COVIDX-CRX2
