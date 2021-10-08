@@ -117,7 +117,7 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, pixelwise=False):
+                 filter_video=False, pixelwise=False, equivariant=False):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -149,6 +149,8 @@ class sn_ScatteringBase(Scattering2D):
         self.filter_video = filter_video
         self.epoch = 0
         self.pixelwise = pixelwise
+        self.equivariant = equivariant
+        self.J =J
 
         L = self.L
 
@@ -158,27 +160,30 @@ class sn_ScatteringBase(Scattering2D):
             self.n_coefficients =  L*L*J*(J-1)//2 + 1 + L*J  
 
         if initialization == "Tight-Frame":
-            self.params_filters = create_filters_params(J, L, learnable) #kymatio init
+            self.params_filters = create_filters_params(J, L, learnable, equivariant) #kymatio init
         elif initialization == "Random":
-            self.params_filters = create_filters_params_random(J*L, learnable) #random init
+            self.params_filters = create_filters_params_random(J,L, learnable, equivariant) #random init
         else:
             raise InvalidInitializationException
+            
+
         shape = (self.M_padded, self.N_padded,)
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
-        wavelets  = morlets(shape, self.params_filters[0], self.params_filters[1],
-                self.params_filters[2], self.params_filters[3])
 
+        self.psi , wavelets =   update_wavelets_psi(J, self.psi, shape, self.params_filters, equivariant)
+        self.filterNum = wavelets.shape[2]
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)
-        self.psi = update_psi(self.J, self.psi, wavelets) #update psi to reflect the new conv filters
         self.register_filters()
         if learnable:
             if pixelwise:
                 self.register_parameter(name='scattering_wavelets',
                         param=nn.Parameter(wavelets))
                 phi, psi = self.load_filters()
+
                 self.psi = update_psi(self.J, self.psi, self.scattering_wavelets)
+                
                 for i in range(0, len(self.params_filters)):
                     self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
             else:
@@ -196,19 +201,18 @@ class sn_ScatteringBase(Scattering2D):
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
                 if not pixelwise:
-                    wavelets = morlets(self.grid, self.params_filters[0], 
-                                        self.params_filters[1], self.params_filters[2], 
-                                        self.params_filters[3])
+                    self.psi, wavelets= update_wavelets_psi(J, self.psi, shape, self.params_filters, equivariant)
                 else:
+                    _, psi = self.load_filters()
                     wavelets = self.scattering_wavelets
+                    self.psi = update_psi(self.J, psi, wavelets)
 
-                phi, psi = self.load_filters()
-                self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
                 # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
 
                 self.writeVideoFrame()
+
         self.register_forward_pre_hook(updateFilters_hook)
 
         def reshape_hook(self, x, S):
@@ -238,6 +242,8 @@ class sn_ScatteringBase(Scattering2D):
                                               cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
             self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
                                                  cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+
+
 
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
@@ -325,57 +331,87 @@ class sn_ScatteringBase(Scattering2D):
             pass
 
 
+    def get_param_grad_per_epoch(self, x):
+        return {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
+                }
+
+    def get_param_per_epoch(self, x):
+        return {
+                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
+                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
+                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
+                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
+                    'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
+                }
 
     def plotFilterGrads(self):
-        """plots the graph of the filter gradients"""
-        filterNum = self.params_filters[1].shape[0]
-        col = 8
-        row = int(filterNum/col)
-        size = (80, 10*row,)
+        paramsNum =self.params_filters[0].shape[0]
+        if self.equivariant:
+            col =  paramsNum
+            row = 1
+            size = (80, 10)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
+            for x in range(paramsNum):
+                temp= self.get_param_grad_per_epoch(x)
+                axarr[x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
+                axarr[x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[x%col].legend()
+        
+        else:
+            col = 8
+            row = int(paramsNum/col)
+            size = (80, 10*row,)
 
-        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
-        for x in range(filterNum):#iterate over all the filters
-            temp = {
-                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
-                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
-                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
-                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
-            }
-
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-            axarr[int(x/col),x%col].legend()
+            for x in range(paramsNum):#iterate over all the filters
+                temp= self.get_param_grad_per_epoch(x)
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='orientation1')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[int(x/col),x%col].plot([x  for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[int(x/col),x%col].legend()
 
         return f
 
     
     def plotFilterValues(self):
         """plots the graph of the filter values"""
-        filterNum = self.params_filters[1].shape[0]
-        col = 8
-        row = int(filterNum/col)
-        size = (80, 10*row,)
+        paramsNum=  self.params_filters[0].shape[0]
+        if self.equivariant:
+            col = paramsNum
+            row = 1
+            size = (80, 10)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
+            for x in range(paramsNum):
+                temp = self.get_param_per_epoch(x)
+                axarr[x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+                axarr[x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+                axarr[x%col].legend()
 
-        f, axarr = plt.subplots(row, col, figsize=size) # create plots
+        else:
+            col = 8
+            row = int(self.filterNum/col)
+            size = (80, 10*row,)
+            f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
-        for x in range(filterNum):#iterate over all the filters
-            temp = {
-                'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
-                'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
-                'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
-                'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
-                'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
-            }
-
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
-            axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
-            axarr[int(x/col),x%col].legend()
+            for x in range(paramsNum):
+                temp = self.get_param_per_epoch(x)
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['orientation1']))],temp['orientation1'],color='red', label='theta')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['xis']))],temp['xis'],color='green', label='xis')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['sigmas']))],temp['sigmas'],color='yellow', label='sigma')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['slant']))],temp['slant'],color='orange', label='slant')
+                axarr[int(x/col),x%col].plot([x for x in range(len(temp['scale']))],temp['scale'],color='black', label='scale')
+                axarr[int(x/col),x%col].legend()
 
         return f
         

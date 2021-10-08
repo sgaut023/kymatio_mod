@@ -92,6 +92,7 @@ def run_train(args):
         lr_orientation=params['scattering']['lr_orientation'],
         lr_scattering=params['scattering']['lr_scattering'],
         pixelwise=params['scattering']['pixelwise'],
+        equivariant=params['scattering']['equivariant'],
         filter_video=params['scattering']['filter_video'],
     )
 
@@ -175,7 +176,7 @@ def run_train(args):
     if params['scattering']['filter_video']:
         hybridModel.scatteringBase.releaseVideoWriters()
 
-    if params['scattering']['param_distance']:
+    if params['scattering']['param_distance'] and not params['scattering']['equivariant']:
         compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
@@ -272,6 +273,7 @@ def main():
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
     subparser.add_argument("--scattering-pixelwise", "-spw", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-equivariant", "-seq", type=int, choices=[0,1])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
@@ -306,7 +308,7 @@ def main():
     for key in ['optim_three_phase','scattering_learnable',
                 'scattering_second_order','scattering_three_phase',
                 'scattering_filter_video','scattering_param_distance',
-                'scattering_pixelwise']:
+                'scattering_pixelwise', 'scattering_equivariant']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 

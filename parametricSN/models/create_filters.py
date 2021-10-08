@@ -23,6 +23,27 @@ import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import torch
 
+def update_wavelets_psi(J, psi, shape, params_filters, equivariant=False):
+        """ Create wavelets and update the psi dictionnary with the new wavelets
+
+            Parameters:
+                J -- scale for the scattering
+                psi -- dictionnary of filters
+                shape -- shape of the scattering (scattering.M_padded, scattering.N_padded,)
+                params_filters -- the parameters used to create wavelets
+
+            Returns:
+                psi -- dictionnary of filters
+                wavelets -- wavelets filters
+        """
+        if equivariant:
+                psi , wavelets = update_equivariant_psi(J, psi, shape, params_filters)
+        else:
+                wavelets  = morlets(shape, params_filters[0], params_filters[1],
+                                    params_filters[2], params_filters[3])
+                psi = update_psi(J, psi, wavelets)
+        
+        return psi, wavelets
 
 def update_psi(J, psi, wavelets):
     """ Update the psi dictionnary with the new wavelets
@@ -51,6 +72,42 @@ def update_psi(J, psi, wavelets):
                         d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res).unsqueeze(2)
                 
     return psi
+
+def update_equivariant_psi(J, psi, shape, params_filters):
+    """ Update the psi dictionnary with the new wavelets 
+        when equivariant = True
+
+        Parameters:
+            J -- scale for the scattering
+            psi -- dictionnary of filters
+            shape -- shape of the scattering (scattering.M_padded, scattering.N_padded,)
+            params_filters -- the parameters used to create wavelets
+                            we should have a set of parameters per scale 
+                            (4 parameters per scale)
+
+        Returns:
+            psi -- dictionnary of filters
+            wavelets -- wavelets filters
+    """
+    first=True
+    for d in psi:
+            for res in range(0, J-1):
+                if res in d.keys():
+                    if res == 0:
+                        orientation = (params_filters[0][d['j']] + d['theta']*(np.pi/8)).unsqueeze(0)
+                        wavelet = morlets(shape, orientation, 
+                                        params_filters[1][d['j']].unsqueeze(0), 
+                                        params_filters[2][d['j']].unsqueeze(0),
+                                        params_filters[3][d['j']].unsqueeze(0)).squeeze(0).unsqueeze(2)
+                        d[res]  = wavelet.real.contiguous()
+                    else:
+                        d[res] = periodize_filter_fft(d[0].squeeze(0), res).unsqueeze(2)
+                    if first:
+                        wavelets = wavelet
+                        first = False
+                    else:
+                        wavelets=torch.cat((wavelets,wavelet), dim=2)
+    return psi , wavelets
 
 def get_total_num_filters(J, L):
     """ Compute the total number of filters
@@ -84,20 +141,33 @@ def periodize_filter_fft(x, res):
     periodized = x.reshape(res*2, s1// 2**res, res*2, s2//2**res).mean(dim=(0,2))
     return periodized 
 
-def create_filters_params_random(n_filters, is_scattering_dif):
+def create_filters_params_random(J, L, is_scattering_dif, equivariant=False):
     """ Create reusable randomly initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
             n_filters -- the number of filters in the filter bank
             is_scattering_dif -- boolean for the differentiability of the scattering
+            equivariance --boolean indivating of the filters are equivariant
 
         Returns:
             params -- list that contains the parameters of the filters
     """
-    orientations = np.random.uniform(0,2*np.pi,n_filters) 
-    slants = np.random.uniform(0.5, 1.5,n_filters )
-    xis = np.random.uniform(0.5, 1, n_filters )
-    sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
+    if equivariant:
+        for _ in range(J):
+            orientations = []
+            xis = []
+            sigmas = []
+            slants = []
+            sigmas.append(np.log(np.random.uniform(np.exp(1), np.exp(5))))
+            xis.append(np.random.uniform(0.5,1))
+            slants.append(np.random.uniform(0.5, 1.5))
+            orientations.append(np.random.uniform(0, 2* np.pi)) 
+    else:
+        n_filters= J*L
+        orientations = np.random.uniform(0,2*np.pi,n_filters) 
+        slants = np.random.uniform(0.5, 1.5,n_filters )
+        xis = np.random.uniform(0.5, 1, n_filters )
+        sigmas = np.log(np.random.uniform(np.exp(1), np.exp(5), n_filters ))
     
     xis = torch.tensor(xis, dtype=torch.float32)
     sigmas = torch.tensor(sigmas, dtype=torch.float32)
@@ -111,13 +181,14 @@ def create_filters_params_random(n_filters, is_scattering_dif):
 
     return  params
 
-def create_filters_params(J, L, is_scattering_dif):
+def create_filters_params(J, L, is_scattering_dif, equivariant):
     """ Create reusable tight frame initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:
             J -- scale of the scattering
             L -- number of orientation for the scattering
             is_scattering_dif -- boolean for the differentiability of the scattering
+            equivariance --boolean indivating of the filters are equivariant
 
         Returns:
             params -- list that contains the parameters of the filters
@@ -129,13 +200,19 @@ def create_filters_params(J, L, is_scattering_dif):
     slants = []
 
     for j in range(J):
-        for theta in range(L):
+        if equivariant:
             sigmas.append(0.8 * 2**j)
-            t = ((int(L-L/2-1)-theta) * np.pi / L)
             xis.append(3.0 / 4.0 * np.pi /2**j)
-            slant = 4.0/L
-            slants.append(slant)
-            orientations.append(t) 
+            slants.append(4.0/L)
+            orientations.append(0) 
+        else:
+            for theta in range(L):
+                sigmas.append(0.8 * 2**j)
+                t = ((int(L-L/2-1)-theta) * np.pi / L)
+                xis.append(3.0 / 4.0 * np.pi /2**j)
+                slant = 4.0/L
+                slants.append(slant)
+                orientations.append(t) 
      
     xis = torch.tensor(xis, dtype=torch.float32)
     sigmas = torch.tensor(sigmas, dtype=torch.float32)
