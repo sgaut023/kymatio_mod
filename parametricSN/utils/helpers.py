@@ -219,7 +219,7 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
         mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
 
-        if params['scattering']['param_distance']: 
+        if params['scattering']['param_distance'] and params['scattering']['parameterization']=='canonical':
             mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization.pdf')
 
 

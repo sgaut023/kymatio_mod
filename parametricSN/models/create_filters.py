@@ -94,7 +94,7 @@ def update_equivariant_psi(J, psi, shape, params_filters):
             for res in range(0, J-1):
                 if res in d.keys():
                     if res == 0:
-                        orientation = (params_filters[0][d['j']] + d['theta']*(np.pi/8)).unsqueeze(0)
+                        orientation = (params_filters[0][d['j']] - d['theta']*(np.pi/8)).unsqueeze(0)
                         wavelet = morlets(shape, orientation, 
                                         params_filters[1][d['j']].unsqueeze(0), 
                                         params_filters[2][d['j']].unsqueeze(0),
@@ -153,11 +153,11 @@ def create_filters_params_random(J, L, is_scattering_dif, equivariant=False):
             params -- list that contains the parameters of the filters
     """
     if equivariant:
+        orientations = []
+        xis = []
+        sigmas = []
+        slants = []
         for _ in range(J):
-            orientations = []
-            xis = []
-            sigmas = []
-            slants = []
             sigmas.append(np.log(np.random.uniform(np.exp(1), np.exp(5))))
             xis.append(np.random.uniform(0.5,1))
             slants.append(np.random.uniform(0.5, 1.5))
@@ -204,7 +204,7 @@ def create_filters_params(J, L, is_scattering_dif, equivariant):
             sigmas.append(0.8 * 2**j)
             xis.append(3.0 / 4.0 * np.pi /2**j)
             slants.append(4.0/L)
-            orientations.append(0) 
+            orientations.append(((int(L-L/2-1)) * np.pi / L)) 
         else:
             for theta in range(L):
                 sigmas.append(0.8 * 2**j)

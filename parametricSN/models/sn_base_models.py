@@ -30,6 +30,10 @@ class InvalidInitializationException(Exception):
     """Error thrown when an invalid initialization scheme is passed"""
     pass
 
+class InvalidParameterizationException(Exception):
+    """Error thrown when an invalid parameterization scheme is passed"""
+    pass
+
 
 
 def _register_single_filter(self, v, n):
@@ -117,7 +121,7 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, pixelwise=False, equivariant=False):
+                 filter_video=False, parameterization='canonical'):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -148,8 +152,8 @@ class sn_ScatteringBase(Scattering2D):
         self.monitor_filters = monitor_filters
         self.filter_video = filter_video
         self.epoch = 0
-        self.pixelwise = pixelwise
-        self.equivariant = equivariant
+        self.parameterization = parameterization
+     
         self.J =J
 
         L = self.L
@@ -158,11 +162,13 @@ class sn_ScatteringBase(Scattering2D):
             self.n_coefficients =  L*L*J*(J-1)//2
         else: 
             self.n_coefficients =  L*L*J*(J-1)//2 + 1 + L*J  
-
+        
+        self.set_parameterization()
+        
         if initialization == "Tight-Frame":
-            self.params_filters = create_filters_params(J, L, learnable, equivariant) #kymatio init
+            self.params_filters = create_filters_params(J, L, learnable, self.equivariant) #kymatio init
         elif initialization == "Random":
-            self.params_filters = create_filters_params_random(J,L, learnable, equivariant) #random init
+            self.params_filters = create_filters_params_random(J,L, learnable, self.equivariant) #random init
         else:
             raise InvalidInitializationException
             
@@ -171,13 +177,13 @@ class sn_ScatteringBase(Scattering2D):
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
 
-        self.psi , wavelets =   update_wavelets_psi(J, self.psi, shape, self.params_filters, equivariant)
+        self.psi , wavelets =   update_wavelets_psi(J, self.psi, shape, self.params_filters, self.equivariant)
         self.filterNum = wavelets.shape[2]
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)
         self.register_filters()
         if learnable:
-            if pixelwise:
+            if self.pixelwise:
                 self.register_parameter(name='scattering_wavelets',
                         param=nn.Parameter(wavelets))
                 phi, psi = self.load_filters()
@@ -195,22 +201,20 @@ class sn_ScatteringBase(Scattering2D):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
 
-        
+
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                if not pixelwise:
-                    self.psi, wavelets= update_wavelets_psi(J, self.psi, shape, self.params_filters, equivariant)
+                _, psi = self.load_filters()
+                if not self.pixelwise:
+                    self.psi, wavelets= update_wavelets_psi(J, self.psi, self.grid, self.params_filters, self.equivariant)
                 else:
-                    _, psi = self.load_filters()
                     wavelets = self.scattering_wavelets
                     self.psi = update_psi(self.J, psi, wavelets)
 
                 self.register_filters()
-                # scatteringTrain lags behind self.training
                 self.scatteringTrain = self.training
-
                 self.writeVideoFrame()
 
         self.register_forward_pre_hook(updateFilters_hook)
@@ -244,7 +248,21 @@ class sn_ScatteringBase(Scattering2D):
                                                  cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
 
 
-
+    def set_parameterization(self):
+            '''
+            Set the parameterization of the scattering network
+            '''
+            if self.parameterization =='canonical':
+                self.pixelwise = False
+                self.equivariant = False
+            elif self.parameterization =='pixelwise':
+                self.pixelwise = True
+                self.equivariant = False
+            elif self.parameterization =='equivariant':
+                self.pixelwise = False
+                self.equivariant = True
+            else:
+                raise InvalidParameterizationException
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
         if self.filter_video:
