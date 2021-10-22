@@ -8,10 +8,13 @@ Functions:
 """
 
 import torch
+import scipy
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
+from parametricSN.models.create_filters import morlets
+
 
 
 def get_filters_visualization(psi, J, L, mode ='fourier'):
@@ -56,6 +59,54 @@ def get_filters_visualization(psi, J, L, mode ='fourier'):
                 axarr[i,j].set_yticklabels([])
                 axarr[i,j].set_aspect('equal')
         start_row = end_row
+
+    f.subplots_adjust(wspace=0, hspace=0.2)
+    return f
+
+
+def get_first_row(psi, J, L, mode ='fourier'):
+    """ Visualizes the scattering filters input for different modes
+
+    parameters:
+        psi  --  dictionnary that contains all the wavelet filters
+        L    --  number of orientation
+        J    --  scattering scale
+        mode -- mode between fourier (in fourier space), real (real part) 
+                or imag (imaginary part)
+    returns:
+        f -- figure/plot
+    """
+    n_filters =0
+    for j in range(2, J+1):
+        n_filters+=  j* L
+    num_rows = 1
+    num_col = L
+    f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
+    start_row = 0
+    for scale in range(J-1):
+        count = L * scale
+        end_row = (J-scale) + start_row 
+        # for i in range(start_row, end_row) :
+        for j in range(0, L) :
+            if mode =='fourier':
+                x = np.fft.fftshift(psi[count][scale].squeeze().cpu().detach().numpy()).real
+            elif mode == 'real':
+                x = np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).real
+            elif mode == 'imag':
+                x = np.fft.fftshift(np.fft.ifft2(psi[count][scale].squeeze().cpu().detach().numpy())).imag
+            else:
+                raise NotImplemented(f"Model {params['name']} not implemented")
+            
+            a = np.abs(x).max()
+            axarr[j].imshow(x, vmin=-a, vmax=a)
+            # axarr[i,j].set_title(f"J:{psi[count]['j']} L: {psi[count]['theta']}, S:{scale} ")
+            axarr[j].axis('off')
+            count = count +1
+            axarr[j].set_xticklabels([])
+            axarr[j].set_yticklabels([])
+            axarr[j].set_aspect('equal')
+        start_row = end_row
+        break
 
     f.subplots_adjust(wspace=0, hspace=0.2)
     return f
@@ -130,43 +181,9 @@ def getAngleDistance(one,two):
     return diff
 
 
-def compareParams(params1,angles1,params2,angles2,device):
-    """Method to checking the minimal distance between initialized filters and learned ones
-    
-    Euclidean distances are calculated between each filter for parameters other than orientations
-    for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
-    these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
-    algorithm to compute the optimal match (I.E. the one that minizes total distance)   
-
-    parameters:
-        params1 -- first set of parameters compared
-        angles1 -- angles associated to the first set of parameters
-        params2 -- second set of parameters compared
-        angles2 -- angles associated to the second set of parameters
-        device  -- torch device to use
-
-    return: 
-        minimal distance
-    """
-    with torch.no_grad():
-        groupDistances = torch.cdist(params1,params2)
-        angleDistances = torch.zeros(groupDistances.shape, device=device)
-        avoidZero = torch.zeros(groupDistances.shape, device=device) + 0.0000000001
-
-        for i in range(angleDistances.size(0)):
-            for j in range(angleDistances.size(1)):
-                angleDistances[i,j] = getAngleDistance(angles1[i],angles2[j])
-
-        distances = groupDistances + angleDistances + avoidZero
-
-        distNumpy = distances.cpu().numpy()
-        row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
 
 
-        return distNumpy[row_ind, col_ind].sum()
-
-
-def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
+def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,distances,order='sorted',title=True):
     """ Method used to visualize matches from the assignment algorithm"""
     def vizWavelet(wavelet,mode):
         if mode =='fourier':
@@ -186,7 +203,24 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
     num_rows = int(len(angles1)/num_col) * 2
 
     # print(num_rows, num_col)
-    
+
+    if order == 'sorted':
+        print(order)
+        temp = [(r,c,round(distances['all'][r,c],2)) for r,c in zip(row_ind,col_ind)]
+        temp.sort(reverse=False,key=lambda x:x[2])
+        row_ind = [x[0] for x in temp]
+        col_ind = [x[0] for x in temp]
+    elif order == 'J':
+        print(order)
+        temp = [(r,c,round(distances['all'][r,c],2)) for r,c in zip(row_ind,col_ind)]
+        temp.sort(reverse=False,key=lambda x:x[0])
+        row_ind = [x[0] for x in temp]
+        col_ind = [x[0] for x in temp]
+    else: 
+        print(order)
+
+
+     
     f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
     start_row = 0
     for indx in range(len(row_ind)):
@@ -194,6 +228,12 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
         j = indx % num_col
 
         # print("i:{}j:{}".format(i,j))
+        allD = round(distances['all'][row_ind[indx],col_ind[indx]],2)
+        thetaD = round(distances['theta'][row_ind[indx],col_ind[indx]],2)
+        sigmaD = round(distances['sigma'][row_ind[indx],col_ind[indx]],2)
+        slantD = round(distances['slant'][row_ind[indx],col_ind[indx]],2)
+        xiD = round(distances['xi'][row_ind[indx],col_ind[indx]],2)
+
 
         tempWavelet = create_filter(
             theta=angles1[row_ind[indx]].cpu().item(),
@@ -204,7 +244,9 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
         x = vizWavelet(mode=mode, wavelet=tempWavelet)
         a = np.abs(x).max()
         axarr[i,j].imshow(x, vmin=-a, vmax=a)
-        axarr[i,j].set_title(f"Match {indx} Optimized")
+        if title:
+            axarr[i,j].set_title("O{}D{:.1f}\u03C3{:.1f}\u03B3{:.1f}\u03BE{:.1f}".format(
+                indx,allD,sigmaD,slantD,xiD))
         axarr[i,j].axis('off')
         axarr[i,j].set_xticklabels([])
         axarr[i,j].set_yticklabels([])
@@ -221,7 +263,9 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
         # print("i:{}j:{}".format(i,j))
         a = np.abs(x).max()
         axarr[i,j].imshow(x, vmin=-a, vmax=a)
-        axarr[i,j].set_title(f"Match {indx} Fixed")
+        if title:
+            axarr[i,j].set_title("F{}D{:.1f}\u03C3{:.1f}\u03B3{:.1f}\u03BE{:.1f}".format(
+                indx,allD,sigmaD,slantD,xiD))
         axarr[i,j].axis('off')
         axarr[i,j].set_xticklabels([])
         axarr[i,j].set_yticklabels([])
@@ -232,8 +276,6 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device):
 
 
 
-
-from parametricSN.models.create_filters import morlets
 
 def create_filter(theta,slant,xi,sigma):
     n_filters = 1
@@ -256,10 +298,46 @@ def create_filter(theta,slant,xi,sigma):
     
     return wavelet
 
+def compareParams(params1,angles1,params2,angles2,device):
+    """Method to checking the minimal distance between initialized filters and learned ones
+    
+    Euclidean distances are calculated between each filter for parameters other than orientations
+    for orientations, we calculate the arc between both points on the unit circle. Then, the sum of
+    these two distances becomes the distance between two filters. Finally, we use munkre's assignment 
+    algorithm to compute the optimal match (I.E. the one that minizes total distance)   
+
+    parameters:
+        params1 -- first set of parameters compared
+        angles1 -- angles associated to the first set of parameters
+        params2 -- second set of parameters compared
+        angles2 -- angles associated to the second set of parameters
+        device  -- torch device to use
+
+    return: 
+        minimal distance
+    """
+    
+    with torch.no_grad():
+
+        groupDistances = scipy.spatial.distance.cdist(params1.cpu().numpy(),params2.cpu().numpy(), metric='euclidean')
+
+        angleDistances = torch.zeros(groupDistances.shape, device=device)
+        avoidZero = torch.zeros(groupDistances.shape, device=device) #+ 0.0000000001
+
+        for i in range(angleDistances.size(0)):
+            for j in range(angleDistances.size(1)):
+                angleDistances[i,j] = getAngleDistance(angles1[i],angles2[j])
+
+        distances = groupDistances + angleDistances.cpu().numpy() #+ avoidZero
+
+        distNumpy = distances
+        row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
+
+        return distNumpy[row_ind, col_ind].sum()
 
 
 
-def compareParamsVisualization(params1,angles1,params2,angles2,device):
+def compareParamsVisualization(params1,angles1,params2,angles2,order,device,title):
     """Method to checking the minimal distance between initialized filters and learned ones
     
     Euclidean distances are calculated between each filter for parameters other than orientations
@@ -278,17 +356,46 @@ def compareParamsVisualization(params1,angles1,params2,angles2,device):
         minimal distance
     """
     with torch.no_grad():
-        groupDistances = torch.cdist(params1,params2)
+        xi1, sigma1, slant1 = params1[:,0].unsqueeze(1), params1[:,1].unsqueeze(1), params1[:,2].unsqueeze(1)
+        xi2, sigma2, slant2 = params2[:,0].unsqueeze(1), params2[:,1].unsqueeze(1), params2[:,2].unsqueeze(1)
+        slantDist, xiDist, sigmaDist = torch.cdist(slant1,slant2), torch.cdist(xi1,xi2), torch.cdist(sigma1,sigma2)
+
+
+        groupDistances = scipy.spatial.distance.cdist(params1.cpu().numpy(),params2.cpu().numpy(), metric='euclidean')
         angleDistances = torch.zeros(groupDistances.shape, device=device)
-        avoidZero = torch.zeros(groupDistances.shape, device=device) + 0.0000000001
+        avoidZero = torch.zeros(groupDistances.shape, device=device) #+ 0.0000000001
 
         for i in range(angleDistances.size(0)):
             for j in range(angleDistances.size(1)):
                 angleDistances[i,j] = getAngleDistance(angles1[i],angles2[j])
 
-        distances = groupDistances + angleDistances + avoidZero
+        distances = groupDistances + angleDistances.cpu().numpy()# + avoidZero
 
-        distNumpy = distances.cpu().numpy()
+        distNumpy = distances
         row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
 
-        return vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,device)
+        dists = {
+            'all':distNumpy,
+            'xi':xiDist.cpu().numpy(),
+            'theta':angleDistances.cpu().numpy(),
+            'sigma':sigmaDist.cpu().numpy(),
+            'slant':slantDist.cpu().numpy()
+        }
+
+        return vizMatches(params1,angles1,params2,angles2,row_ind,col_ind,dists,order=order,title=title)
+
+def littlewood_paley_dekha(S):
+    wavelets = morlets(S.grid, S.params_filters[0], 
+                                        S.params_filters[1], S.params_filters[2], 
+                                        S.params_filters[3]).detach().cpu().numpy()
+
+    lp = (np.abs(wavelets) ** 2).sum(0)
+    fig, ax = plt.subplots()
+    ax.imshow(np.fft.fftshift(lp))
+    ax.spines['top'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return fig

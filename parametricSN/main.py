@@ -17,6 +17,7 @@ import time
 import argparse
 import torch
 import math
+import matplotlib
 import kymatio.datasets as scattering_datasets
 import numpy as np
 
@@ -175,13 +176,28 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
+    firstRows = hybridModel.scatteringBase.getFirstRow()
+    
+
     if params['scattering']['filter_video']:
         hybridModel.scatteringBase.releaseVideoWriters()
 
     if params['scattering']['param_distance']:
-        compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
+        jViz = hybridModel.scatteringBase.compareParamsVisualization(order='J')
+        sortedViz = hybridModel.scatteringBase.compareParamsVisualization(order='sorted')
+
+        
+        jviz_cm1 = hybridModel.scatteringBase.compareParamsVisualization(order='J',title=False)
+        lwp_cm1 = hybridModel.scatteringBase.littleWoodPaleyDekha()
+
+        matplotlib.rc('image', cmap='twilight')
+        jviz_cm2 = hybridModel.scatteringBase.compareParamsVisualization(order='J',title=False)
+        lwp_cm2 = hybridModel.scatteringBase.littleWoodPaleyDekha()
+        # compareParamsVisualization3 = hybridModel.scatteringBase.compareParamsVisualization(order='default')
+
         torch.save(hybridModel.scatteringBase.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
+
 
 
     #MLFLOW logging below
@@ -204,8 +220,13 @@ def run_train(args):
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
     paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
-        title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
+        title='Learnable parameters progress towards the TF initialization parameters', label='Filterbank distance to TF-init',
         xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
+
+    paramDistancePlotNoTitle = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
+        title='Learnable parameters progress towards the TF initialization parameters', label='Filterbank distance to TF-init',
+        xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance, useTitle=False)
+
 
 
     if params['scattering']['architecture']  == 'scattering':
@@ -227,9 +248,11 @@ def run_train(args):
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 
         test_loss=np.array(test_losses).round(2), train_acc=np.array(train_accuracies).round(2), 
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
-        filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
+        filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after, scatt_params=hybridModel.scatteringBase.params_filters,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot,compareParamsVisualization]
+        filters_values, filters_parameters, f_lr, paramDistancePlot, jViz,
+        sortedViz,jviz_cm1,lwp_cm1,jviz_cm2,lwp_cm2,paramDistancePlotNoTitle],
+        filters_plots_row_one=firstRows,param_distance=param_distance
     )
     
 
@@ -263,6 +286,7 @@ def main():
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
+    subparser.add_argument("--scattering-L", "-scatL", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)

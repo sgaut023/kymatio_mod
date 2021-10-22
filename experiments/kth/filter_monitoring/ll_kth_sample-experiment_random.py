@@ -33,9 +33,9 @@ if __name__ == '__main__':
 
     for EPOCHS in [500]:#1000,2000,
         commands = []
-        for SEED in [1390666426]:#,432857963,1378328753,1118756524]:
+        for SEED in [1]:#,432857963,1378328753,1118756524]:
             for sample in ['d']:#, 'c', 'b', 'a']:
-                for INIT, LEARNABLE in [("Tight-Frame",1)]:#("Random",1),
+                for INIT, LEARNABLE in [("Random",1)]:#("Random",1),
 
                     command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -odivf {} -sip {}  -os {} -daug {} -en {} -mname {} -pf {} -dsam {} -mloss {} -spd {} {}".format(
                     PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,DF,INIT,SCHEDULER,AUGMENT,mlflow_exp_name, MODEL, PARAMS_FILE, sample, MODEL_LOSS,DATA_ARG,SCATT_PARAM_DISTANCE)

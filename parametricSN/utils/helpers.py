@@ -108,7 +108,7 @@ def visualize_learning_rates(lrs, lrs_orientation, lrs_scattering):
     plt.legend() 
     return f  
 
-def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7)):
+def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7),useTitle=True):
     """ Generic function to generate simple plots    
         
         Parameters:
@@ -122,10 +122,12 @@ def getSimplePlot(xlab,ylab,title,label,xvalues,yvalues,figsize=(7,7)):
             plot -- figure
     """
     plot = plt.figure(figsize=figsize)
-    plt.title(title)
+    if useTitle:
+        plt.title(title)
     plt.plot(xvalues, yvalues, label=label) 
-    plt.ylabel(ylab)
-    plt.xlabel(xlab)
+    if useTitle:
+        plt.ylabel(ylab)
+        plt.xlabel(xlab)
     plt.legend() 
     return plot
 
@@ -152,7 +154,8 @@ def rename_params(prefix, params):
 
 def log_mlflow(params, model, test_acc, test_loss, train_acc, 
                train_loss, start_time, filters_plots_before, 
-               filters_plots_after, misc_plots):
+               filters_plots_after, filters_plots_row_one, scatt_params, 
+               misc_plots,param_distance):
     """Log stats in mlflow
     
     parameters: 
@@ -164,7 +167,9 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         train_loss           -- list of train losses over epochs
         start_time           -- the time at which the current run was started 
         filters_plots_before -- plots of scattering filter values before training 
-        filters_plots_after  -- plots of scattering filter values after training 
+        filters_plots_after  -- plots of scattering filter values after training
+        filters_plots_row_one-- plots of the first row of trained filters
+        scatt_params         -- ending parameters of the scattering base model
         misc_plots           -- a list of miscelaneous plots to log in mlflow
     """
 
@@ -194,9 +199,10 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
         #save filters 
         try:
             for key in filters_plots_before:
-                
                     mlflow.log_figure(filters_plots_before[key], f'filters_before/{key}.pdf')
                     mlflow.log_figure(filters_plots_after[key], f'filters_after/{key}.pdf')
+                    mlflow.log_figure(filters_plots_row_one[key], f'filters_row1/{key}.pdf')
+
         except:
             pass
 
@@ -213,9 +219,23 @@ def log_mlflow(params, model, test_acc, test_loss, train_acc,
 
         mlflow.log_figure(misc_plots[6], f'plot/lr.pdf')
         mlflow.log_figure(misc_plots[7], f'learnable_parameters/param_distance.pdf')
+        mlflow.log_figure(misc_plots[14], f'learnable_parameters/param_distance_no_title.pdf')
+
 
         if params['scattering']['param_distance']: 
-            mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization.pdf')
+            mlflow.log_figure(misc_plots[8], f'learnable_parameters/param_match_visualization_J.pdf')
+            mlflow.log_figure(misc_plots[9], f'learnable_parameters/param_match_visualization_sorted.pdf')
+            mlflow.log_figure(misc_plots[10], f'learnable_parameters/pmvJ_cm1.pdf')
+            mlflow.log_figure(misc_plots[11], f'learnable_parameters/lwp_cm1.pdf')
+            mlflow.log_figure(misc_plots[12], f'learnable_parameters/pmvJ_cm2.pdf')
+            mlflow.log_figure(misc_plots[13], f'learnable_parameters/lwp_cm2.pdf')
+
+
+        mlflow.log_dict({"scatt_params":[[str(y) for y in list(x.detach().cpu().numpy())] for x in scatt_params]}, f'scattering_params/params')
+        mlflow.log_dict({"paramDist":[str(y) for y in param_distance]}, f'scattering_params/params_distance')
+
+
+
 
 
         # saving all accuracies

@@ -23,9 +23,23 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
-for ds in ['xray','kth','cifar']:
-    for fn in os.listdir("/home/benjamin/Documents/github/kymatio_mod/experiments/{}/filter_monitoring".format(ds)):
-        os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
+
+ds = 'kth'
+fn = "ll_kth_sample-experiment_random.py"
+os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
+
+ds = 'cifar'
+fn = "ll_1190sample_cifar10_filterMonitoring_random.py"
+os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
+
+
+ds = 'xray'
+fn = "ll_1188sample_xray_filter_monitoring_random.py"
+os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
+
+
+
+
 
 
 exit(0)

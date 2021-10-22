@@ -22,7 +22,7 @@ import torch.nn as nn
 from kymatio import Scattering2D
 
 from .create_filters import *
-from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams, compareParamsVisualization
+from .models_utils import get_filters_visualization, getOneFilter, getAllFilters,compareParams, compareParamsVisualization, littlewood_paley_dekha, get_first_row
 
 
 class InvalidInitializationException(Exception):
@@ -159,6 +159,15 @@ class sn_ScatteringBase(nn.Module):
 
         return filter_viz
 
+    def getFirstRow(self):
+        """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
+        filter_viz = {}
+        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
+            f = get_first_row(self.psi, self.J, 8, mode=mode) 
+            filter_viz[mode] = f  
+
+        return filter_viz
+
     def getOneFilter(self, count, scale, mode):
         return getOneFilter(self.psi, count, scale, mode)
 
@@ -225,6 +234,7 @@ class sn_ScatteringBase(nn.Module):
 
             self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in self.compared_params[1:]],dim=1)
             self.compared_params_angle = self.compared_params[0] % (2 * np.pi)
+
             self.compared_wavelets = self.compared_wavelets.reshape(self.compared_wavelets.size(0),-1)
             self.compared_wavelets_complete = torch.cat([self.compared_wavelets.real,self.compared_wavelets.imag],dim=1)
             self.params_history = []
@@ -331,20 +341,25 @@ class sn_ScatteringBase(nn.Module):
         return: 
             minimal distance
         """
-        tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
-        tempParamsAngle = self.params_filters[0] % (2 * np.pi)
-        self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
+        with torch.no_grad():
+            tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
+            tempParamsAngle = self.params_filters[0] % (2 * np.pi)
 
-        return compareParams(
-            params1=tempParamsGrouped,
-            angles1=tempParamsAngle, 
-            params2=self.compared_params_grouped,
-            angles2=self.compared_params_angle,
-            device=self.device
-        )
+            self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
 
-    def compareParamsVisualization(self):
-        """visualize the matched filters"""
+            return compareParams(
+                params1=tempParamsGrouped,
+                angles1=tempParamsAngle, 
+                params2=self.compared_params_grouped,
+                angles2=self.compared_params_angle,
+                device=self.device
+            )
+
+    def compareParamsVisualization(self,order,title=True):
+        """visualize the matched filters
+        
+        order: 'sorted' or 'J'
+        """
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in self.params_filters[1:]],dim=1)
         tempParamsAngle = self.params_filters[0] % (2 * np.pi)
         self.params_history.append({'params':tempParamsGrouped,'angle':tempParamsAngle})
@@ -354,7 +369,9 @@ class sn_ScatteringBase(nn.Module):
             angles1=tempParamsAngle, 
             params2=self.compared_params_grouped,
             angles2=self.compared_params_angle,
-            device=self.device
+            order=order,
+            device=self.device,
+            title=title
         )
 
 
@@ -473,5 +490,8 @@ class sn_ScatteringBase(nn.Module):
             
 
         return f
+
+    def littleWoodPaleyDekha(self):
+        return littlewood_paley_dekha(self)
 
 
