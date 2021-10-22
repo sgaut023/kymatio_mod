@@ -32,7 +32,7 @@ scattering:
   learnable: True # True if learnable
   second_order: False
   architecture: 'scattering'
-  pixelwise: False
+  parameterization: 'canonical' #['pixelwise', 'equivariant', 'canonical']
   filter_video: False
   param_distance: False
 

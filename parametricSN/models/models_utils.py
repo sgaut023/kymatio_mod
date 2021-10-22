@@ -165,6 +165,7 @@ def compareParams(params1,angles1,params2,angles2):
         return distNumpy[row_ind, col_ind].sum()
 
 
+
 def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind):
     """ Method used to visualize matches from the assignment algorithm"""
     def vizWavelet(wavelet,mode):
