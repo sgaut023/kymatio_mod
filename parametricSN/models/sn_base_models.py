@@ -138,23 +138,35 @@ class sn_ScatteringBase(Scattering2D):
                 for i in range(0, len(self.params_filters)):
                     self.params_filters[i] = nn.Parameter(self.params_filters[i])
                     self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
+                self.params_filters = nn.ParameterList(self.params_filters)
         else:
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+            buffer_dict = dict(self.named_buffers())
+            
+            for i in range(0, len(self.params_filters)):
+                self.params_filters[i] = buffer_dict['scattering_params_'+str(i)]
+
+
         self.register_buffer(name='grid', tensor=grid)
 
 
+        
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
                 _, psi = self.load_filters()
                 if not self.pixelwise:
-                    self.psi, wavelets= update_wavelets_psi(J, self.psi, self.grid, self.params_filters, self.equivariant)
+                    wavelets = morlets(self.grid, 
+                            self.scattering_params_0,
+                            self.scattering_params_1,
+                            self.scattering_params_2, 
+                            self.scattering_params_3)
                 else:
                     wavelets = self.scattering_wavelets
-                    self.psi = update_psi(self.J, psi, wavelets)
 
+                self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
                 self.scatteringTrain = self.training
         self.pre_hook = self.register_forward_pre_hook(updateFilters_hook)
