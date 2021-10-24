@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 from kymatio.torch import Scattering2D
 
-from .create_filters import morlets, update_psi, create_filters_params_random, create_filters_params
+from .create_filters import morlets, update_psi, create_filters_params_random, create_filters_params, update_wavelets_psi
 
 
 class InvalidInitializationException(Exception):
@@ -96,6 +96,7 @@ class sn_ScatteringBase(Scattering2D):
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
+        self.parameterization = parameterization
         self.scatteringTrain = True
 
         L = self.L

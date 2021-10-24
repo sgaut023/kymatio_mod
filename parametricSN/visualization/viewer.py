@@ -28,7 +28,7 @@ class filterVisualizer(object):
             the new parameter values obtained from gradient descent"""
             if (scattering.training or scattering.scatteringTrain):
                 if scattering.learnable:
-                    if not self.pixelwise:
+                    if not scattering.pixelwise:
                         wavelets = morlets(scattering.grid, 
                                             scattering.scattering_params_0, 
                                             scattering.scattering_params_1,
@@ -37,9 +37,7 @@ class filterVisualizer(object):
                                             )
                     else:
                         wavelets = scattering.scattering_wavelets
-
-
-                     _, psi = scattering.load_filters()
+                    _, psi = scattering.load_filters()
                     scattering.psi = update_psi(scattering.J, psi, wavelets)
                     scattering.register_filters()
 
@@ -64,7 +62,8 @@ class filterVisualizer(object):
             scat.scattering_params_2.register_hook(print_hook('2'))
             scat.scattering_params_3.register_hook(print_hook('3'))
 
-        compared_params = create_filters_params(scat.J, scat.L, scat.learnable) #kymatio init
+        compared_params = create_filters_params(scat.J, scat.L, scat.learnable,
+                scat.equivariant) #kymatio init
 
         #TODO turn into util function
         self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]], dim=1)
@@ -213,25 +212,25 @@ class filterVisualizer(object):
 
     def get_param_grad_per_epoch(self, x):
         return {
-                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterGradTracker['angle']],
-                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['1']],
-                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['2']],
-                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterGradTracker['3']],
+                    'orientation1': [float(filters[x]) for filters in self.filterGradTracker['angle']],
+                    'xis': [float(filters[x])  for filters in self.filterGradTracker['1']],
+                    'sigmas': [float(filters[x])  for filters in self.filterGradTracker['2']],
+                    'slant': [float(filters[x])  for filters in self.filterGradTracker['3']],
                 }
 
     def get_param_per_epoch(self, x):
         return {
-                    'orientation1': [float(filters[x].cpu().numpy()) for filters in self.filterTracker['angle']],
-                    'xis': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['1']],
-                    'sigmas': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['2']],
-                    'slant': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['3']],
-                    'scale': [float(filters[x].cpu().numpy())  for filters in self.filterTracker['scale']],
+                    'orientation1': [float(filters[x]) for filters in self.filterTracker['angle']],
+                    'xis': [float(filters[x])  for filters in self.filterTracker['1']],
+                    'sigmas': [float(filters[x])  for filters in self.filterTracker['2']],
+                    'slant': [float(filters[x])  for filters in self.filterTracker['3']],
+                    'scale': [float(filters[x])  for filters in self.filterTracker['scale']],
                 }
 
     def plotFilterGrads(self):
         """plots the graph of the filter gradients"""
         paramsNum = self.scattering.scattering_params_0.shape[0]
-        if self.equivariant:
+        if self.scattering.equivariant:
             col =  paramsNum
             row = 1
             size = (80, 10)
@@ -263,7 +262,7 @@ class filterVisualizer(object):
     def plotFilterValues(self):
         """plots the graph of the filter values"""
         paramsNum = self.scattering.scattering_params_0.shape[0]
-        if self.equivariant:
+        if self.scattering.equivariant:
             col = paramsNum
             row = 1
             size = (80, 10)
@@ -279,7 +278,7 @@ class filterVisualizer(object):
 
         else:
             col = 8
-            row = int(self.filterNum/col)
+            row = int(self.scattering.filterNum/col)
             size = (80, 10*row,)
             f, axarr = plt.subplots(row, col, figsize=size) # create plots
 
@@ -293,7 +292,7 @@ class filterVisualizer(object):
                 axarr[int(x/col),x%col].legend()
         return f
 
-     def plotParameterValues(self):
+    def plotParameterValues(self):
         size = (10, 10)
         f, axarr = plt.subplots(2, 2, figsize=size) # create plots
         plt.subplots_adjust(hspace=0.35, wspace=0.35)
