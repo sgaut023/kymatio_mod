@@ -103,6 +103,9 @@ def run_train(args):
         filter_video=params['scattering']['filter_video'],
     )
 
+    viewers = filterVisualizer(scatteringBase, params['general']['seed'])
+    lp_init = viewers.littlewood_paley_dekha()
+
     setAllSeeds(seed=params['general']['seed'])
     
     top = topModelFactory( #create cnn, mlp, linearlayer, or other
@@ -111,9 +114,6 @@ def run_train(args):
         num_classes=params['dataset']['num_classes'], 
         width= params['model']['width'], 
     )
-
-    viewers = filterVisualizer(scatteringBase, params['general']['seed'])
-    lp_init = viewers.littlewood_paley_dekha()
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
 
