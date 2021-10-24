@@ -115,31 +115,30 @@ class sn_ScatteringBase(Scattering2D):
         self.register_filters()
 
 
-        self.params_filters = []
+        # https://discuss.pytorch.org/t/why-no-nn-bufferlist-like-function-for-registered-buffer-tensor/18884/2
         if learnable:
-            for i in range(0, len(_params_filters)):
-                self.register_parameter(name='scattering_params_'+str(i), param=nn.Parameter(_params_filters[i]))
-                self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
+            self.params_filters = nn.ParameterList([])
         else:
-            for i in range(0, len(_params_filters)):
+            self.params_filters = []
+        for i in range(0, len(_params_filters)-1):
+            if learnable:
+                self.register_parameter(name='scattering_params_'+str(i), param=nn.Parameter(_params_filters[i]))
+            else:
                 self.register_buffer(name='scattering_params_'+str(i), tensor=_params_filters[i])
-                self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
+            # store ref to buffer/parameter
+            self.params_filters.append(getattr(self, 'scattering_params_' + str(i)))
         self.register_buffer(name='grid', tensor=grid)
+        self.register_buffer(name='slants', tensor=_params_filters[-1])
 
         
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
-                wavelets = morlets(self.grid, getattr(self, 'scattering_params_0'), 
-                                    getattr(self, 'scattering_params_1'),
-                                    getattr(self, 'scattering_params_2'), 
-                                    getattr(self, 'scattering_params_2'))
-
+                wavelets = self.generate_wavelets()
                 phi, psi = self.load_filters()
                 self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
-                print("FSD")
         self.updateFilters_hook = self.register_forward_pre_hook(updateFilters_hook)
 
  
@@ -153,4 +152,12 @@ class sn_ScatteringBase(Scattering2D):
             S = S.reshape(S.size(0), self.n_coefficients*3, S.size(3), S.size(4))
             return S
         self.register_forward_hook(reshape_hook)
+
+    def generate_wavelets(self):
+        return morlets(self.grid,
+                        getattr(self, 'scattering_params_0'),
+                        getattr(self, 'scattering_params_1'),
+                        getattr(self, 'scattering_params_2'),
+                        self.slants)
+
 

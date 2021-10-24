@@ -47,9 +47,12 @@ class filterVisualizer(object):
             getattr(scat, 'scattering_params_0').register_hook(print_hook('angle'))
             getattr(scat, 'scattering_params_1').register_hook(print_hook('1'))
             getattr(scat, 'scattering_params_2').register_hook(print_hook('2')) 
-            getattr(scat, 'scattering_params_2').register_hook(print_hook('3'))
+            scat.slants.register_hook(print_hook('3'))
 
         compared_params = create_filters_params(scat.J, scat.L, scat.learnable) #kymatio init
+        #def group_angle(params):
+        #    grouped = torch.cat([x.unsqueeze(1) for x in params[1:]], dim=1)
+
 
         #TODO turn into util function
         self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]], dim=1)
@@ -79,10 +82,7 @@ class filterVisualizer(object):
         self.filters_plots_before = self.getFilterViz()
 
     def littlewood_paley(self):
-        wavelets = morlets(self.scattering.grid, getattr(self.scattering, 'scattering_params_0'), 
-                                        getattr(self.scattering, 'scattering_params_1'), 
-                                        getattr(self.scattering, 'scattering_params_2'), 
-                                        getattr(self.scattering, 'scattering_params_3')).cpu().detach().numpy()
+        wavelets = self.scattering.generate_wavelets().cpu().detach().numpy()
         lp = (np.abs(wavelets) ** 2).sum(0)
         return np.fft.fftshift(lp)
   
@@ -156,10 +156,10 @@ class filterVisualizer(object):
         """
         #TODO turn into util function
         params_list = []
-        for i in range(1, 4):
+        for i in range(1, 3):
             params_list.append(getattr(self.scattering,
                 'scattering_params_'+str(i)))
-
+        params_list.append(self.scattering.slants)
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in params_list], dim=1).cpu()
         tempParamsAngle = (getattr(self.scattering, 'scattering_params_'+str(0)) % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
@@ -174,10 +174,11 @@ class filterVisualizer(object):
         """visualize the matched filters"""
         #TODO turn into util function
         params_list = []
-        for i in range(1, 4):
+        for i in range(1, 3):
             params_list.append(getattr(self.scattering,
                 'scattering_params_'+str(i)))
 
+        params_list.append(self.scattering.slants)
         tempParamsGrouped = torch.cat([x.unsqueeze(1) for x in params_list], dim=1).cpu()
         tempParamsAngle = (getattr(self.scattering, 'scattering_params_'+str(0)) % (2 * np.pi)).cpu()
         self.params_history.append({'params':tempParamsGrouped, 'angle':tempParamsAngle})
@@ -193,7 +194,7 @@ class filterVisualizer(object):
         self.filterTracker['angle'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(0))))
         self.filterTracker['1'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(1))))
         self.filterTracker['2'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(2))))
-        self.filterTracker['3'].append(getValue(getattr(self.scattering, 'scattering_params_'+str(3))))
+        self.filterTracker['3'].append(getValue(self.scattering.slants))
         self.filterTracker['scale'].append(np.multiply(self.filterTracker['1'][-1], self.filterTracker['2'][-1]))
 
     def plotFilterGrads(self):
