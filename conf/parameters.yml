@@ -33,7 +33,7 @@ scattering:
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
-  parameterization: 'equivariant' #['pixelwise', 'equivariant', 'canonical']
+  parameterization: 'canonical' #['pixelwise', 'equivariant', 'canonical']
   filter_video: True
   param_distance: True
 
