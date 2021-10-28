@@ -107,7 +107,7 @@ class sn_ScatteringBase(Scattering2D):
         filter_viz = {}
         phi, psi = self.load_filters()
         for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, self.J, 8, mode=mode) 
+            f = get_filters_visualization(psi, self.J, self.L, mode=mode) 
             filter_viz[mode] = f  
         return filter_viz
 
@@ -121,7 +121,7 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, parameterization='canonical'):
+                 filter_video=False, parameterization='canonical', L=16):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -140,8 +140,7 @@ class sn_ScatteringBase(Scattering2D):
             filter_video -- whether to create filters from 
 
         """
-        super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N))
-
+        super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N), L=L)
         self.second_order = second_order
         self.learnable = learnable
         self.initialization = initialization
@@ -156,7 +155,7 @@ class sn_ScatteringBase(Scattering2D):
      
         self.J =J
 
-        L = self.L
+        self.L = L
 
         if second_order:
             self.n_coefficients =  L*L*J*(J-1)//2
@@ -265,11 +264,12 @@ class sn_ScatteringBase(Scattering2D):
                 raise InvalidParameterizationException
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
-        if self.filter_video:
-            for vizType in self.videoWriters.keys():
-                temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=16, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
-                temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                self.videoWriters[vizType].write(temp)
+        return
+        #if self.filter_video:
+        #    for vizType in self.videoWriters.keys():
+        #        temp = cv2.applyColorMap(np.array(self.getAllFilters(totalCount=self.J*self.L, scale=0, mode=vizType),dtype=np.uint8),cv2.COLORMAP_TURBO)
+        #        temp = cv2.putText(temp, "Epoch {}".format(self.epoch),(2, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        #        self.videoWriters[vizType].write(temp)
 
     def releaseVideoWriters(self):
         if self.filter_video:
@@ -310,7 +310,8 @@ class sn_ScatteringBase(Scattering2D):
             params1=tempParamsGrouped,
             angles1=tempParamsAngle, 
             params2=self.compared_params_grouped,
-            angles2=self.compared_params_angle
+            angles2=self.compared_params_angle,
+            L=self.L
         )
 
     def saveFilterValues(self,scatteringActive):
@@ -368,7 +369,7 @@ class sn_ScatteringBase(Scattering2D):
 
     def plotFilterGrads(self):
         paramsNum =self.params_filters[0].shape[0]
-        if self.equivariant:
+        if self.equivariant or self.J == 1:
             col =  paramsNum
             row = 1
             size = (80, 10)
@@ -382,7 +383,7 @@ class sn_ScatteringBase(Scattering2D):
                 axarr[x%col].legend()
         
         else:
-            col = 8
+            col = self.L
             row = int(paramsNum/col)
             size = (80, 10*row,)
 
@@ -417,7 +418,7 @@ class sn_ScatteringBase(Scattering2D):
                 axarr[x%col].legend()
 
         else:
-            col = 8
+            col = self.L
             row = int(self.filterNum/col)
             size = (80, 10*row,)
             f, axarr = plt.subplots(row, col, figsize=size) # create plots

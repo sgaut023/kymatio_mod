@@ -26,9 +26,13 @@ def get_filters_visualization(psi, J, L, mode ='fourier'):
     returns:
         f -- figure/plot
     """
-    n_filters =0
+    if J == 1:
+        n_filters = J * L
+    else:
+        n_filters = 0
     for j in range(2, J+1):
         n_filters+=  j* L
+
     num_rows = int(n_filters/L) 
     num_col = L
     f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
@@ -166,7 +170,7 @@ def compareParams(params1,angles1,params2,angles2):
 
 
 
-def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind):
+def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind, num_col):
     """ Method used to visualize matches from the assignment algorithm"""
     def vizWavelet(wavelet,mode):
         if mode =='fourier':
@@ -182,10 +186,9 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind):
 
 
     mode = 'fourier'
-    num_col = 8
+    num_col = num_col
     num_rows = int(len(angles1)/num_col) * 2
 
-    # print(num_rows, num_col)
     
     f, axarr = plt.subplots(num_rows, num_col, figsize=(20, 2*num_rows))
     start_row = 0
@@ -193,7 +196,6 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind):
         i = int(indx/num_col) * 2 
         j = indx % num_col
 
-        # print("i:{}j:{}".format(i,j))
 
         tempWavelet = create_filter(
             theta=angles1[row_ind[indx]].cpu().item(),
@@ -218,7 +220,6 @@ def vizMatches(params1,angles1,params2,angles2,row_ind,col_ind):
         )
         x = vizWavelet(mode=mode, wavelet=tempWavelet)
         i+=1
-        # print("i:{}j:{}".format(i,j))
         a = np.abs(x).max()
         axarr[i,j].imshow(x, vmin=-a, vmax=a)
         axarr[i,j].set_title(f"Match {indx} Fixed")
@@ -258,7 +259,7 @@ def create_filter(theta,slant,xi,sigma):
 
 
 
-def compareParamsVisualization(params1,angles1,params2,angles2):
+def compareParamsVisualization(params1,angles1,params2,angles2,L):
     """Method to checking the minimal distance between initialized filters and learned ones
     
     Euclidean distances are calculated between each filter for parameters other than orientations
@@ -279,7 +280,6 @@ def compareParamsVisualization(params1,angles1,params2,angles2):
         groupDistances = torch.cdist(params1,params2)
         angleDistances = torch.zeros(groupDistances.shape)
         avoidZero = torch.zeros(groupDistances.shape) + 0.0000000001
-
         for i in range(angleDistances.size(0)):
             for j in range(angleDistances.size(1)):
                 angleDistances[i,j] = getAngleDistance(angles1[i],angles2[j])
@@ -289,4 +289,4 @@ def compareParamsVisualization(params1,angles1,params2,angles2):
         distNumpy = distances.cpu().numpy()
         row_ind, col_ind = linear_sum_assignment(distNumpy, maximize=False)
 
-        return vizMatches(params1,angles1,params2,angles2,row_ind,col_ind)
+        return vizMatches(params1,angles1,params2,angles2,row_ind,col_ind, L)

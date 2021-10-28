@@ -24,19 +24,19 @@ TRAIN_SAMPLE_NUM = 100
 
 TRAIN_BATCH_SIZE = 128
 AUGMENT = 'original-cifar'
-P = 'equivariant'
-
+P = 'canonical'
+L=16
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
     for SEED in [207715039,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
-        for aa in [(1,"Tight-Frame"),(1,"Random"),(0,"Tight-Frame"),(0,"Random")]:
+        for aa in [(1,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -spw {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,P,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+            command = "{} {} run-train -spw {} -sll {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,P,L,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
             commands.append(command)
 
     experiments_mpCommands(

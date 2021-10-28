@@ -79,7 +79,9 @@ def run_train(args):
     ) 
 
     setAllSeeds(seed=params['general']['seed'])
-
+    print("J is : ",params['scattering']['J'])
+    print("L is : ",params['scattering']['L'])
+    print("parameterization is : ", params['scattering']['parameterization'])
     scatteringBase = baseModelFactory( #creat scattering base model
         architecture=params['scattering']['architecture'],
         J=params['scattering']['J'],
@@ -93,7 +95,9 @@ def run_train(args):
         lr_scattering=params['scattering']['lr_scattering'],
         parameterization=params['scattering']['parameterization'],
         filter_video=params['scattering']['filter_video'],
+        L=params['scattering']['L'],
     )
+
 
     setAllSeeds(seed=params['general']['seed'])
     
@@ -105,6 +109,12 @@ def run_train(args):
     )
 
     hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
+
+    #torch.save(hybridModel.state_dict(),
+    #        "state_dict/scattering_{}_J_{}_L_{}.pth".format(params['scattering']['parameterization'],
+    #            params['scattering']['J'], 
+    #            params['scattering']['L']))
+
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
@@ -171,6 +181,12 @@ def run_train(args):
 
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
+
+    #torch.save(hybridModel.state_dict(),
+    #        "state_dict_og/scattering_{}_J_{}_L_{}.pth".format(params['scattering']['parameterization'],
+    #            params['scattering']['J'], 
+    #            params['scattering']['L']))
+
 
     if params['scattering']['filter_video']:
         hybridModel.scatteringBase.releaseVideoWriters()
@@ -262,6 +278,7 @@ def main():
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
+    subparser.add_argument("--scattering-L", "-sll", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)

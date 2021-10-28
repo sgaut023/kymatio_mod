@@ -11,33 +11,32 @@ PROCESS_BATCH_SIZE = 1
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
 LR = 0.06
-LRS = 0.1
-LRO = 0.1
+LRS = 0.2
+LRO = 0.2
 LRMAX = 0.06
 DF = 25
 LEARNABLE = 1
-EPOCHS = 1000
+EPOCHS = 500
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
-TRAIN_SAMPLE_NUM = 500
+TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
-AUGMENT = 'original-cifar'
-P = 'equivariant'
-
+AUGMENT = "original-cifar"
+L=16
+P = 'canonical'
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
-    for SEED in [207715039,491659600,493572006,737523103,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
-        for aa in [(1,"Tight-Frame"),(1,"Random"),(0,"Tight-Frame"),(0,"Random")]:
-
+    for SEED in [207715039]:
+        for aa in [(1,"Tight-Frame")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -spw {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,P,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+            command = "{} {} run-train -spw {} -sll {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,P,L,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
             commands.append(command)
     
 
@@ -45,9 +44,3 @@ if __name__ == '__main__':
         processBatchSize=PROCESS_BATCH_SIZE,
         commands=commands
     )
-
-
-
-
-
-

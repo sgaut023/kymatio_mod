@@ -19,13 +19,14 @@ dataset:
   data_folder: 
   height:  32   
   width:  32  
-  augment: 'autoaugment' #choices=['autoaugment','original-cifar','noaugment','glico']
+  augment: 'original-cifar' #choices=['autoaugment','original-cifar','noaugment','glico']
   sample: 
   accum_step_multiple: 128
 # kymatio 
 
 scattering:
   J: 2
+  L: 8
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
@@ -33,7 +34,7 @@ scattering:
   learnable: False # True if learnable
   second_order: False
   architecture: 'scattering'
-  parameterization: 'equivariant' #['pixelwise', 'equivariant', 'canonical']
+  parameterization: 'canonical' #['pixelwise', 'equivariant', 'canonical']
   filter_video: True
   param_distance: True
 
