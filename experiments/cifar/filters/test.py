@@ -16,32 +16,32 @@ LRO = 0.2
 LRMAX = 0.06
 DF = 25
 LEARNABLE = 1
-EPOCHS = 500
+EPOCHS = 5
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
+P = 'equivariant'#'canonical'
 L=16
+J=1
 # 14, 3
 # 12, 4
 # 10, 5
 # 8, 6, 7
-J=1
-SAVE="state_dict_J1"
+SAVE='unused'
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
     for SEED in [207715039]:
-        for L in [16, 14, 12, 10, 8, 7, 6, 5, 4, 3, 2]:
+        for L in [4]:
             for aa in [(1,"Tight-Frame")]:
                 LEARNABLE, INIT = aa
-
-                command = "{} {} run-train -save {} -oname {} -olr {} -sj {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
-                    PYTHON,RUN_FILE,SAVE,OPTIM,LR,J,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,L,DATA_ARG)
+                command = "{} {} run-train -save {} -oname {} -olr {} -spw {} -gseed {}  -sj {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
+                    PYTHON,RUN_FILE,SAVE,OPTIM,LR,P,SEED,J,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,L,DATA_ARG)
 
                 commands.append(command)
     

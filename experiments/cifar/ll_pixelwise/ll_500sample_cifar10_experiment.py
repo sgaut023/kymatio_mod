@@ -10,24 +10,24 @@ PROCESS_BATCH_SIZE = 1
 
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
-LR = 0.1
+LR = 0.06
 LRS = 0.1
 LRO = 0.1
-LRMAX = 0.0001
+LRMAX = 0.06
 DF = 25
 LEARNABLE = 1
-EPOCHS = 2000
+EPOCHS = 1000
 INIT = "Kymatio"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 500
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "autoaugment"
+AUGMENT = 'original-cifar'
 SCATT_LRMAX = 0.000
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
-PIXELWISE = 1
 
+PIXELWISE = 'pixelwise'
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()

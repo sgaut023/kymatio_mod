@@ -37,6 +37,7 @@ scattering:
   parameterization: 'canonical' #['pixelwise', 'equivariant', 'canonical']
   filter_video: True
   param_distance: True
+  save: 'unused'
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']

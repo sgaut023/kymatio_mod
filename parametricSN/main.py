@@ -182,10 +182,12 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
-    #torch.save(hybridModel.state_dict(),
-    #        "state_dict_og/scattering_{}_J_{}_L_{}.pth".format(params['scattering']['parameterization'],
-    #            params['scattering']['J'], 
-    #            params['scattering']['L']))
+    torch.save(hybridModel.state_dict(),
+            "{}/scattering_{}_J_{}_L_{}.pth".format(
+                params['scattering']['save'],
+                params['scattering']['parameterization'],
+                params['scattering']['J'], 
+                params['scattering']['L']))
 
 
     if params['scattering']['filter_video']:
@@ -292,6 +294,7 @@ def main():
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
+    subparser.add_argument("--scattering-save", "-save", type=str)
 
 
     #optim

@@ -23,24 +23,25 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-L=16
+L=12
 # 14, 3
 # 12, 4
 # 10, 5
 # 8, 6, 7
 J=3
+SAVE='state_dict_J3'
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
     for SEED in [207715039]:
-        for L in [2]: #, 7, 6, 5, 4, 3, 2
+        for L in [12]: #, 7, 6, 5, 4, 3, 2
             for aa in [(1,"Tight-Frame")]:
                 LEARNABLE, INIT = aa
 
-                command = "{} {} run-train -oname {} -olr {} -sj {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
-                    PYTHON,RUN_FILE,OPTIM,LR,J,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,L,DATA_ARG)
+                command = "{} {} run-train -save {} -oname {} -olr {} -sj {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
+                    PYTHON,RUN_FILE,SAVE,OPTIM,LR,J,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,L,DATA_ARG)
 
                 commands.append(command)
     

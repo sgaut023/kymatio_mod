@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import torch
 
-def update_wavelets_psi(J, psi, shape, params_filters, equivariant=False):
+def update_wavelets_psi(J, L, psi, shape, params_filters, equivariant=False):
         """ Create wavelets and update the psi dictionnary with the new wavelets
 
             Parameters:
@@ -37,11 +37,11 @@ def update_wavelets_psi(J, psi, shape, params_filters, equivariant=False):
                 wavelets -- wavelets filters
         """
         if equivariant:
-                psi , wavelets = update_equivariant_psi(J, psi, shape, params_filters)
+            psi, wavelets = update_equivariant_psi(J, L, psi, shape, params_filters)
         else:
-                wavelets  = morlets(shape, params_filters[0], params_filters[1],
+            wavelets  = morlets(shape, params_filters[0], params_filters[1],
                                     params_filters[2], params_filters[3])
-                psi = update_psi(J, psi, wavelets)
+            psi = update_psi(J, psi, wavelets)
         
         return psi, wavelets
 
@@ -58,13 +58,13 @@ def update_psi(J, psi, wavelets):
     """
     wavelets = wavelets.real.contiguous().unsqueeze(3)
     
-    if J == 2:
-        for i,d in enumerate(psi):
-                d[0] = wavelets[i]
+    if J == 2 or J == 1:
+        for i, d in enumerate(psi):
+            d[0] = wavelets[i]
 
     else:
-        for i,d in enumerate(psi):
-            for res in range(0, J-1):
+        for i, d in enumerate(psi):
+            for res in range(0, J):
                 if res in d.keys():
                     if res == 0:
                         d[res] = wavelets[i]
@@ -73,7 +73,7 @@ def update_psi(J, psi, wavelets):
                 
     return psi
 
-def update_equivariant_psi(J, psi, shape, params_filters):
+def update_equivariant_psi(J,L, psi, shape, params_filters):
     """ Update the psi dictionnary with the new wavelets 
         when equivariant = True
 
@@ -90,24 +90,33 @@ def update_equivariant_psi(J, psi, shape, params_filters):
             wavelets -- wavelets filters
     """
     first=True
+
+    xis = []
+    sigmas = []
+    slants = []
+    orient = []
+
     for d in psi:
-            for res in range(0, J-1):
+            for res in range(0, J):
+                if res in d.keys():
+                    xis.append(params_filters[1][d['j']])
+                    sigmas.append(params_filters[2][d['j']])
+                    slants.append(params_filters[3][d['j']])
+                    orient.append(params_filters[0][d['j']] - d['theta']*(np.pi/L))
+    xis = torch.stack(xis)
+    sigmas = torch.stack(sigmas)
+    slants = torch.stack(slants)
+    orient = torch.stack(orient)
+    wavelets1 = morlets(shape, orient, xis, sigmas, slants)
+    for i, d in enumerate(psi):
+            for res in range(0, J):
                 if res in d.keys():
                     if res == 0:
-                        orientation = (params_filters[0][d['j']] - d['theta']*(np.pi/8)).unsqueeze(0)
-                        wavelet = morlets(shape, orientation, 
-                                        params_filters[1][d['j']].unsqueeze(0), 
-                                        params_filters[2][d['j']].unsqueeze(0),
-                                        params_filters[3][d['j']].unsqueeze(0)).squeeze(0).unsqueeze(2)
-                        d[res]  = wavelet.real.contiguous()
+                        d[res] = wavelets1[i].unsqueeze(2).real.contiguous()
                     else:
-                        d[res] = periodize_filter_fft(d[0].squeeze(0), res).unsqueeze(2)
-                    if first:
-                        wavelets = wavelet
-                        first = False
-                    else:
-                        wavelets=torch.cat((wavelets,wavelet), dim=2)
-    return psi , wavelets
+                        d[res] = periodize_filter_fft(d[0].squeeze(0),res).unsqueeze(2)
+ 
+    return psi , wavelets1
 
 def get_total_num_filters(J, L):
     """ Compute the total number of filters

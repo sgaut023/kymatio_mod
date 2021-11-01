@@ -25,7 +25,7 @@ TRAIN_BATCH_SIZE = 128
 AUGMENT = 'original-cifar'
 P = 'canonical'
 
-L=16
+L=12
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()

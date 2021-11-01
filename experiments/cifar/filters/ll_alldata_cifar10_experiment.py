@@ -23,7 +23,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-L=16
+L=12
 P = 'canonical'
 
 if __name__ == '__main__':
