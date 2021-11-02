@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import torch
 
-def update_wavelets_psi(J, L, psi, shape, params_filters, equivariant=False):
+def update_wavelets_psi(J, L, psi, shape, params_filters, Q=1, equivariant=False):
         """ Create wavelets and update the psi dictionnary with the new wavelets
 
             Parameters:
@@ -39,8 +39,16 @@ def update_wavelets_psi(J, L, psi, shape, params_filters, equivariant=False):
         if equivariant:
             psi, wavelets = update_equivariant_psi(J, L, psi, shape, params_filters)
         else:
-            wavelets  = morlets(shape, params_filters[0], params_filters[1],
-                                    params_filters[2], params_filters[3])
+            xis = []
+            sigmas = []
+            for l in range(L):
+                for j in range(J):
+                    xis.append(params_filters[1][l*J +j]*(2**(j-j/Q)))
+                    sigmas.append(params_filters[2][l*J +j]*(2**((j/Q) - j)))
+            xis = torch.stack(xis)
+            sigmas = torch.stack(sigmas)
+            wavelets  = morlets(shape, params_filters[0], xis,
+                                    sigmas, params_filters[3])
             psi = update_psi(J, psi, wavelets)
         
         return psi, wavelets

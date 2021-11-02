@@ -23,9 +23,9 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-P = 'equivariant'#'canonical'
+P = 'canonical' #'equivariant'#
 L=16
-J=1
+J=2
 # 14, 3
 # 12, 4
 # 10, 5
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     commands = []
 
     for SEED in [207715039]:
-        for L in [4]:
+        for L in [8]:
             for aa in [(1,"Tight-Frame")]:
                 LEARNABLE, INIT = aa
                 command = "{} {} run-train -save {} -oname {} -olr {} -spw {} -gseed {}  -sj {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
