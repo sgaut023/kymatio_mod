@@ -5,7 +5,7 @@ sys.path.append(str(os.getcwd()))
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 mlflow_exp_name = os.path.basename(__file__)
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
 
 RUN_FILE = "parametricSN/main.py"
@@ -23,7 +23,7 @@ RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 500
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "autoaugment"
+AUGMENT = 'original-cifar'
 MODEL = "cnn"
 PHASE_ENDS = " ".join(["100","200"])
 MODEL_LOSS = 'cross-entropy'

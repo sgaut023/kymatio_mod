@@ -23,7 +23,7 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-
+L=12
 PIXELWISE = 'pixelwise'
 
 if __name__ == '__main__':
@@ -35,8 +35,8 @@ if __name__ == '__main__':
         for aa in [(1,"Tight-Frame"),(1,"Random")]:
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {}  -spw {} {}".format(
-                PYTHON,RUN_FILE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE, PIXELWISE, DATA_ARG)
+            command = "{} {} run-train -oname {} -sll {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {}  -spw {} {}".format(
+                PYTHON,RUN_FILE,OPTIM, L, LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE, PIXELWISE, DATA_ARG)
             commands.append(command)
     
 

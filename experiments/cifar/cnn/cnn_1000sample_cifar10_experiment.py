@@ -6,7 +6,7 @@ from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 mlflow_exp_name = os.path.basename(__file__)
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
@@ -23,12 +23,12 @@ RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 1000
 TRAIN_BATCH_SIZE = 128
-AUGMENT = "autoaugment"
 MODEL = "cnn"
 PHASE_ENDS = " ".join(["100","200"])
 MODEL_LOSS = 'cross-entropy'
 SCATT_LRMAX = 0.2
 SCATT_DF = 25
+AUGMENT = 'original-cifar'
 SCATT_THREE_PHASE = 1
 
 

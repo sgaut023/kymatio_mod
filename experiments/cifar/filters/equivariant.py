@@ -30,14 +30,14 @@ J=2
 # 12, 4
 # 10, 5
 # 8, 6, 7
-SAVE='state_dict_J2'
+SAVE='state_dict_J2_Q1'
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
     for SEED in [207715039]:
-        for L in [8, 6, 7]:
+        for L in [16, 2]:
             for aa in [(1,"Tight-Frame")]:
                 LEARNABLE, INIT = aa
                 command = "{} {} run-train -save {} -oname {} -olr {} -spw {} -gseed {}  -sj {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
