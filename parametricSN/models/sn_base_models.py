@@ -121,7 +121,8 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, parameterization='canonical', L=16):
+                 filter_video=False, parameterization='canonical', L=16,
+                 Q_learned=False, Q=1.0):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -176,7 +177,8 @@ class sn_ScatteringBase(Scattering2D):
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
 
-        self.psi , wavelets =   update_wavelets_psi(J,L, self.psi, shape, self.params_filters, self.equivariant)
+        self.psi , wavelets =   update_wavelets_psi(J,L, self.psi, shape,
+                self.params_filters,1.0, self.equivariant)
         self.filterNum = wavelets.shape[2]
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)
@@ -199,7 +201,11 @@ class sn_ScatteringBase(Scattering2D):
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
         self.register_buffer(name='grid', tensor=grid)
-
+        if Q_learned:
+            self.register_parameter('Q', nn.Parameter(torch.tensor(Q,
+                dtype=torch.float32)))
+        else:
+            self.register_buffer('Q', torch.tensor(Q, dtype=torch.float32))
 
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
@@ -207,7 +213,7 @@ class sn_ScatteringBase(Scattering2D):
             if (self.training or self.scatteringTrain) and self.learnable:
                 _, psi = self.load_filters()
                 if not self.pixelwise:
-                    self.psi, wavelets= update_wavelets_psi(self.J,self.L, self.psi, self.grid, self.params_filters, self.equivariant)
+                    self.psi, wavelets= update_wavelets_psi(self.J,self.L,  self.psi, self.grid, self.params_filters, self.Q, self.equivariant)
                 else:
                     wavelets = self.scattering_wavelets
                     self.psi = update_psi(self.J, psi, wavelets)

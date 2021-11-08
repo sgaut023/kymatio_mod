@@ -27,6 +27,7 @@ dataset:
 scattering:
   J: 2
   L: 8
+  Q: 1
   max_order: 2
   lr_scattering: 0.1
   lr_orientation: 0.1
@@ -38,6 +39,7 @@ scattering:
   filter_video: True
   param_distance: True
   save: 'unused'
+  q_learned: False
 
 optim: 
   name: 'sgd' #choices=['adam', 'sgd']
