@@ -121,7 +121,8 @@ class sn_ScatteringBase(Scattering2D):
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
-                 filter_video=False, parameterization='canonical', L=16):
+                 filter_video=False, parameterization='canonical', L=16,
+                 Q_learned=False, Q=1.0):
         """Constructor for the leanable scattering nn.Module
         
         Creates scattering filters and adds them to the nn.parameters if learnable
@@ -196,13 +197,15 @@ class sn_ScatteringBase(Scattering2D):
                 for i in range(0, len(self.params_filters)):
                     self.params_filters[i] = nn.Parameter(self.params_filters[i])
                     self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
-                self.register_parameter(name='Q', param=nn.Parameter(torch.tensor(1.0)))
         else:
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
-            self.register_buffer(name='Q', param=torch.tensor(1.0))
         self.register_buffer(name='grid', tensor=grid)
-
+        if Q_learned:
+            self.register_parameter('Q', nn.Parameter(torch.tensor(Q,
+                dtype=torch.float32)))
+        else:
+            self.register_buffer('Q', torch.tensor(Q, dtype=torch.float32))
 
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 

@@ -96,6 +96,8 @@ def run_train(args):
         parameterization=params['scattering']['parameterization'],
         filter_video=params['scattering']['filter_video'],
         L=params['scattering']['L'],
+        Q=params['scattering']['Q'],
+        Q_learned=params['scattering']['q_learned']
     )
 
 
@@ -281,6 +283,7 @@ def main():
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
     subparser.add_argument("--scattering-L", "-sll", type=int)
+    subparser.add_argument("--scattering-Q", "-sq", type=float)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)
@@ -290,11 +293,12 @@ def main():
     subparser.add_argument("--scattering-max-lr", "-smaxlr", type=float)
     subparser.add_argument("--scattering-div-factor", "-sdivf", type=int)
     subparser.add_argument("--scattering-architecture", "-sa", type=str, choices=['scattering','identity'])
-    subparser.add_argument("--scattering-parameterization", "-spw", type=str, choices=['pixelwise', 'equivariant', 'canonical'])   
+    subparser.add_argument("--scattering-parameterization", "-spw", type=str, choices=['pixelwise', 'equivariant', 'canonical'])
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
     subparser.add_argument("--scattering-save", "-save", type=str)
+    subparser.add_argument("--scattering-q-learned", "-sql", type=int, choices=[0,1])
 
 
     #optim
@@ -325,7 +329,7 @@ def main():
 
     for key in ['optim_three_phase','scattering_learnable',
                 'scattering_second_order','scattering_three_phase',
-                'scattering_filter_video','scattering_param_distance']:
+                'scattering_filter_video','scattering_param_distance','scattering_q_learned']:
         if args.__dict__[key] != None:
             args.__dict__[key] = bool(args.__dict__[key]) #make 0 and 1 arguments booleans
 
