@@ -24,8 +24,9 @@ TRAIN_SAMPLE_NUM = 500
 TRAIN_BATCH_SIZE = 128
 AUGMENT = 'original-cifar'
 P = 'canonical'
-L = 12
+L = 8
 
+SAVE='test'
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
@@ -36,8 +37,8 @@ if __name__ == '__main__':
 
             LEARNABLE, INIT = aa
 
-            command = "{} {} run-train -spw {} -sll {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,P,L,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
+            command = "{} {} run-train -spw {} -sll {} -save {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
+                PYTHON,RUN_FILE,P,L,SAVE,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
             commands.append(command)
     
 

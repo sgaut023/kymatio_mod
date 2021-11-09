@@ -23,24 +23,36 @@ SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
 TRAIN_BATCH_SIZE = 128
 AUGMENT = "original-cifar"
-L=8
-P = 'canonical'
-
+P =  'canonical'#'equivariant' #
+L=16
+J=2
+# 14, 3
+# 12, 4
+# 10, 5
+# 8, 6, 7
+SAVE='state_dict_J2_Q1'
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
 
     commands = []
 
     for SEED in [207715039]:
-        for aa in [(1,"Tight-Frame")]:
-            LEARNABLE, INIT = aa
+        for L in [16, 2]:
+            for aa in [(1,"Tight-Frame")]:
+                LEARNABLE, INIT = aa
+                command = "{} {} run-train -save {} -oname {} -olr {} -spw {} -gseed {}  -sj {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} -sll {} {}".format(
+                    PYTHON,RUN_FILE,SAVE,OPTIM,LR,P,SEED,J,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,L,DATA_ARG)
 
-            command = "{} {} run-train -spw {} -sll {} -oname {} -olr {} -gseed {} -sl {} -me {} -omaxlr {} -odivf {} -sip {} -dtsn {} -os {} -daug {} -en {} -dtbs {} {}".format(
-                PYTHON,RUN_FILE,P,L,OPTIM,LR,SEED,LEARNABLE,EPOCHS,LRMAX,DF,INIT,TRAIN_SAMPLE_NUM,SCHEDULER,AUGMENT,mlflow_exp_name,TRAIN_BATCH_SIZE,DATA_ARG)
-            commands.append(command)
+                commands.append(command)
     
 
     experiments_mpCommands(
         processBatchSize=PROCESS_BATCH_SIZE,
         commands=commands
     )
+
+
+
+
+
+

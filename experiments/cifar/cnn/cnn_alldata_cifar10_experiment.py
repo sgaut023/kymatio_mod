@@ -6,7 +6,7 @@ from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 mlflow_exp_name = os.path.basename(__file__)
 
-PROCESS_BATCH_SIZE = 2
+PROCESS_BATCH_SIZE = 1
 
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
@@ -22,8 +22,8 @@ INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 SCHEDULER = "OneCycleLR"
 TRAIN_SAMPLE_NUM = 50000
-TRAIN_BATCH_SIZE = 1024
-AUGMENT = "autoaugment"
+TRAIN_BATCH_SIZE = 128
+AUGMENT = 'original-cifar'
 MODEL = "cnn"
 PHASE_ENDS = " ".join(["100","200"])
 SCATT_ARCH = 'scattering'
@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     commands = []
 
-    for SEED in [491659600,207715039,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:
+    for SEED in [207715039]:#,737523103,493572006,827192296,877498678,1103100946,1210393663,1277404878,1377264326]:491659600,
         for aa in [(1,"Tight-Frame"),(0,"Tight-Frame"),(1,"Random"),(0,"Random")]:
             LEARNABLE, INIT = aa
 
