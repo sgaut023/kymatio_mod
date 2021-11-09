@@ -41,10 +41,10 @@ def update_wavelets_psi(J, L, psi, shape, params_filters, Q=1, equivariant=False
         else:
             xis = []
             sigmas = []
-            for l in range(L):
-                for j in range(J):
-                    xis.append(params_filters[1][l*J +j]*(2**(j-j/Q)))
-                    sigmas.append(params_filters[2][l*J +j]*(2**((j/Q) - j)))
+            for j in range(J):
+                for l in range(L):
+                    xis.append(params_filters[1][l+j*L]*(2**(j-j/Q)))
+                    sigmas.append(params_filters[2][l+j*L]*(2**((j/Q) - j)))
             xis = torch.stack(xis)
             sigmas = torch.stack(sigmas)
             wavelets  = morlets(shape, params_filters[0], xis,
