@@ -41,10 +41,13 @@ def update_wavelets_psi(J, L, psi, shape, params_filters, Q=1, equivariant=False
         else:
             xis = []
             sigmas = []
+            offset = 0
             for j in range(J):
                 for l in range(L):
-                    xis.append(params_filters[1][l+j*L]*(2**(j-j/Q)))
-                    sigmas.append(params_filters[2][l+j*L]*(2**((j/Q) - j)))
+                    for res in range(0, min(j + 1, max(J - 1, 1))):
+                        xis.append(params_filters[1][l+j*L+offset+res]*(2**(j-j/Q)))
+                        sigmas.append(params_filters[2][l+j*L+offset+res]*(2**((j/Q) - j)))
+                    offset += res
             xis = torch.stack(xis)
             sigmas = torch.stack(sigmas)
             wavelets  = morlets(shape, params_filters[0], xis,
@@ -71,14 +74,15 @@ def update_psi(J, psi, wavelets):
             d[0] = wavelets[i]
 
     else:
+        offset = 0
         for i, d in enumerate(psi):
             for res in range(0, J):
                 if res in d.keys():
                     if res == 0:
-                        d[res] = wavelets[i]
+                        d[res] = wavelets[offset]
                     else:
-                        d[res] = periodize_filter_fft(wavelets[i].squeeze(2), res).unsqueeze(2)
-                
+                        d[res] = periodize_filter_fft(wavelets[offset].squeeze(2), res).unsqueeze(2)
+                    offset+= 1
     return psi
 
 def update_equivariant_psi(J,L, psi, shape, params_filters):
@@ -224,12 +228,13 @@ def create_filters_params(J, L, is_scattering_dif, equivariant):
             orientations.append(((int(L-L/2-1)) * np.pi / L)) 
         else:
             for theta in range(L):
-                sigmas.append(0.8 * 2**j)
-                t = ((int(L-L/2-1)-theta) * np.pi / L)
-                xis.append(3.0 / 4.0 * np.pi /2**j)
-                slant = 4.0/L
-                slants.append(slant)
-                orientations.append(t) 
+                for res in range(0, min(j + 1, max(J - 1, 1))):
+                    sigmas.append(0.8 * 2**j)
+                    t = ((int(L-L/2-1)-theta) * np.pi / L)
+                    xis.append(3.0 / 4.0 * np.pi /2**j)
+                    slant = 4.0/L
+                    slants.append(slant)
+                    orientations.append(t) 
      
     xis = torch.tensor(xis, dtype=torch.float32)
     sigmas = torch.tensor(sigmas, dtype=torch.float32)
