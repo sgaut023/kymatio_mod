@@ -16,14 +16,15 @@ Classes:
 import types
 
 import torch
-import cv2
-
 import torch.nn as nn
-
 from kymatio.torch import Scattering2D
 
+<<<<<<< HEAD
 from .create_filters import *
 # from .models_utils import get_filters_visualization, getOneFilter, getAllFilters, compareParams, compareParamsVisualization
+=======
+from .create_filters import morlets, update_psi, create_filters_params_random, create_filters_params, update_wavelets_psi
+>>>>>>> 4387a286b7927446758f631bc2e819e63266ee81
 
 
 class InvalidInitializationException(Exception):
@@ -49,40 +50,9 @@ class sn_Identity(nn.Module):
     def forward(self, x):
         return x
         
-    def saveFilterGrads(self,scatteringActive):
-        pass
 
-    def saveFilterValues(self,scatteringActive):
-        pass
-
-    def plotFilterGrad(self):
-        pass
-
-    def plotFilterGrads(self):
-        pass
-
-    def plotFilterValue(self):
-        pass
-
-    def plotFilterValues(self):
-        pass
-
-    def checkFilterDistance(self):
-        return 0
-    
-    def setEpoch(self, epoch):
-        self.epoch = epoch
-
-    def releaseVideoWriters(self):
-        pass
-        
-    def checkParamDistance(self):
-        pass
-
-    def checkDistance(self,compared):
-        pass
-    
-
+def _register_single_filter(self, v, n):
+    self.register_buffer('tensor' + str(n), v)
 
 
 class sn_ScatteringBase(Scattering2D):
@@ -102,21 +72,6 @@ class sn_ScatteringBase(Scattering2D):
         tempI = "TF" if self.initialization == 'Tight-Frame' else "R"
         return f"{tempI} {tempL}"
 
-    def getFilterViz(self):
-        """generates plots of the filters for ['fourier','real', 'imag' ] visualizations"""
-        filter_viz = {}
-        phi, psi = self.load_filters()
-        for mode in ['fourier','real', 'imag' ]: # visualize wavlet filters before training
-            f = get_filters_visualization(psi, self.J, 8, mode=mode) 
-            filter_viz[mode] = f  
-        return filter_viz
-
-    def getOneFilter(self, count, scale, mode):
-        return getOneFilter(self.psi, count, scale, mode)
-
-    def getAllFilters(self, totalCount, scale, mode):
-        phi, psi = self.load_filters()
-        return getAllFilters(psi, totalCount, scale, mode)
 
     def __init__(self, J, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
@@ -135,10 +90,7 @@ class sn_ScatteringBase(Scattering2D):
             seed -- the random seed used to initialize the parameters
             learnable -- should the filters be learnable parameters of this model
             lr_orientation -- learning rate for the orientation of the scattering parameters
-            lr_scattering -- learning rate for scattering parameters other than orientation                 
-            monitor_filters -- boolean indicating whether to track filter distances from initialization
-            filter_video -- whether to create filters from 
-
+            lr_scattering -- learning rate for scattering parameters other than orientation
         """
         super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N))
 
@@ -149,12 +101,8 @@ class sn_ScatteringBase(Scattering2D):
         self.lr_orientation = lr_orientation
         self.M_coefficient = self.M/(2**self.J)
         self.N_coefficient = self.N/(2**self.J)
-        self.monitor_filters = monitor_filters
-        self.filter_video = filter_video
-        self.epoch = 0
         self.parameterization = parameterization
-     
-        self.J =J
+        self.scatteringTrain = True
 
         L = self.L
 
@@ -177,8 +125,12 @@ class sn_ScatteringBase(Scattering2D):
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
 
+<<<<<<< HEAD
         print(self.params_filters)
         self.psi , wavelets = update_wavelets_psi(J, self.psi, shape, self.params_filters, self.equivariant)
+=======
+        self.psi , wavelets =   update_wavelets_psi(J, L, self.psi, shape, self.params_filters, self.equivariant)
+>>>>>>> 4387a286b7927446758f631bc2e819e63266ee81
         self.filterNum = wavelets.shape[2]
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)
@@ -197,28 +149,38 @@ class sn_ScatteringBase(Scattering2D):
                 for i in range(0, len(self.params_filters)):
                     self.params_filters[i] = nn.Parameter(self.params_filters[i])
                     self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])
+                self.params_filters = nn.ParameterList(self.params_filters)
         else:
             for i in range(0, len(self.params_filters)):
                 self.register_buffer(name='scattering_params_'+str(i), tensor=self.params_filters[i])
+            buffer_dict = dict(self.named_buffers())
+            
+            for i in range(0, len(self.params_filters)):
+                self.params_filters[i] = buffer_dict['scattering_params_'+str(i)]
+
+
         self.register_buffer(name='grid', tensor=grid)
 
 
+        
         def updateFilters_hook(self, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
             if (self.training or self.scatteringTrain) and self.learnable:
                 _, psi = self.load_filters()
                 if not self.pixelwise:
-                    self.psi, wavelets= update_wavelets_psi(J, self.psi, self.grid, self.params_filters, self.equivariant)
+                    wavelets = morlets(self.grid, 
+                            self.scattering_params_0,
+                            self.scattering_params_1,
+                            self.scattering_params_2, 
+                            self.scattering_params_3)
                 else:
                     wavelets = self.scattering_wavelets
-                    self.psi = update_psi(self.J, psi, wavelets)
 
+                self.psi = update_psi(self.J, psi, wavelets)
                 self.register_filters()
                 self.scatteringTrain = self.training
-                self.writeVideoFrame()
-
-        self.register_forward_pre_hook(updateFilters_hook)
+        self.pre_hook = self.register_forward_pre_hook(updateFilters_hook)
 
         def reshape_hook(self, x, S):
             S = S[:,:, -self.n_coefficients:,:,:]
@@ -227,18 +189,6 @@ class sn_ScatteringBase(Scattering2D):
 
         self.register_forward_hook(reshape_hook)
 
-        # visualization code
-        self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
-        self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
-
-        self.filters_plots_before = self.getFilterViz()
-        self.scatteringTrain = True
-                    
-        if self.monitor_filters == True:
-            compared_params = self.params_filters
-            self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]],dim=1)
-            self.compared_params_angle = compared_params[0] % (2 * np.pi)
-            self.params_history = []
 
     def set_parameterization(self):
         '''
@@ -255,6 +205,36 @@ class sn_ScatteringBase(Scattering2D):
             self.equivariant = True
         else:
             raise InvalidParameterizationException
+
+# <<<<<<< HEAD
+#         # visualization code
+#         self.filterTracker = {'1':[],'2':[],'3':[], 'scale':[], 'angle': []}
+#         self.filterGradTracker = {'angle': [],'1':[],'2':[],'3':[]}
+
+#         self.filters_plots_before = self.getFilterViz()
+#         self.scatteringTrain = True
+                    
+#         if self.monitor_filters == True:
+#             compared_params = self.params_filters
+#             self.compared_params_grouped = torch.cat([x.unsqueeze(1) for x in compared_params[1:]],dim=1)
+#             self.compared_params_angle = compared_params[0] % (2 * np.pi)
+#             self.params_history = []
+
+#     def set_parameterization(self):
+#         '''
+#         Set the parameterization of the scattering network
+#         '''
+#         if self.parameterization =='canonical':
+#             self.pixelwise = False
+#             self.equivariant = False
+#         elif self.parameterization =='pixelwise':
+#             self.pixelwise = True
+#             self.equivariant = False
+#         elif self.parameterization =='equivariant':
+#             self.pixelwise = False
+#             self.equivariant = True
+#         else:
+#             raise InvalidParameterizationException
         
 
 

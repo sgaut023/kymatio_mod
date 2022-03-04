@@ -233,6 +233,10 @@ def run_train(args):
     #TODO
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
+<<<<<<< HEAD
+=======
+        # THIS CODE GETS BROKCEN? 
+>>>>>>> 4387a286b7927446758f631bc2e819e63266ee81
         filters_plots_before = viewers.filters_plots_before
         #hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
         filters_plots_after = viewers.getFilterViz() #get filter plots
