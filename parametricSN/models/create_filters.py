@@ -181,7 +181,7 @@ def create_filters_params_random(J, L, is_scattering_dif, equivariant=False):
 
     return  params
 
-def create_filters_params(J, L, is_scattering_dif, equivariant):
+def create_filters_params(J, L, is_scattering_dif, equivariant=False):
     """ Create reusable tight frame initialized filter parameters: orientations, xis, sigmas, sigmas     
 
         Parameters:

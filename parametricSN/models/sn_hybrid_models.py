@@ -31,9 +31,6 @@ class sn_HybridModel(nn.Module):
     def forward(self,inp):
         return self.top(self.scatteringBase(inp))
 
-    def setEpoch(self, epoch):
-        self.scatteringBase.setEpoch(epoch)
-
     def showParams(self):
         """prints shape of all parameters and is_leaf"""
         for x in self.parameters():
