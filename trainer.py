@@ -23,9 +23,15 @@ if args.data_root != None and args.data_folder != None:
 if args.python != None:
     DATA_ARG = DATA_ARG + " -p {}".format(args.python)
 
-for ds in ['xray','kth','cifar']:
-    for fn in os.listdir("/home/benjamin/Documents/github/kymatio_mod/experiments/{}/filter_monitoring".format(ds)):
-        os.system("{} experiments/{}/filter_monitoring/{}".format(sys.executable,ds,fn))
 
 
+def runAllInPath(path):
+    for fn in os.listdir(path):
+        os.system("{} {} &".format(sys.executable,os.path.join(path,fn)))
+
+ds = 'cifar'
+path = "/home/therien/Documents/github/kymatio_mod/experiments/{}/learning_curve_comparison".format(ds)
+
+runAllInPath(path)
 exit(0)
+# 22.320272M

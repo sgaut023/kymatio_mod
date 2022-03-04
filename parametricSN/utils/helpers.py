@@ -375,3 +375,7 @@ def logComparison(mlflow_exp_name):
 
 
 
+def getExpName(file):
+    return "-".join(file.split("/")[7:])
+
+
