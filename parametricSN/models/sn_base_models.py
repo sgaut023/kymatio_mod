@@ -120,7 +120,7 @@ class sn_ScatteringBase(Scattering2D):
         ranges = [torch.arange(-(s // 2), -(s // 2) + s, dtype=torch.float) for s in shape]
         grid = torch.stack(torch.meshgrid(*ranges), 0)
 
-        self.psi , wavelets =   update_wavelets_psi(J, self.psi, shape, self.params_filters, self.equivariant)
+        self.psi , wavelets =   update_wavelets_psi(J, L, self.psi, shape, self.params_filters, self.equivariant)
         self.filterNum = wavelets.shape[2]
 
         self.register_single_filter = types.MethodType(_register_single_filter, self)

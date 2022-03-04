@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 sys.path.append(str(Path.cwd()))
 import torch
 
-def update_wavelets_psi(J, psi, shape, params_filters, equivariant=False):
+def update_wavelets_psi(J, L, psi, shape, params_filters, equivariant=False):
         """ Create wavelets and update the psi dictionnary with the new wavelets
 
             Parameters:
@@ -37,7 +37,7 @@ def update_wavelets_psi(J, psi, shape, params_filters, equivariant=False):
                 wavelets -- wavelets filters
         """
         if equivariant:
-                psi , wavelets = update_equivariant_psi(J, psi, shape, params_filters)
+                psi , wavelets = update_equivariant_psi(J, L, psi, shape, params_filters)
         else:
                 wavelets  = morlets(shape, params_filters[0], params_filters[1],
                                     params_filters[2], params_filters[3])
@@ -73,7 +73,7 @@ def update_psi(J, psi, wavelets):
                 
     return psi
 
-def update_equivariant_psi(J, psi, shape, params_filters):
+def update_equivariant_psi(J, L, psi, shape, params_filters):
     """ Update the psi dictionnary with the new wavelets 
         when equivariant = True
 
@@ -94,7 +94,7 @@ def update_equivariant_psi(J, psi, shape, params_filters):
             for res in range(0, J-1):
                 if res in d.keys():
                     if res == 0:
-                        orientation = (params_filters[0][d['j']] - d['theta']*(np.pi/8)).unsqueeze(0)
+                        orientation = (params_filters[0][d['j']] - d['theta']*(np.pi/L)).unsqueeze(0)
                         wavelet = morlets(shape, orientation, 
                                         params_filters[1][d['j']].unsqueeze(0), 
                                         params_filters[2][d['j']].unsqueeze(0),
