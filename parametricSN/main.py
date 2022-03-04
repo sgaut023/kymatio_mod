@@ -104,7 +104,7 @@ def run_train(args):
         width= params['model']['width'], 
     )
 
-    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #creat hybrid model
+    hybridModel = sn_HybridModel(scatteringBase=scatteringBase, top=top).to(device) #create hybrid model
 
     optimizer = optimizerFactory(hybridModel=hybridModel, params=params)
 
@@ -139,6 +139,10 @@ def run_train(args):
     
     params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
+
+    if params['scattering']['filter_video']:
+        print("Setting up VideoWriters")
+        hybridModel.scatteringBase.setupFilterVideo(params['model']['epoch'],params['dataset']['name'])
 
     train, test = train_test_factory(params['model']['loss'])
 
@@ -208,9 +212,9 @@ def run_train(args):
 
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
-        # THIS CODE GETS BROKCEN? 
+        # THIS CODE GETS BROKEN? 
         filters_plots_before = hybridModel.scatteringBase.filters_plots_before
-        #hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
+        # hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
         filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
         filters_values = hybridModel.scatteringBase.plotFilterValues()
         filters_grad = hybridModel.scatteringBase.plotFilterGrads()
@@ -275,8 +279,6 @@ def main():
     subparser.add_argument("--scattering-three-phase", "-stp", type=int, choices=[0,1])
     subparser.add_argument("--scattering-filter-video", "-sfv", type=int, choices=[0,1])
     subparser.add_argument("--scattering-param-distance", "-spd", type=int, choices=[0,1])
-
-
     #optim
     subparser.add_argument("--optim-name", "-oname", type=str,choices=['adam', 'sgd'])
     subparser.add_argument("--optim-lr", "-olr", type=float)
@@ -289,7 +291,6 @@ def main():
     subparser.add_argument("--optim-phase-num", "-opn", type=int)
     subparser.add_argument("--optim-phase-ends", "-ope", nargs="+", default=None)
     subparser.add_argument("--optim-T-max", "-otmax", type=int)
-
     #model 
     subparser.add_argument("--model-name", "-mname", type=str, choices=['cnn', 'mlp', 'linear_layer', 'resnet50'])
     subparser.add_argument("--model-width", "-mw", type=int)

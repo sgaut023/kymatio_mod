@@ -223,6 +223,7 @@ class sn_ScatteringBase(Scattering2D):
             S = S[:,:, -self.n_coefficients:,:,:]
             S = S.reshape(S.size(0), self.n_coefficients*3, S.size(3), S.size(4))
             return S
+
         self.register_forward_hook(reshape_hook)
 
         # visualization code
@@ -238,31 +239,33 @@ class sn_ScatteringBase(Scattering2D):
             self.compared_params_angle = compared_params[0] % (2 * np.pi)
             self.params_history = []
 
-        if self.filter_video:
-            self.videoWriters = {}
-            self.videoWriters['real'] = cv2.VideoWriter('videos/scatteringFilterProgressionReal{}epochs.avi'.format("--"),
-                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
-            self.videoWriters['imag'] = cv2.VideoWriter('videos/scatteringFilterProgressionImag{}epochs.avi'.format("--"),
-                                              cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
-            self.videoWriters['fourier'] = cv2.VideoWriter('videos/scatteringFilterProgressionFourier{}epochs.avi'.format("--"),
-                                                 cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+
+    def setupFilterVideo(self,epochNum,dataset):
+        self.videoWriters = {}
+        self.videoWriters['real'] = cv2.VideoWriter('videos/scattFilterReal{}{}epochs.avi'.format(dataset,epochNum),
+                                        cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+        self.videoWriters['imag'] = cv2.VideoWriter('videos/scattFilterImag{}{}epochs.avi'.format(dataset,epochNum),
+                                        cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
+        self.videoWriters['fourier'] = cv2.VideoWriter('videos/scattFilterFourier{}{}epochs.avi'.format(dataset,epochNum),
+                                            cv2.VideoWriter_fourcc(*'DIVX'), 30, (160,160), isColor=True)
 
 
     def set_parameterization(self):
-            '''
-            Set the parameterization of the scattering network
-            '''
-            if self.parameterization =='canonical':
-                self.pixelwise = False
-                self.equivariant = False
-            elif self.parameterization =='pixelwise':
-                self.pixelwise = True
-                self.equivariant = False
-            elif self.parameterization =='equivariant':
-                self.pixelwise = False
-                self.equivariant = True
-            else:
-                raise InvalidParameterizationException
+        '''
+        Set the parameterization of the scattering network
+        '''
+        if self.parameterization =='canonical':
+            self.pixelwise = False
+            self.equivariant = False
+        elif self.parameterization =='pixelwise':
+            self.pixelwise = True
+            self.equivariant = False
+        elif self.parameterization =='equivariant':
+            self.pixelwise = False
+            self.equivariant = True
+        else:
+            raise InvalidParameterizationException
+
     def writeVideoFrame(self):
         """Writes frames to the appropriate video writer objects"""
         if self.filter_video:

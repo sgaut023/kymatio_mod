@@ -26,7 +26,7 @@ AUGMENT = "autoaugment"
 SCATT_LRMAX = 0.000
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
-PIXELWISE = 1
+PIXELWISE = 'pixelwise'
 
 
 if __name__ == '__main__':

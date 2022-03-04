@@ -27,7 +27,7 @@ SCATT_LRMAX = 0.2
 SCATT_DF = 25
 SCATT_THREE_PHASE = 1
 
-PIXELWISE = 1
+PIXELWISE = 'pixelwise'
 
 if __name__ == '__main__':
     PYTHON, DATA_ARG = experiments_cli()
