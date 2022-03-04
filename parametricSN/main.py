@@ -28,6 +28,7 @@ from parametricSN.utils.helpers import estimateRemainingTime
 from parametricSN.utils.optimizer_factory import optimizerFactory
 from parametricSN.utils.scheduler_factory import schedulerFactory
 from parametricSN.data_loading.dataset_factory import datasetFactory
+from parametricSN.visualization.viewer import filterVisualizer
 
 from parametricSN.models.models_factory import topModelFactory, baseModelFactory
 from parametricSN.models.sn_hybrid_models import sn_HybridModel
@@ -66,6 +67,13 @@ def run_train(args):
     params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
+    print(params['dataset']['train_sample_num'],
+            params['dataset']['test_sample_num'],
+            params['dataset']['train_batch_size'],
+            params['dataset']['test_batch_size'], 
+            params['dataset']['augment'])
+
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     DATA_DIR = get_data_root(params['dataset']['name'], params['dataset']['data_root'], params['dataset']['data_folder'])
@@ -94,6 +102,9 @@ def run_train(args):
         parameterization=params['scattering']['parameterization'],
         filter_video=params['scattering']['filter_video'],
     )
+
+    viewers = filterVisualizer(scatteringBase, params['general']['seed'])
+    lp_init = viewers.littlewood_paley_dekha()
 
     setAllSeeds(seed=params['general']['seed'])
     
@@ -133,23 +144,28 @@ def run_train(args):
 
     trainTime = []
     testTime = []
-
+    print(params['scattering']['param_distance'])
+    print(params['scattering']['filter_video'])
+         
+    #TODO
     if params['scattering']['param_distance']: 
-        param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+        param_distance.append(viewers.checkParamDistance())
     
     params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
-    if params['scattering']['filter_video']:
-        print("Setting up VideoWriters")
-        hybridModel.scatteringBase.setupFilterVideo(params['model']['epoch'],params['dataset']['name'])
+    # if params['scattering']['filter_video']:
+    #     print("Setting up VideoWriters")
+    #     hybridModel.scatteringBase.setupFilterVideo(params['model']['epoch'],params['dataset']['name'])
 
     train, test = train_test_factory(params['model']['loss'])
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
-        hybridModel.scatteringBase.setEpoch(epoch)
+        #TODO
+        viewers.setEpoch(epoch)
 
+        #TODO
         try:
             lrs.append(optimizer.param_groups[0]['lr'])
             if params['scattering']['learnable']:
@@ -163,8 +179,9 @@ def run_train(args):
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         
+        #TODO
         if params['scattering']['param_distance']: 
-            param_distance.append(hybridModel.scatteringBase.checkParamDistance())
+            param_distance.append(viewers.checkParamDistance())
 
         trainTime.append(time.time()-t1)
         if epoch % params['model']['step_test'] == 0 or epoch == params['model']['epoch'] -1: #check test accuracy
@@ -176,12 +193,14 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
+    #TODO
     if params['scattering']['filter_video']:
-        hybridModel.scatteringBase.releaseVideoWriters()
+        viewers.releaseVideoWriters()
 
-    if params['scattering']['param_distance'] and params['scattering']['parameterization']=='canonical':
-        compareParamsVisualization = hybridModel.scatteringBase.compareParamsVisualization()
-        torch.save(hybridModel.scatteringBase.params_history,
+    #TODO
+    if params['scattering']['param_distance']:
+        compareParamsVisualization = viewers.compareParamsVisualization()
+        torch.save(viewers.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
     else:
         compareParamsVisualization = None
@@ -205,20 +224,22 @@ def run_train(args):
     #visualize learning rates
     f_lr = visualize_learning_rates(lrs, lrs_orientation, lrs_scattering)
 
+    #TODO
     paramDistancePlot = getSimplePlot(xlab='Epochs', ylab='Min Distance to TF params',
         title='Learnable parameters progress towards the TF initialization parameters', label='Dist to TF params',
         xvalues=[x+1 for x in range(len(param_distance))], yvalues=param_distance)
 
 
+    #TODO
     if params['scattering']['architecture']  == 'scattering':
         #visualize filters
-        # THIS CODE GETS BROKEN? 
-        filters_plots_before = hybridModel.scatteringBase.filters_plots_before
-        # hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
-        filters_plots_after = hybridModel.scatteringBase.getFilterViz() #get filter plots
-        filters_values = hybridModel.scatteringBase.plotFilterValues()
-        filters_grad = hybridModel.scatteringBase.plotFilterGrads()
-        filters_parameters = hybridModel.scatteringBase.plotParameterValues()
+        filters_plots_before = viewers.filters_plots_before
+        #hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
+        filters_plots_after = viewers.getFilterViz() #get filter plots
+        filters_values = viewers.plotFilterValues()
+        filters_grad = viewers.plotFilterGrads()
+        filters_parameters = viewers.plotParameterValues()
+        lp_end = viewers.littlewood_paley_dekha()
     else:
         filters_plots_before = None
         filters_plots_after = None
@@ -232,7 +253,8 @@ def run_train(args):
         train_loss=np.array(train_losses).round(2), start_time=start_time, 
         filters_plots_before=filters_plots_before, filters_plots_after=filters_plots_after,
         misc_plots=[f_loss, f_accuracy, f_accuracy_benchmark, filters_grad, 
-        filters_values, filters_parameters, f_lr, paramDistancePlot,compareParamsVisualization]
+        filters_values, filters_parameters, f_lr,
+        paramDistancePlot,compareParamsVisualization, lp_init, lp_end]
     )
     
 
