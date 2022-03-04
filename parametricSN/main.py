@@ -103,8 +103,11 @@ def run_train(args):
         filter_video=params['scattering']['filter_video'],
     )
 
-    viewers = filterVisualizer(scatteringBase, params['general']['seed'])
-    lp_init = viewers.littlewood_paley_dekha()
+    if params['scattering']['architecture']  == 'scattering':
+        viewers = filterVisualizer(scatteringBase, params['general']['seed'])
+        lp_init = viewers.littlewood_paley_dekha()
+    else:
+        lp_init = None
 
     setAllSeeds(seed=params['general']['seed'])
     
@@ -144,28 +147,23 @@ def run_train(args):
 
     trainTime = []
     testTime = []
-    print(params['scattering']['param_distance'])
-    print(params['scattering']['filter_video'])
          
     #TODO
-    if params['scattering']['param_distance']: 
+    if params['scattering']['param_distance'] and params['scattering']['architecture']  == 'scattering': 
         param_distance.append(viewers.checkParamDistance())
     
     params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
 
-    # if params['scattering']['filter_video']:
-    #     print("Setting up VideoWriters")
-    #     hybridModel.scatteringBase.setupFilterVideo(params['model']['epoch'],params['dataset']['name'])
 
     train, test = train_test_factory(params['model']['loss'])
 
     for epoch in  range(0, params['model']['epoch']):
         t1 = time.time()
-        #TODO
-        viewers.setEpoch(epoch)
+        
+        if params['scattering']['architecture']  == 'scattering':
+            viewers.setEpoch(epoch)
 
-        #TODO
         try:
             lrs.append(optimizer.param_groups[0]['lr'])
             if params['scattering']['learnable']:
@@ -179,8 +177,8 @@ def run_train(args):
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
         
-        #TODO
-        if params['scattering']['param_distance']: 
+        
+        if params['scattering']['param_distance'] and params['scattering']['architecture']  == 'scattering': 
             param_distance.append(viewers.checkParamDistance())
 
         trainTime.append(time.time()-t1)
@@ -194,11 +192,11 @@ def run_train(args):
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
     #TODO
-    if params['scattering']['filter_video']:
+    if params['scattering']['filter_video'] and params['scattering']['architecture']  == 'scattering':
         viewers.releaseVideoWriters()
 
     #TODO
-    if params['scattering']['param_distance']:
+    if params['scattering']['param_distance'] and params['scattering']['architecture']  == 'scattering':
         compareParamsVisualization = viewers.compareParamsVisualization()
         torch.save(viewers.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
@@ -232,11 +230,7 @@ def run_train(args):
 
     #TODO
     if params['scattering']['architecture']  == 'scattering':
-        #visualize filters
-<<<<<<< HEAD
-=======
-        # THIS CODE GETS BROKCEN? 
->>>>>>> 4387a286b7927446758f631bc2e819e63266ee81
+        #visualize filter
         filters_plots_before = viewers.filters_plots_before
         #hybridModel.scatteringBase.updateFilters() #update the filters based on the latest param update
         filters_plots_after = viewers.getFilterViz() #get filter plots
@@ -250,6 +244,7 @@ def run_train(args):
         filters_values = None
         filters_grad = None
         filters_parameters = None
+        lp_end = None
 
     log_mlflow(
         params=params, model=hybridModel, test_acc=np.array(test_acc).round(2), 

@@ -36,7 +36,6 @@ def update_wavelets_psi(J, L, psi, shape, params_filters, equivariant=False):
                 psi -- dictionnary of filters
                 wavelets -- wavelets filters
         """
-        print(params_filters)
         if equivariant:
                 psi , wavelets = update_equivariant_psi(J, L, psi, shape, params_filters)
         else:
