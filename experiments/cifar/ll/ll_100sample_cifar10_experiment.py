@@ -5,7 +5,7 @@ sys.path.append(str(os.getcwd()))
 from parametricSN.utils.helpers import experiments_cli, experiments_mpCommands
 
 mlflow_exp_name = os.path.basename(__file__)
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 1
 
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
@@ -15,7 +15,7 @@ LRO = 0.1
 LRMAX = 0.06
 DF = 25
 LEARNABLE = 1
-EPOCHS = 5000
+EPOCHS = 200
 INIT = "Tight-Frame"
 RUNS_PER_SEED = 10
 TOTALRUNS = 2 * RUNS_PER_SEED

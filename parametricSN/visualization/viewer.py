@@ -22,7 +22,7 @@ class filterVisualizer(object):
         super(filterVisualizer, self).__init__()
         self.epoch = 0
 
-        scat.pre_hook.remove()
+
         def updateFiltersVideo_hook(scattering, ip):
             """if were using learnable scattering, update the filters to reflect 
             the new parameter values obtained from gradient descent"""
@@ -104,6 +104,7 @@ class filterVisualizer(object):
       ax = plt.subplot()
       ax.imshow(np.fft.fftshift(lp))
       return fig
+
     def littlewood_paley_lollywood(self):
       wavelets = morlets(self.scattering.grid, self.scattering.scattering_params_0, 
                                         self.scattering.scattering_params_1,

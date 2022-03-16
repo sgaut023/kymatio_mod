@@ -9,7 +9,7 @@ def getExpName(file):
     
 mlflow_exp_name = getExpName(__file__)
 
-PROCESS_BATCH_SIZE = 4
+PROCESS_BATCH_SIZE = 2
 
 RUN_FILE = "parametricSN/main.py"
 OPTIM = "sgd"
