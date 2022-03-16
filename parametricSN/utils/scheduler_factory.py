@@ -30,7 +30,6 @@ def schedulerFactory(optimizer, params, steps_per_epoch):
         for group in optimizer.param_groups:
             if 'maxi_lr' in group.keys():
                 group['max_lr'] = group['maxi_lr']
-        print(optimizer.param_groups)
 
     elif params['optim']['scheduler'] =='CosineAnnealingLR':
         scheduler =torch.optim.lr_scheduler.CosineAnnealingLR(

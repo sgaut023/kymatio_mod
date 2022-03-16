@@ -67,13 +67,6 @@ def run_train(args):
     params = get_context(args.param_file) #parse params
     params = override_params(args,params) #override from CLI
 
-    print(params['dataset']['train_sample_num'],
-            params['dataset']['test_sample_num'],
-            params['dataset']['train_batch_size'],
-            params['dataset']['test_batch_size'], 
-            params['dataset']['augment'])
-
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     DATA_DIR = get_data_root(params['dataset']['name'], params['dataset']['data_root'], params['dataset']['data_folder'])
