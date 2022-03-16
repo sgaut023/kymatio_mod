@@ -55,7 +55,7 @@ PIP
 python3 -m venv psn
 source psn/bin/activate
 cd ParametricScatteringNetworks
-pip install -r dependencies/pip_requirements.txt
+pip install -r dependencies/requirements.txt
 ```
 
 
