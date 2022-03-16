@@ -52,9 +52,10 @@ PIP
 -----
 
 ```
-python3 -m venv parametricSN
-source parametricSN/bin/activate
-pip install -r ParametricScatteringNetworks/dependencies/pip_requirements.txt
+python3 -m venv psn
+source psn/bin/activate
+cd ParametricScatteringNetworks
+pip install -r dependencies/pip_requirements.txt
 ```
 
 
