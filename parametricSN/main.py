@@ -83,6 +83,7 @@ def run_train(args):
 
     scatteringBase = baseModelFactory( #creat scattering base model
         architecture=params['scattering']['architecture'],
+        L=params['scattering']['L'],
         J=params['scattering']['J'],
         N=params['dataset']['height'],
         M=params['dataset']['width'],
@@ -144,6 +145,7 @@ def run_train(args):
     #TODO
     if params['scattering']['param_distance'] and params['scattering']['architecture']  == 'scattering': 
         param_distance.append(viewers.checkParamDistance())
+        save_params = []
     
     params['model']['trainable_parameters'] = '%fM' % (countLearnableParams(hybridModel) / 1000000.0)
     print("Starting train for hybridModel with {} parameters".format(params['model']['trainable_parameters']))
@@ -184,6 +186,9 @@ def run_train(args):
             testTime.append(time.time()-t1)
             estimateRemainingTime(trainTime=trainTime,testTime=testTime,epochs=params['model']['epoch'],currentEpoch=epoch,testStep=params['model']['step_test'])
 
+    
+    torch.save(hybridModel.state_dict(),"hmodel_L14.pt")
+
     #TODO
     if params['scattering']['filter_video'] and params['scattering']['architecture']  == 'scattering':
         viewers.releaseVideoWriters()
@@ -193,6 +198,12 @@ def run_train(args):
         compareParamsVisualization = viewers.compareParamsVisualization()
         torch.save(viewers.params_history,
                    os.path.join('/tmp',"{}_{}.pt".format(params['scattering']['init_params'],params['mlflow']['experiment_name'])))
+
+        torch.save(viewers.params_history,
+                   os.path.join('params',"{}_qualitative_params.pt".format(params['dataset']['name'])))
+
+        torch.save(param_distance,
+                   os.path.join('params',"{}_qualitative_distance.pt".format(params['dataset']['name'])))
     else:
         compareParamsVisualization = None
 
@@ -280,6 +291,7 @@ def main():
     subparser.add_argument("--dataset-sample", "-dsam", type=str, choices=['a','b','c','d'])
     #scattering
     subparser.add_argument("--scattering-J", "-sj", type=int)
+    subparser.add_argument("--scattering-L", "-sll", type=int)
     subparser.add_argument("--scattering-max-order", "-smo", type=int)
     subparser.add_argument("--scattering-lr-scattering", "-slrs", type=float)
     subparser.add_argument("--scattering-lr-orientation", "-slro", type=float)

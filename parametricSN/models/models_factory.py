@@ -19,7 +19,7 @@ class InvalidArchitectureError(Exception):
     pass
 
 
-def baseModelFactory(architecture, J, N, M, second_order, initialization, seed, 
+def baseModelFactory(architecture, J, L, N, M, second_order, initialization, seed, 
                      learnable=True, lr_orientation=0.1, lr_scattering=0.1,
                      filter_video=False, parameterization='canonical'):
     """Factory for the creation of the first layer of a hybrid model
@@ -43,6 +43,7 @@ def baseModelFactory(architecture, J, N, M, second_order, initialization, seed,
     elif architecture.lower() == 'scattering':
         return sn_ScatteringBase( #create learnable of non-learnable scattering
             J=J,
+            L=L,
             N=N,
             M=M,
             second_order=second_order,

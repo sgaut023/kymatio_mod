@@ -66,7 +66,7 @@ class sn_ScatteringBase(Scattering2D):
         return f"{tempI} {tempL}"
 
 
-    def __init__(self, J, N, M, second_order, initialization, seed, 
+    def __init__(self, J, L, N, M, second_order, initialization, seed, 
                  learnable=True, lr_orientation=0.1, 
                  lr_scattering=0.1, monitor_filters=True,
                  filter_video=False, parameterization='canonical'):
@@ -85,7 +85,7 @@ class sn_ScatteringBase(Scattering2D):
             lr_orientation -- learning rate for the orientation of the scattering parameters
             lr_scattering -- learning rate for scattering parameters other than orientation
         """
-        super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N))
+        super(sn_ScatteringBase, self).__init__(J=J, shape=(M, N), L=L)
 
         self.second_order = second_order
         self.learnable = learnable
@@ -109,7 +109,7 @@ class sn_ScatteringBase(Scattering2D):
         if initialization == "Tight-Frame":
             self.params_filters = create_filters_params(J, L, learnable, self.equivariant) #kymatio init
         elif initialization == "Random":
-            self.params_filters = create_filters_params_random(J,L, learnable, self.equivariant) #random init
+            self.params_filters = create_filters_params_random(J, L, learnable, self.equivariant) #random init
         else:
             raise InvalidInitializationException
             
@@ -193,3 +193,14 @@ class sn_ScatteringBase(Scattering2D):
             self.equivariant = True
         else:
             raise InvalidParameterizationException
+
+
+    def update_parameters__(self, param_list):
+        """NOT FOR TRAINING Updating the parameters for vizualization purposes only
+        
+        param_list ([nn.Parameter]): list of nn.Parameter objects
+        """
+
+        for i in range(0, len(param_list)):
+            self.params_filters[i] = param_list[i]
+            self.register_parameter(name='scattering_params_'+str(i), param=self.params_filters[i])

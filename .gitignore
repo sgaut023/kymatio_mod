@@ -6,6 +6,9 @@
 mlruns/*
 videos/*
 runs_ben/*
+*.avi
+*.pt
+parametricSN/notebooks/video_*
 
 #custom Shanel
 .vscode/*
